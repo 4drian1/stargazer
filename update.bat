@@ -16,8 +16,14 @@ if not exist .git (
   git pull --ff-only
 )
 if errorlevel 1 (echo [ERROR] git sync failed & pause & exit /b 1)
-echo [2/2] download latest Stargazer.exe from GitHub Releases ...
-powershell -NoProfile -Command "try { $r = Invoke-RestMethod -Uri 'https://api.github.com/repos/1075751936a-netizen/stargazer/releases/latest'; $a = $r.assets | Where-Object { $_.name -eq 'Stargazer.exe' } | Select-Object -First 1; if (-not $a) { Write-Host '[ERROR] no Stargazer.exe asset in latest release'; exit 2 }; Invoke-WebRequest -Uri $a.browser_download_url -OutFile $env:DIST_DIR'\Stargazer.exe'; Write-Host ('downloaded ' + $a.name + ' (' + [math]::Round($a.size/1MB,1) + ' MB) -> ' + $env:DIST_DIR) } catch { Write-Host $_; exit 2 }"
+echo [2/2] get latest release tag and download Stargazer.exe ...
+set "TAG="
+for /f "tokens=2" %%r in ('git ls-remote --tags --refs --sort=-v:refname origin 2^>nul') do (
+  if not defined TAG set "TAG=%%~nxr"
+)
+if not defined TAG (echo [ERROR] no release tag found on remote & pause & exit /b 1)
+echo latest tag: %TAG%
+powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'https://github.com/1075751936a-netizen/stargazer/releases/download/%TAG%/Stargazer.exe' -OutFile $env:DIST_DIR'\Stargazer.exe' } catch { Write-Host $_; exit 2 }"
 if errorlevel 1 (echo [ERROR] exe download failed & pause & exit /b 1)
 echo === done. config and data are NOT touched. ===
 pause
