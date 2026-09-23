@@ -208,6 +208,20 @@ def dual_list_run(cfg, date):
                            finished_at=None)
 
     def _work():
+        refresh = os.path.join(os.path.dirname(script), "refresh_pool.py")
+        try:
+            notifier.log("交易计划：数据增量+池刷新子进程启动（refresh_pool.py）")
+            rp = subprocess.run(
+                [settings["rule_python"], "-X", "utf8", refresh],
+                cwd=os.path.dirname(script), env=_env(), capture_output=True,
+                timeout=1800,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=False)
+            rp_out = _decode_output(rp.stdout or b"") + _decode_output(rp.stderr or b"")
+            notifier.log(f"交易计划：池刷新结束 rc={rp.returncode}")
+            if rp.returncode != 0:
+                raise RuntimeError("refresh_pool 失败：" + rp_out[-400:])
+        except Exception as exc:
+            notifier.log(f"交易计划：refresh_pool 异常 {exc}")
         cmd = [settings["rule_python"], "-X", "utf8", script, "--date", date]
         try:
             notifier.log(f"交易计划：盘后选股子进程启动（date={date}）")
