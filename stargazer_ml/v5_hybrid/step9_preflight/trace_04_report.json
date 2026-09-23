@@ -1,0 +1,170 @@
+{
+  "n_samples": 118,
+  "drop_reasons": {
+    "missing_minute": 2
+  },
+  "exceptions": [],
+  "global_anomaly_checks": {
+    "zone_distance_atr_nan": 0,
+    "zone_distance_atr_nan_rate": 0.0,
+    "zone_valid0_count": 0,
+    "zone_valid0_rate": 0.0,
+    "final_state_distribution": {
+      "INVALIDATED": 38,
+      "ZONE_TOUCH": 28,
+      "MODEL_SCORE_REQUEST": 18,
+      "ZONE_APPROACH": 14,
+      "BREAKDOWN": 14,
+      "WATCH": 6
+    },
+    "watch_rate": 0.0508,
+    "transition_time_disorder_count": 0,
+    "avwap_misused_as_formal_count": 0,
+    "avwap_zone_seen": 118,
+    "avwap_proxy_origin_not_PROXY_count": 0
+  },
+  "scenarios": {
+    "1_BOTTOM_hold_zone": {
+      "n": 15,
+      "final_state_distribution": {
+        "INVALIDATED": 7,
+        "WATCH": 3,
+        "ZONE_TOUCH": 3,
+        "MODEL_SCORE_REQUEST": 1,
+        "ZONE_APPROACH": 1
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "SWING_LOW": 7,
+        "BOLL_LOWER|PREV_SUPPORT|SWING_LOW": 2,
+        "BOLL_LOWER|INTEGER_PRICE|PREV_SUPPORT|SWING_LOW": 2,
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "BOLL_LOWER|INTEGER_PRICE|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|SWING_LOW": 1
+      },
+      "primary_zone_source_sample": [
+        "BOLL_LOWER|PREV_SUPPORT|SWING_LOW",
+        "SWING_LOW",
+        "SWING_LOW"
+      ]
+    },
+    "2_DIP_touch_reclaim": {
+      "n": 4,
+      "final_state_distribution": {
+        "MODEL_SCORE_REQUEST": 4
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 4
+      },
+      "primary_zone_source_sample": [
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW",
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW",
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW"
+      ]
+    },
+    "3_DIP_touch_breakdown": {
+      "n": 0,
+      "note": "no matching real sample"
+    },
+    "4_PRE_PULLBACK_no_touch": {
+      "n": 7,
+      "final_state_distribution": {
+        "ZONE_APPROACH": 7
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 2,
+        "BOLL_LOWER|PLATFORM_LOW|SWING_LOW": 1,
+        "BOLL_LOWER|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM_HIGH|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|MA20|PLATFORM|PLATFORM_HIGH|SWING_LOW": 1
+      },
+      "primary_zone_source_sample": [
+        "BOLL_LOWER|PLATFORM_LOW|SWING_LOW",
+        "BOLL_LOWER|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW",
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW"
+      ]
+    },
+    "5_SECOND_TEST_higher_low": {
+      "n": 0,
+      "note": "no matching real sample"
+    },
+    "6_corporate_action_near": {
+      "n": 15,
+      "final_state_distribution": {
+        "ZONE_TOUCH": 7,
+        "INVALIDATED": 4,
+        "MODEL_SCORE_REQUEST": 3,
+        "WATCH": 1
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 7,
+        "SWING_LOW": 4,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_LOW|SWING_LOW": 1,
+        "BOLL_LOWER|PREV_SUPPORT|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM_HIGH|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|MA20|PLATFORM|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1
+      },
+      "primary_zone_source_sample": [
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_LOW|SWING_LOW",
+        "SWING_LOW",
+        "BOLL_LOWER|PREV_SUPPORT|SWING_LOW"
+      ]
+    },
+    "7_halt_or_missing_minute": {
+      "n": 15,
+      "final_state_distribution": {
+        "INVALIDATED": 15
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "SWING_LOW": 13,
+        "MA20|PLATFORM|PLATFORM_HIGH|SWING_LOW": 1,
+        "BOLL_LOWER|PLATFORM|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1
+      },
+      "primary_zone_source_sample": [
+        "MA20|PLATFORM|PLATFORM_HIGH|SWING_LOW",
+        "SWING_LOW",
+        "BOLL_LOWER|PLATFORM|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW"
+      ]
+    },
+    "8_early_session_touch": {
+      "n": 15,
+      "final_state_distribution": {
+        "ZONE_TOUCH": 11,
+        "MODEL_SCORE_REQUEST": 3,
+        "BREAKDOWN": 1
+      },
+      "zone_valid0_rate": 0.0,
+      "zone_distance_atr_nan_rate": 0.0,
+      "primary_zone_source_distribution": {
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 6,
+        "BOLL_LOWER|INTEGER_PRICE|PREV_SUPPORT|SWING_LOW": 2,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|SWING_LOW": 2,
+        "BOLL_LOWER|INTEGER_PRICE|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_LOW|SWING_LOW": 1,
+        "AVWAP_PROXY_DAILY|BOLL_LOWER|INTEGER_PRICE|MA20|PLATFORM|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1,
+        "BOLL_LOWER|PLATFORM|PLATFORM_HIGH|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW": 1
+      },
+      "primary_zone_source_sample": [
+        "BOLL_LOWER|INTEGER_PRICE|PREV_SUPPORT|SWING_LOW",
+        "BOLL_LOWER|INTEGER_PRICE|PLATFORM_LOW|PREV_SUPPORT|SWING_LOW",
+        "SWING_LOW"
+      ]
+    },
+    "8b_late_session_touch": {
+      "n": 0,
+      "note": "no matching real sample"
+    }
+  }
+}

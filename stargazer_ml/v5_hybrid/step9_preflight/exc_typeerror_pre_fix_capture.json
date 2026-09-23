@@ -1,0 +1,53 @@
+{
+  "captured_at": "2026-09-18",
+  "captured_from_revision": "latr_builder.py BEFORE _num_or_none fix (旧写法 round(x,5) if not np.isnan(x) else None)",
+  "why_captured": "用户 2026-09-18 #2b: 不允许把 exc:TypeError 作为未知桶带进 Final Freeze, 必须归因到 类型/symbol/date/state/字段/stack。修复后无法再复现, 故在此归档修复前的实测结果。",
+  "original_observation": {
+    "source_run": "trace_04_scenarios.py --budget 160 (orchestrator ④)",
+    "drop_reasons": {"missing_minute": 3, "exc:TypeError": 2},
+    "note": "④ trace 只统计了 exc:TypeError 计数, 未记录 symbol/date/stack -> 本脚本补齐归因"
+  },
+  "targeted_reproduction": {
+    "part1_tail_censored": {
+      "scan_scope": "v11 pool tail plan_dates=[20260914, 20260915, 20260916], head(8) each",
+      "n_attempted": 24,
+      "n_typeerror": 23,
+      "n_engineering_reject": 1,
+      "reject_symbol": "515010",
+      "typeerror_symbols": [
+        ["603896", 20260914], ["000006", 20260914], ["512200", 20260914],
+        ["000420", 20260914], ["300587", 20260914], ["600751", 20260914],
+        ["600748", 20260914], ["300926", 20260915], ["180602", 20260915],
+        ["603299", 20260915], ["603767", 20260915], ["301067", 20260915],
+        ["001233", 20260915], ["600997", 20260915], ["508009", 20260915],
+        ["000701", 20260916], ["603299", 20260916], ["688533", 20260916],
+        ["301008", 20260916], ["301072", 20260916], ["000025", 20260916],
+        ["300864", 20260916], ["002950", 20260916]
+      ]
+    },
+    "part2_synthetic_alpha_unavailable": {
+      "scan_scope": "mid-history candidates (20260101-20260331) + stub proxy 强制 s0_market_alpha_h3=None",
+      "n_attempted": 4,
+      "n_typeerror": 4,
+      "typeerror_symbols": [
+        ["002768", 20260105], ["002768", 20260106],
+        ["301266", 20260107], ["002768", 20260108]
+      ]
+    },
+    "n_typeerror_total": 27,
+    "failing_location": {
+      "file": "latr_builder.py",
+      "lineno": 448,
+      "source_line": "\"s0_alpha_h3\": round(s0_alpha_h3, 5) if not np.isnan(s0_alpha_h3) else None,",
+      "exc_type": "TypeError",
+      "exc_msg": "ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''",
+      "state": "CENSORED_TAIL 分支 (h3_date/h1_date 为 None -> alpha_out 全 None) 或 非删失但 proxy alpha 覆盖缺口 (attach_alpha_labels 返回 None)"
+    },
+    "sibling_failing_field": {
+      "lineno": 450,
+      "source_line": "\"timing_alpha_h1\": round(timing_alpha_h1, 5) if not np.isnan(timing_alpha_h1) else None,",
+      "note": "line 448 先抛; 修 448 后 450 同因会抛 -> 一并修复"
+    }
+  },
+  "conclusion": "exc:TypeError 根因 = np.isnan(None) 守卫缺失; 触发面 = 所有 proxy alpha 不可用样本 (含 CENSORED_TAIL)。已由 latr_builder._num_or_none() 修复。"
+}

@@ -1,0 +1,368 @@
+provenance:
+  canonical_host: 127.0.0.1
+  canonical_port: 7899
+  canonical_base_url: http://127.0.0.1:7899
+  canonical_adapter: http(stockdb free-stockdb v0.3.2, cmd=get|cmd=vals)
+  canonical_source_of_truth: stockdb 本地同步目录 D:/a股数据/free-stockdb-win/stockdb/data/
+    (同步源 ah.123128.xyz via 数据更新.exe); 本地 parquet data_daily_parts 为其衍生品
+  query_functions:
+    daily: get_daily_http(code)
+    minute: get_minute_http(code, date)
+    adjustment: get_adjustment_http(code)
+    float_mv: get_daily_http(code)['float_mv'] (随日线)
+  code_commit_sha: NOT_A_GIT_REPO
+  cache_path_parquet: D:/a股数据\data_daily_parts
+  environment_variables:
+    STARGAZER_DATA_ROOT: <unset>
+  data_source_version: free-stockdb v0.3.2 (local sync, not external API)
+  captured_at: '2026-09-17T13:32:05+00:00'
+probe_codes:
+- '600519'
+- '000001'
+- '600036'
+- '300750'
+- '601318'
+- 000858
+- '600276'
+- 002594
+- '600900'
+- '688981'
+probe_dates:
+- '20250102'
+- '20250127'
+- '20250130'
+- '20250603'
+- '20260916'
+per_symbol:
+- code: '600519'
+  http_daily:
+    rows: 6007
+    min_date: 20010827
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 1869222326400.0
+    '20250127': 1802631281022.0
+    '20250130': null
+    '20250603': 1895602480200.0
+    '20260916': 1572603000000.0
+  adjustment:
+    n_events: 31
+    max_effective_date: 20260626
+- code: '000001'
+  http_daily:
+    rows: 6313
+    min_date: 20000104
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 214739268038.585
+    '20250127': 215490761540.032
+    '20250130': null
+    '20250603': 221878456302.335
+    '20260916': 227047000000.0
+  adjustment:
+    n_events: 32
+    max_effective_date: 20260612
+- code: '600036'
+  http_daily:
+    rows: 5864
+    min_date: 20020409
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 794420649960.79
+    '20250127': 838566591038.85
+    '20250130': null
+    '20250603': 907054686543.13
+    '20260916': 844136000000.0
+  adjustment:
+    n_events: 32
+    max_effective_date: 20260710
+- code: '300750'
+  http_daily:
+    rows: 2010
+    min_date: 20180611
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2009
+    min_date: 20180611
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 1009903527853.74
+    '20250127': 1002956977581.0
+    '20250130': null
+    '20250603': 980127023032.95
+    '20260916': 1301529000000.0
+  adjustment:
+    n_events: 11
+    max_effective_date: 20260810
+- code: '601318'
+  http_daily:
+    rows: 4689
+    min_date: 20070301
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 528058912166.496
+    '20250127': 529516775461.769
+    '20250130': null
+    '20250603': 560756703217.626
+    '20260916': 570420000000.0
+  adjustment:
+    n_events: 39
+    max_effective_date: 20260910
+- code: 000858
+  http_daily:
+    rows: 6338
+    min_date: 20000104
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 531721131151.42
+    '20250127': 493721643057.6
+    '20250130': null
+    '20250603': 483940365223.44
+    '20260916': 268834000000.0
+  adjustment:
+    n_events: 30
+    max_effective_date: 20260716
+- code: '600276'
+  http_daily:
+    rows: 6242
+    min_date: 20001018
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 285570410348.252
+    '20250127': 283664489923.236
+    '20250130': null
+    '20250603': 348656376416.287
+    '20260916': 277614000000.0
+  adjustment:
+    n_events: 28
+    max_effective_date: 20260527
+- code: 002594
+  http_daily:
+    rows: 3687
+    min_date: 20110630
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2114
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 315130419405.1
+    '20250127': 319082626804.5
+    '20250130': null
+    '20250603': 413819362996.0
+    '20260916': 292774000000.0
+  adjustment:
+    n_events: 12
+    max_effective_date: 20260731
+- code: '600900'
+  http_daily:
+    rows: 5123
+    min_date: 20031118
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 2103
+    min_date: 20180102
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 701011889887.6
+    '20250127': 693809712936.7
+    '20250130': null
+    '20250603': 723818783565.45
+    '20260916': 696365000000.0
+  adjustment:
+    n_events: 27
+    max_effective_date: 20260717
+- code: '688981'
+  http_daily:
+    rows: 1494
+    min_date: 20200716
+    max_date: 20260917
+    has_float_mv: true
+    probe_dates_present:
+      '20250102': true
+      '20250127': true
+      '20250130': false
+      '20250603': true
+      '20260916': true
+  parquet_daily:
+    rows: 1493
+    min_date: 20200716
+    max_date: 20260916
+    has_float_mv: true
+  minute:
+    '20250102': 241
+    '20250127': 241
+    '20250130': 0
+    '20250603': 241
+    '20260916': 242
+  float_mv:
+    '20250102': 178872787244.84
+    '20250127': 186786456578.26
+    '20250130': null
+    '20250603': 163979977368.63
+    '20260916': 241872000000.0
+  adjustment:
+    n_events: 0
+    max_effective_date: null
+summary:
+  http_daily_max_date_overall: 20260917
+  parquet_daily_max_date_overall: 20260916
+  minute_available_per_probe_date:
+    '20250102': true
+    '20250127': true
+    '20250130': false
+    '20250603': true
+    '20260916': true
+  sources_agree_on_range: false
+  conclusion_candidate: 'OUTCOME-A-CANDIDATE: stockdb HTTP 在 2025-06 / 2026-09 仍有分钟数据
+    -> 需核对 Gate1A 全扫用的是否为同一实例; 若不同实例则定为 CANONICAL_STOCKDB_V1'

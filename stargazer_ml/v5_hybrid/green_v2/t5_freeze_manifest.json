@@ -1,0 +1,8 @@
+{
+  "model_file": "D:\\stargazer\\stargazer_ml\\pullback_train\\shadow_models\\shadow_t5_frozen.pkl",
+  "model_version": "2026-09-09",
+  "frozen_list": "AM-R1 / PM-R2 / AM-O4 / PM-O6 (T7=OOD only)",
+  "sha256_12": "71513c0df8b9",
+  "frozen_at": "2026-09-09",
+  "note": "T5 冻结版钉死；每日运行校验，不一致即拒绝输出。"
+}

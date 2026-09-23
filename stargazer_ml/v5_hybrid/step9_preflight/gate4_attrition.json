@@ -1,0 +1,78 @@
+{
+  "n_attempted": 250,
+  "n_built": 241,
+  "n_rejected_engineering": 9,
+  "n_exceptions": 0,
+  "reject_by_reason": {
+    "no_adjustment_chain": 7,
+    "minute_empty": 2
+  },
+  "exception_by_type": {},
+  "rejects": [
+    {
+      "symbol": "688373",
+      "plan_date": 20251103,
+      "d_date": 20251104,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "688435",
+      "plan_date": 20251118,
+      "d_date": 20251119,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "920706",
+      "plan_date": 20260127,
+      "d_date": 20260128,
+      "reason": "minute_empty",
+      "detail": "d_date=20260128"
+    },
+    {
+      "symbol": "688277",
+      "plan_date": 20260326,
+      "d_date": 20260327,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "688653",
+      "plan_date": 20260528,
+      "d_date": 20260529,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "688221",
+      "plan_date": 20260612,
+      "d_date": 20260615,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "920879",
+      "plan_date": 20260708,
+      "d_date": 20260709,
+      "reason": "minute_empty",
+      "detail": "d_date=20260709"
+    },
+    {
+      "symbol": "159259",
+      "plan_date": 20260709,
+      "d_date": 20260710,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    },
+    {
+      "symbol": "515330",
+      "plan_date": 20260806,
+      "d_date": 20260807,
+      "reason": "no_adjustment_chain",
+      "detail": ""
+    }
+  ],
+  "exceptions": [],
+  "note": "exc:* 必须逐条归因 (类型/symbol/date/setup/stack); 不得作为未知桶进 Freeze"
+}

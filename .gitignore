@@ -1,0 +1,109 @@
+# ============================================================
+# Stargazer 仓库 .gitignore —— 白名单制：宁可漏提，不可错提
+# 纪律：密钥/数据/模型/构建产物/缓存 永不入库（见 README 密钥政策）
+# ============================================================
+
+# ── 默认全部忽略，再按子树放行 ──
+*
+!.gitignore
+!README.md
+!开发路线.txt
+!交接摘要.md
+!refresh_and_score_local.bat
+
+# ── stargazer_desktop（桌面程序）──
+!/stargazer_desktop/
+!/stargazer_desktop/*.py
+!/stargazer_desktop/*.spec
+!/stargazer_desktop/*.bat
+!/stargazer_desktop/*.md
+!/stargazer_desktop/web/
+!/stargazer_desktop/web/**
+/stargazer_desktop/dist/
+/stargazer_desktop/build/
+/stargazer_desktop/data/
+/stargazer_desktop/__pycache__/
+/stargazer_desktop/*.log
+# 真实 config 含 token，只入库 example
+/stargazer_desktop/config.yaml
+!/stargazer_desktop/config.example.yaml
+
+# ── stargazer_plan（交易计划库 CLI/状态机）──
+!/stargazer_plan/
+!/stargazer_plan/*.py
+!/stargazer_plan/*.md
+!/stargazer_plan/plan_db/
+!/stargazer_plan/plan_db/*.py
+!/stargazer_plan/spec/
+!/stargazer_plan/spec/**
+/stargazer_plan/data/
+/stargazer_plan/__pycache__/
+/stargazer_plan/frozen_*.json
+/stargazer_plan/events_*.jsonl
+/stargazer_plan/*.log
+
+# ── corvus（信息采集）──
+!/corvus/
+!/corvus/*.py
+!/corvus/*.md
+!/corvus/*.txt
+!/corvus/*.bat
+!/corvus/*.vbs
+!/corvus/requirements.txt
+!/corvus/corvus/
+!/corvus/corvus/*.py
+!/corvus/spec/
+!/corvus/spec/**
+/corvus/config/
+!/corvus/config/*.example.yaml
+!/corvus/config/instruments.yaml
+!/corvus/config/sources.yaml
+/corvus/data/
+/corvus/__pycache__/
+
+# ── stargazer_ml 精选脚本子树（排除一切数据/模型/缓存）──
+!/stargazer_ml/
+/stargazer_ml/*/
+!/stargazer_ml/v5_hybrid/
+/stargazer_ml/v5_hybrid/*/
+!/stargazer_ml/v5_hybrid/green_watch_v0/
+!/stargazer_ml/v5_hybrid/green_v2/
+!/stargazer_ml/v5_hybrid/opportunity_v2/
+!/stargazer_ml/v5_hybrid/step9_preflight/
+!/stargazer_ml/v5_hybrid/latr_v0/
+!/stargazer_ml/v5_hybrid/green_exit_v1/
+!/stargazer_ml/v5_hybrid/a0a4/
+!/stargazer_ml/v5_hybrid/pullback_train/
+# 各子树只放行代码/文档/规格
+!/stargazer_ml/v5_hybrid/*/*.py
+!/stargazer_ml/v5_hybrid/*/*.md
+!/stargazer_ml/v5_hybrid/*/*.yaml
+!/stargazer_ml/v5_hybrid/*/*.txt
+!/stargazer_ml/v5_hybrid/*/*.json
+/stargazer_ml/v5_hybrid/*/_*/
+/stargazer_ml/v5_hybrid/*/_*.parquet
+/stargazer_ml/v5_hybrid/*/__pycache__/
+/stargazer_ml/v5_hybrid/pullback_train/*/
+!/stargazer_ml/v5_hybrid/pullback_train/*.py
+
+# ── 其它 ──
+!/migration_support/
+!/migration_support/*
+/migration_support/config_portable.yaml
+
+# ── 全局兜底（即使将来有人放宽白名单，这些也永不出现在任何提交）──
+**/*.parquet
+**/*.pkl
+**/*.sqlite
+**/*.sqlite-journal
+**/*.db
+**/*.log
+**/*.zip
+**/*.exe
+**/*.dll
+**/*.pyd
+**/*.env
+**/.env*
+**/*.gguf
+**/tokens.yaml
+**/__pycache__/

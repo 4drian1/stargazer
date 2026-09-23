@@ -1,0 +1,80 @@
+load v1 ...
+load v11 ...
+
+[1] v1 日期窗口 20210104~20260917 (1385 交易日)
+    v11 日期窗口 20210104~20260917 (1385 交易日)
+    共同窗口     20210104~20260917 (1385 交易日)
+    限制共同窗口后: v1=3511414 行, v11=3474943 行
+[v1] (date,code) 重复行 = 0
+[v1] 无 plan_date 列 (唯一键用 date)
+[v11] (date,code) 重复行 = 0
+[v11] 无 plan_date 列 (唯一键用 date)
+
+[3] DIP-gate 2x2 (共同窗口)
+    v1 标 DIP   = 3083658
+    v11 标 DIP  = 1253389
+    both_accepted = 1221238
+    v1_only (旧收新弃)  = 1862420  (60.4% of v1 DIP)
+    v11_only (旧弃新收) = 32151  <- 新增'强势回调'类
+
+[4] v11_only stage coverage (n=32151)
+    PRE_PULLBACK = 1245
+    PULLBACK_ACTIVE = 30886
+    NEAR_ZONE = 20
+    NULL = 0
+    UNKNOWN = 0
+    OTHER = 0
+    stage_coverage_ratio = 1.0000  (目标≈1.0)
+
+[5] v1_only 删除原因诊断 (在 v11 取到特征 n=1823293, 缺失=39127)
+    prior_strength_fail (PriorStrength 弱)      = 1224734 (67.2%)
+    structure_broken     (StructureIntact 失败)= 203855 (11.2%)
+    clear_distribution   (明显派发)            = 183052 (10.0%)
+    structural_breakdown(结构破坏)            = 40248 (2.2%)
+    liquidity_fail      (LiquidityPass 失败)  = 1128348 (61.9%)
+    >>> 任一闸门失败 (gate 语义内删除)        = 1823293 (100.0%)
+    >>> 看似'好股却被判删' (通过全部5闸门仍删) = 0 (0.0%)
+
+  ===== V1_ONLY (v1收v11弃, 在v11中特征) (n=1823293) =====
+    prior_impulse_return     median=+0.3603  p10=+0.1791  p90=+0.7578
+    ret_20d                  median=-0.0110  p10=-0.1343  p90=+0.1026
+    ret_60d                  median=-0.0586  p10=-0.2373  p90=+0.1298
+    ma20_slope5              median=-0.0047  p10=-0.0360  p90=+0.0221
+    dist_from_20d_high       median=-0.0785  p10=-0.1945  p90=-0.0197
+    dist_from_60d_high       median=-0.1724  p10=-0.3292  p90=-0.0642
+    zone_distance_atr        median=+1.7493  p10=+0.1983  p90=+4.9845
+    support_break_depth_atr  median=+0.0700  p10=+0.0000  p90=+1.5011
+    distribution_score_raw   median=+1.0000  p10=+0.0000  p90=+4.0000
+    prior_strength_pass      mean=0.328
+    structure_intact_flag    mean=0.888
+    primary_tier 分布: {'RESEARCH': 749303, 'NEAR_MISS': 554783, 'WATCH': 340664, 'DROP': 129092, 'HIGH_PRIORITY_WATCH': 49451}
+
+  ===== V11_ONLY (v11收v1弃) (n=32151) =====
+    prior_impulse_return     median=+0.4879  p10=+0.2311  p90=+1.0880
+    ret_20d                  median=-0.0540  p10=-0.1511  p90=+0.0344
+    ret_60d                  median=+0.0923  p10=-0.0011  p90=+0.3731
+    ma20_slope5              median=-0.0131  p10=-0.0413  p90=+0.0125
+    dist_from_20d_high       median=-0.1389  p10=-0.2557  p90=-0.0722
+    dist_from_60d_high       median=-0.2170  p10=-0.3545  p90=-0.1209
+    zone_distance_atr        median=+2.4160  p10=+1.0314  p90=+5.1326
+    support_break_depth_atr  median=+0.8822  p10=+0.3351  p90=+1.3538
+    distribution_score_raw   median=+2.0000  p10=+1.0000  p90=+3.0000
+    prior_strength_pass      mean=1.000
+    structure_intact_flag    mean=1.000
+    primary_tier 分布: {'NEAR_MISS': 14706, 'DROP': 8687, 'RESEARCH': 7770, 'WATCH': 964, 'HIGH_PRIORITY_WATCH': 24}
+
+  ===== BOTH (v1&v11均收) (n=1221238) =====
+    prior_impulse_return     median=+0.4443  p10=+0.2164  p90=+0.9379
+    ret_20d                  median=+0.0683  p10=-0.0571  p90=+0.2576
+    ret_60d                  median=+0.1496  p10=+0.0143  p90=+0.4462
+    ma20_slope5              median=+0.0140  p10=-0.0182  p90=+0.0573
+    dist_from_20d_high       median=-0.0712  p10=-0.1820  p90=-0.0160
+    dist_from_60d_high       median=-0.1067  p10=-0.2471  p90=-0.0289
+    zone_distance_atr        median=+3.6367  p10=+0.7447  p90=+6.9620
+    support_break_depth_atr  median=+0.0000  p10=+0.0000  p90=+0.6346
+    distribution_score_raw   median=+1.0000  p10=+0.0000  p90=+2.0000
+    prior_strength_pass      mean=1.000
+    structure_intact_flag    mean=1.000
+    primary_tier 分布: {'RESEARCH': 587628, 'WATCH': 318515, 'NEAR_MISS': 227805, 'HIGH_PRIORITY_WATCH': 71486, 'DROP': 15804}
+
+[DONE]

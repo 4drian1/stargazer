@@ -1,0 +1,160 @@
+{
+  "FEATURE_DELTA_PASS": true,
+  "feature_delta_detail": {
+    "a1->a2": {
+      "expected": [
+        "atr_ref",
+        "n_zones",
+        "penetration_atr",
+        "primary_zone_distance_atr",
+        "zone_band_atr",
+        "zone_distance_atr",
+        "zone_n_sources",
+        "zone_strength"
+      ],
+      "actual": [
+        "atr_ref",
+        "n_zones",
+        "penetration_atr",
+        "primary_zone_distance_atr",
+        "zone_band_atr",
+        "zone_distance_atr",
+        "zone_n_sources",
+        "zone_strength"
+      ],
+      "ok": true
+    },
+    "a2->a3": {
+      "expected": [
+        "dip_depth_30m_atr",
+        "dip_depth_5m_atr",
+        "dip_speed_15m",
+        "dip_speed_30m",
+        "dip_speed_5m",
+        "gap_atr",
+        "new_low_flag",
+        "open_dip_atr",
+        "total_dip_atr"
+      ],
+      "actual": [
+        "dip_depth_30m_atr",
+        "dip_depth_5m_atr",
+        "dip_speed_15m",
+        "dip_speed_30m",
+        "dip_speed_5m",
+        "gap_atr",
+        "new_low_flag",
+        "open_dip_atr",
+        "total_dip_atr"
+      ],
+      "ok": true
+    },
+    "a3->a4": {
+      "expected": [
+        "close_position_15m",
+        "cum_turnover_vs_hist_same_time",
+        "cum_volume_vs_hist_same_time",
+        "dip_recovery_ratio",
+        "final_state",
+        "lower_wick_ratio",
+        "rebound_volume_ratio",
+        "reclaim_failure_count",
+        "reclaim_zone_lower",
+        "reclaim_zone_mid",
+        "reclaim_zone_upper",
+        "recovery_atr",
+        "recovery_from_zone_low_atr",
+        "second_test_flag",
+        "second_test_higher_low",
+        "sell_volume_ratio",
+        "time_below_zone",
+        "time_since_zone_touch",
+        "vwap_reclaim",
+        "zone_break_depth_atr",
+        "zone_break_duration"
+      ],
+      "actual": [
+        "close_position_15m",
+        "cum_turnover_vs_hist_same_time",
+        "cum_volume_vs_hist_same_time",
+        "dip_recovery_ratio",
+        "final_state",
+        "lower_wick_ratio",
+        "rebound_volume_ratio",
+        "reclaim_failure_count",
+        "reclaim_zone_lower",
+        "reclaim_zone_mid",
+        "reclaim_zone_upper",
+        "recovery_atr",
+        "recovery_from_zone_low_atr",
+        "second_test_flag",
+        "second_test_higher_low",
+        "sell_volume_ratio",
+        "time_below_zone",
+        "time_since_zone_touch",
+        "vwap_reclaim",
+        "zone_break_depth_atr",
+        "zone_break_duration"
+      ],
+      "ok": true
+    }
+  },
+  "missing_columns": {
+    "a1": [],
+    "a2": [],
+    "a3": [],
+    "a4": []
+  },
+  "SAMPLE_IDENTITY_PASS": true,
+  "sample_identity_detail": {
+    "basis": "A1-A4 训练输入为同一 DataFrame (同 Universe/Label/Split), 训练后逐 tier 对比 predictions 的 sample_id 集合作显式证明",
+    "n_eligible_timing": 16072,
+    "sample_id_set_hash_timing": "5635d9504e85fa44",
+    "n_eligible_s0": 16072,
+    "sample_id_set_hash_s0": "5635d9504e85fa44"
+  },
+  "sample_identity_proof": {
+    "timing": {
+      "per_tier": {
+        "a1": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a2": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a3": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a4": [
+          9681,
+          "f813960d2cec4b8a"
+        ]
+      },
+      "sets_identical": true
+    },
+    "s0": {
+      "per_tier": {
+        "a1": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a2": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a3": [
+          9681,
+          "f813960d2cec4b8a"
+        ],
+        "a4": [
+          9681,
+          "f813960d2cec4b8a"
+        ]
+      },
+      "sets_identical": true
+    }
+  }
+}

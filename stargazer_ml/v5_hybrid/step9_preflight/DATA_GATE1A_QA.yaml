@@ -1,0 +1,104 @@
+report_name: DATA_GATE1A_QA
+generated_by: step9_preflight/qa_core_data.py
+sample_size: 12
+universe_size: 7562
+stock_minute_history:
+  status: CONDITIONAL_PASS
+  n_symbols_sampled: 12
+  symbols_with_data: 12
+  bars_total_sampled: 1126469
+  bars_per_symbol_day:
+    p1: 239
+    p5: 240
+    median: 241
+    p95: 242
+    expected: 240
+  missing_bar_ratio: -0.0042
+  duplicate_bar_ratio: 0.0
+  symbols_with_coverage_2025: 11
+  symbols_with_coverage_2026: 12
+  verdict: 抽样存在性+分布 OK; 需全市场扫描确认 universe coverage 与每日接近预期分钟数, 方可 VERIFIED_PASS
+free_float_market_cap:
+  status: CONDITIONAL_PASS
+  n_symbols_checked: 12
+  float_mv_present_ratio_median: 1.0
+  symbols_with_varying_float_mv: 12
+  as_of_note: float_mv 多数随日期变化(非恒定) 支持'每日快照'假设, 但仍需外部验证 D日值来自 <= P日 已发布数据 (非后处理回填)
+  verdict: 需对照 delisted 样本确认 float_mv 止于退市日 + 外部 as-of 验证, 方可 VERIFIED_PASS
+halt_trading_status:
+  status: CONDITIONAL_PASS
+  n_symbols_checked: 12
+  minute_era_start: '20250102'
+  total_inferred_halt_days_in_era: 3
+  pre_minute_era_daily_days: 31663
+  note: INFERRED_HALT 仅统计分钟纪元内(>=2025-01-02) '日线有/分钟无'; 此前日线属正常缺失(分钟数据 2025+ only)
+  detail:
+    '000001':
+      daily_days_total: 6312
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    002108:
+      daily_days_total: 4712
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    002792:
+      daily_days_total: 2547
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '159615':
+      daily_days_total: 1027
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '300035':
+      daily_days_total: 3926
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '300708':
+      daily_days_total: 2169
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '301486':
+      daily_days_total: 767
+      minute_days: 415
+      daily_days_in_minute_era: 405
+      inferred_halt_days: 0
+    '516370':
+      daily_days_total: 114
+      minute_days: 114
+      daily_days_in_minute_era: 114
+      inferred_halt_days: 0
+    '600131':
+      daily_days_total: 6369
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '600969':
+      daily_days_total: 5405
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '603583':
+      daily_days_total: 1936
+      minute_days: 415
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 0
+    '688327':
+      daily_days_total: 1048
+      minute_days: 412
+      daily_days_in_minute_era: 415
+      inferred_halt_days: 3
+  verdict: Execution QA 必须显式标注 INFERRED_HALT; 与 delisting 清单交叉后方可用于 next-legal-fill
+    门控
+adjustment_factors:
+  status: CONDITIONAL_PASS
+  n_symbols_checked: 12
+  symbols_with_adjustment_events: 10
+  total_events_sampled: 139
+  note: 单票事件存在; 需全市场扫描确认 n_symbols_with_adjustment_events 覆盖全库 (非仅 27 条)
+  verdict: 需 raw->adjusted 重建 sanity (random 50 symbols 复权前后连续性), 方可 VERIFIED_PASS

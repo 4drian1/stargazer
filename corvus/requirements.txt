@@ -1,0 +1,8 @@
+# Corvus 依赖（Python 3.13，_dev_venv）
+akshare
+yfinance
+pyyaml
+requests
+# 已装（勿重装）：
+# llama-cpp-python==0.3.35   # Qwen3-4B-GGUF 推理（本包唯一硬性二进制依赖，CPU/GPU 均可）
+# lightgbm==4.7.0            # 后续外围基线模型，本期不训练

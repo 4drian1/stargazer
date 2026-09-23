@@ -1,0 +1,545 @@
+name: GATE3_EXPERIMENT_WORLD_FREEZE
+frozen_at: '2026-09-18T11:24:26+00:00'
+freeze_status: FINAL_FROZEN
+freeze_status_note: ② full coverage / ④ real trace / ⑤ Gate4 三项全部通过, 由 PROVISIONAL_VALID
+  升为 FINAL_FROZEN (immutable)。
+rule: A0-A4 期间 Candidate/Label/Split/Execution/Adjustment/Cost/Portfolio 全部不可修改; 仅
+  Feature Group 可变化。
+component_hashes:
+  green_watch_build_pool: 92a8a0d7cabdeab8140df4af37f245342efca61db5fbb5c6a36e52edfd3a228c
+  green_watch_label_engine: 5a8cf442fdae89156c28284e6019af6d6d2abd9a1bc8d8c3a839b6d94a5bfdb9
+  green_watch_alignment: eeead75dca6d7a4a660ccdde26ef475b7f0e74482080cb2f68d26f01a6412839
+  feature_registry: a2f7a11f91c7d8de9421089ab7d32be22443b67a655da65d380e32767d58195d
+  feature_registry_py: dcad90ff54ceb398a84acd105f4942d8e59847116e2d3be06e982e17777ac72a
+  label_contract: 268e59853791045f4a7dfd956cd48d49fc06fac3c3bbfd241343af0ec65c4436
+  adjustment_chain: 718bf2d883250d40b6a4cb8ade612cca82f1f9d19dcc7b4e32af958b3af9fe13
+  market_proxy: 5bf06991538b60fc8e82fa41011b9b633f16b9b99d7ecb344e72826c0c9e224e
+  execution_engine: 7f40b03c31c616d2b92ffad1ea5e825081134d1b43b2328c74a5d468f32ffa01
+  zone_state_engine: 6cee37ec2be2ec01cd36864b529c47b49f0635a5f645c2136d71a8500edd7a1e
+  latr_builder: 3a12d51343f22c1644e6c383f0ab7b1f7e96be86788581a71ad030338fbb3583
+  trading_calendar: bf9282aabc5fed2508dff9eaec3b01b19a2a70328052440923906c81b11e441a
+  gate4_harness: 8111e7d5ba599f28eb8e19ae6a2257580ae21605a0ad5dcd91a7db714ae08935
+  data_source_provenance: ad1ead59f737fb24f3849d730442e43da28602c59e73a4e3074b45bdc57c394a
+  data_regimes: 4c9bf457349db729ae14a43de258981bf1e92796b5cabd2ac01d2590b2f10005
+pending_components:
+  split_contract: FROZEN
+  execution_engine: FROZEN
+  cost_model: FROZEN (after A0-A4)
+market_proxy_v1:
+  primary: leave_one_out_float_weighted
+  equal_weight_role: equal_weighted (sensitivity only)
+  note: Primary=leave-one-out float-weighted (更接近资本权重暴露); equal-weight 仅作 sensitivity
+    diagnostic, 不据结果挑选。
+minute_start: 20250102
+data_epoch: 2025-01-02..20260917
+source_data_snapshot_id: daily_parts@29files_s634697090_m1789653245_epoch20260917_he8ac7a14e984c762
+bars_glob: D:/a股数据\data_daily_parts/part_*.parquet
+daily_parts_file_count: 29
+data_epoch_max_date: 20260917
+pit_sector_status: BLOCKED
+a5_plus_allowed: false
+features:
+  enabled_features:
+  - analytic_adjusted_close
+  - analytic_prev_close
+  - armed_bottom
+  - atr_ref
+  - bottom_score
+  - bottom_subtype
+  - close
+  - close_position_15m
+  - cum_turnover_vs_hist_same_time
+  - cum_volume_vs_hist_same_time
+  - dist_low20_60
+  - gap_atr
+  - high
+  - intraday_dip_score
+  - is_pullback_bottom
+  - latr_zone
+  - low
+  - ma20
+  - ma20_slope_5
+  - market_ret_20d
+  - market_ret_5d
+  - open
+  - opendip_atr
+  - penetration_atr
+  - recovery_atr
+  - recovery_from_zone_low_atr
+  - setup_type
+  - stock_vs_market_proxy_20d
+  - stock_vs_market_proxy_5d
+  - stock_vs_market_proxy_intraday
+  - structure_broken
+  - turnover_ratio_20d
+  - volume
+  - volume_ratio_20d
+  - watch_priority
+  - zone_distance_atr
+  - zone_strength
+  blocked_features:
+  - leader_return_5d
+  - leader_return_intraday
+  - leader_weakening_flag
+  - sector_breadth_20d
+  - sector_ret_5d
+  - sector_ret_intraday
+  - sector_strength_x_stock_lag
+  - sector_synchronous_weakening
+  - sector_vs_market_5d
+  optional_disabled_features:
+  - dist_poc_proxy_atr
+baselines:
+  L0_ORIGINAL: Step 6 原始失败证据 (L0_freeze.yaml), 禁止覆盖
+  A0_REPLAY_LABEL_V2: 新合同下重算可比 Step9 baseline, 待 A0 生成, 不覆盖 L0
+frozen_components:
+- GREEN-WATCH-v1.1
+- Candidate Contract
+- Feature Registry
+- Label Contract
+- Execution Engine
+- Adjustment Chain
+- Market Proxy
+- Zone/State Engine
+- Split Contract
+- Cost Contract
+- 25-100 亿 Universe
+- Data Epoch / source snapshot
+evidence:
+  generated_at: '2026-09-18T11:23:44+00:00'
+  source_data_snapshot_id: daily_parts@29files_s634697090_m1789653245_epoch20260917_he8ac7a14e984c762
+  gate1a_source_verification:
+    report: DATA_GATE1A_FULL.yaml
+    final: VERIFIED_PASS
+    item_statuses:
+      stock_minute_history: VERIFIED_PASS
+      free_float_market_cap: VERIFIED_PASS
+      halt_trading_status: VERIFIED_PASS
+      adjustment_factors: VERIFIED_PASS
+    universe_size: 7562
+    minute_start_frozen: 20250102
+  gate2_market_proxy_v1:
+    status: PASS
+    harness: coverage_02_full.py
+    harness_fix_20260918: '覆盖测量夹具缺陷: D/H1/H3 锚点原用当日首个抽样候选 g[0] 推导, g[0] 建 label 失败时整日
+      alpha 假性 NaN(=0 coverage)。由 verify_02_ref_single_point.py 以控制实验定位(11 个中段日期 g[0]
+      全部建 label 失败且 alpha cov=0.0; 8 个对照日期全部成功且 cov=1.0), 改用 canonical 日历锚点后复测 14
+      日并合并 (coverage_02_recover/)。生产路径 attach_alpha_labels 一直是 per-candidate 计算, 冻结逻辑未改动。'
+    n_plan_dates: 416
+    date_range:
+    - 20241231
+    - 20260916
+    total_sampled: 12480
+    total_built: 12157
+    coverage_means:
+      s0_return_h3_cov: 0.9927
+      s0_market_alpha_h3_cov: 0.9927
+      timing_return_h1_cov: 0.9975
+      timing_market_alpha_h1_cov: 0.9975
+      alpha_label_available_cov: 0.9927
+      proxy_weight_coverage: 0.7535
+    alpha_vs_raw_coverage_gap_s0: 0.0
+    n_alerts: 3
+    alerts:
+    - plan_date: 20260914
+      reasons:
+      - s0_return_h3_cov=0.0 < 0.9
+      - alpha_label_available_cov=0.0 < 0.9
+    - plan_date: 20260915
+      reasons:
+      - s0_return_h3_cov=0.0 < 0.9
+      - alpha_label_available_cov=0.0 < 0.9
+    - plan_date: 20260916
+      reasons:
+      - s0_return_h3_cov=0.0 < 0.9
+      - timing_return_h1_cov=0.0 < 0.9
+      - alpha_label_available_cov=0.0 < 0.9
+    alerts_note: '仅剩最后 3 个 plan_date (20260914/15/16): h3/h1 未来 bar 超出数据末 (DATA_END=20260917),
+      真实右删失 -> label_status=CENSORED_TAIL, 不进训练但不删样本 (用户 2026-09-18 裁定 #4)。'
+    tail_censoring_policy:
+      dates:
+      - 20260914
+      - 20260915
+      - 20260916
+      label_status: CENSORED_TAIL
+      note: 不记普通 NaN, 不进入训练; 保留样本行以便审计。
+  float_mv_regime_investigation_20260918:
+    question: 2026-07-01 前缺失 float_mv 能否用 PIT float_share x close 重建?
+    answer: CANNOT_RECONSTRUCT
+    evidence:
+      pre_20260701_float_mv_cov: 0.821757
+      pre_20260701_float_share_cov: 0.821757
+      pre_20260701_reconstructable_share: 0.0
+      rows_still_missing_after_reconstruct: 1980506
+      float_mv_equals_float_share_x_close: ratio_median = 1.0 (全期)
+    root_cause: regime 前从未有 float_mv 的 2,035 个标的落在 get_universe() 名单内, 且其 name 主体为
+      ETF/基金 (货币ETF/证券ETF/养殖ETF/港股通科技ETF 等); float_mv 与 float_share 同时缺失 -> 无 PIT
+      替代字段。
+    candidate_universe_impact: 'NONE_PROVEN: GREEN-WATCH 候选母池按 total_mv in [2.5e9,
+      1.0e10] (25-100亿) 过滤股票; pool_daily_v11 的每日候选数在 20260630->20260701 无台阶; 缺失标的是
+      ETF, 不进入股票候选。'
+    market_proxy_impact:
+      predicate: float_mv > 0 (规格写的是 eligible 股票)
+      n_never_fmv_codes: 2035
+      regime_weight_share_20260701: 0.045361
+      effect: 2026-07-01 起 ~2,020 只 ETF 进入 Market Proxy universe, 占 P 日 float_mv 权重约
+        4.54%; 这解释了 ② 中 proxy_weight_coverage 0.72->0.99 与 constituent 5480->7517
+        的阶跃。
+      status: 'REGISTERED_KNOWN_DEVIATION (待用户裁定: 是否加非股票工具排除)'
+      severity: LOW (覆盖率因此提升; 但代理族构成发生变化, 属真实 spec 偏离)
+    decision_taken: 不缩窄 data_epoch (否则仅剩两个月无法训练); 登记 FLOAT_MV_DATA_REGIME_CHANGE 并在
+      Manifest 中标注; A0-A4 必须强制 pre/post 切片 (见 forced_slices)。
+    FLOAT_MV_DATA_REGIME_CHANGE: 20260701
+    forced_slices:
+      boundary_token: FLOAT_MV_DATA_REGIME_CHANGE
+      boundary_date: 20260701
+      slices:
+      - PRE_FLOAT_MV_REGIME (< 20260701)
+      - POST_FLOAT_MV_REGIME (>= 20260701)
+      policy: 任何跨越 20260701 的池化统计必须同时给出 pre/post 两段结果; 禁止只报全期合并值。
+      why: float_mv 可得性在 20260701 阶跃 (72.9%->99.96%), 影响 Market Proxy universe 构成;
+        候选母池经数据证明无台阶但为审计完整仍强制切片。
+    registered_in: step9_preflight/data_regimes.py
+  zone_minute_state_engine:
+    report: trace_04_report.json
+    status: PASS
+    n_samples: 118
+    drop_reasons:
+      missing_minute: 2
+    anomaly_checks:
+      zone_distance_atr_nan: 0
+      zone_distance_atr_nan_rate: 0.0
+      zone_valid0_count: 0
+      zone_valid0_rate: 0.0
+      final_state_distribution:
+        INVALIDATED: 38
+        ZONE_TOUCH: 28
+        MODEL_SCORE_REQUEST: 18
+        ZONE_APPROACH: 14
+        BREAKDOWN: 14
+        WATCH: 6
+      watch_rate: 0.0508
+      transition_time_disorder_count: 0
+      avwap_misused_as_formal_count: 0
+      avwap_zone_seen: 118
+      avwap_proxy_origin_not_PROXY_count: 0
+    scenario_trace_contract_20260918:
+      problem: Gate4 旧 TRACE_COVERAGE_PASS 只检查「6 个末态是否出现」, 不覆盖预注册的分层场景路径; 155/196
+        随机样本中 3 个场景命中数为 0。
+      resolution: 新增 TRACE_SCENARIO_COVERAGE_PASS; 并由 trace_04b_scenario_scan.py 定向扫描
+        2,000 个候选证明「数据里存在」, 再把命中案例注入 Gate4 样本集 (gate4_add_scenario_cases.py)。
+      scan:
+        DIP_TO_BREAKDOWN:
+          status: FOUND_IN_SCAN
+          n_scanned: 1947
+          found_n: 8
+          scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+            (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+            (与 gate4 同源)'
+          examples:
+          - symbol: '600997'
+            plan_date: 20260803
+            d_date: 20260804
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '301025'
+            plan_date: 20250827
+            d_date: 20250828
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '600881'
+            plan_date: 20250619
+            d_date: 20250620
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '300967'
+            plan_date: 20250318
+            d_date: 20250319
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '600103'
+            plan_date: 20250109
+            d_date: 20250110
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '600337'
+            plan_date: 20250218
+            d_date: 20250219
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '603697'
+            plan_date: 20260612
+            d_date: 20260615
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+          - symbol: '605080'
+            plan_date: 20250917
+            d_date: 20250918
+            setup: INTRADAY_DIP_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+        SECOND_TEST_HIGHER_LOW:
+          status: FOUND_IN_SCAN
+          n_scanned: 1947
+          found_n: 1
+          scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+            (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+            (与 gate4 同源)'
+          examples:
+          - symbol: '300639'
+            plan_date: 20250827
+            d_date: 20250828
+            setup: BOTTOM_SETUP
+            final_state: BREAKDOWN
+            first_state: WATCH
+        LATE_SESSION_TOUCH:
+          status: FOUND_IN_SCAN
+          n_scanned: 1947
+          found_n: 4
+          scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+            (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+            (与 gate4 同源)'
+          examples:
+          - symbol: '301116'
+            plan_date: 20250408
+            d_date: 20250409
+            setup: INTRADAY_DIP_SETUP
+            final_state: ZONE_TOUCH
+            first_state: WATCH
+          - symbol: '301202'
+            plan_date: 20260513
+            d_date: 20260514
+            setup: INTRADAY_DIP_SETUP
+            final_state: ZONE_TOUCH
+            first_state: WATCH
+          - symbol: '603239'
+            plan_date: 20260818
+            d_date: 20260819
+            setup: BOTTOM_SETUP
+            final_state: ZONE_TOUCH
+            first_state: WATCH
+          - symbol: '002376'
+            plan_date: 20260210
+            d_date: 20260211
+            setup: INTRADAY_DIP_SETUP
+            final_state: ZONE_TOUCH
+            first_state: WATCH
+      policy: 只有 PRESENT 或缺席时带 n_scanned>0 的 SCENARIO_RARE 证书才算通过; 「随机抽样没抽到」标 UNVERIFIED,
+        不构成通过。
+  sample_eligibility_semantics_20260918:
+    problem: Gate4 SAMPLE_INTEGRITY 原把 candidate_status==INVALIDATED 当作 sample_data_invalid
+      并丢弃 -> 103/196 样本被删。INVALIDATED 是 D 日 replay 的「策略状态」(研究信息), 不是脏数据; 按 D 日结果删样本
+      = sample-selection future leakage (即使特征本身无 D 日信息)。
+    fix: 'latr_builder 新增显式分层列: candidate_contract_valid / zone_data_valid / execution_data_valid
+      / label_data_valid / proxy_data_valid / feature_data_valid / sample_data_valid(+reason)
+      与各模型 eligibility (s0_eligible / timing_eligible / r0_eligible / portfolio_eligible)
+      + candidate_status_role=RESEARCH_TIER_NOT_VALIDITY; 主样本库全量保留, 由下游自取 mask。'
+    related_fixes:
+    - '不可成交 (涨停/跌停/停牌) 不再丢样本: execution_data_valid=0 且 timing_eligible=0, 但 S0 锚 D
+      日 open, s0_eligible 仍为 1。'
+    - 'S0_NO_D_INFO 语义修正: 旧方向「无成交则不许有 S0 标签」与冻结契约冲突, 改为断言 no-fill 行不得丢失 S0 标签; 新增
+      S0_ANCHOR_INDEPENDENT_PASS。'
+    - 右删失 -> label_status=CENSORED_TAIL (不伪造 alpha, 不从主样本库删除)。
+    - '工程性拒绝与异常不再静默: 拒绝账本 + 异常归因 (symbol/date/setup/type/stack) 落盘 gate4_attrition.json。'
+    gate4_new_checks:
+    - SAMPLE_SELECTION_LEAK_PASS
+    - SAMPLE_INTEGRITY_PASS
+    - TRACE_SCENARIO_COVERAGE_PASS
+    - S0_ANCHOR_INDEPENDENT_PASS
+  gate4_real_harness:
+    report: gate4_real_report.json
+    verdict: PASS
+    n_samples: 254
+    failing_checks: []
+    checks:
+      PIPELINE_PASS: true
+      TIME_TRAVEL_PASS: true
+      NO_FUTURE_LEAK: true
+      S0_NO_D_INFO: true
+      S0_ANCHOR_INDEPENDENT_PASS: true
+      TIMING_FILL_CORRECT: true
+      ALPHA_INTERVAL_ALIGNED: true
+      TRACE_COVERAGE_PASS: true
+      TRACE_SCENARIO_COVERAGE_PASS: true
+      SAMPLE_INTEGRITY_PASS: true
+      SAMPLE_SELECTION_LEAK_PASS: true
+    sample_integrity:
+      layers:
+        candidate_contract:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+        zone:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+        execution:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+        label:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+        proxy:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+        feature:
+          n_in: 254
+          n_valid: 254
+          n_dropped: 0
+          drop_reason: {}
+          unreasoned_drops: 0
+      unreasoned_drops:
+        candidate_contract: 0
+        zone: 0
+        execution: 0
+        label: 0
+        proxy: 0
+        feature: 0
+      sample_valid_formula_mismatch: 0
+      research_tier:
+        column: candidate_status
+        distribution:
+          INVALIDATED: 132
+          PASS: 65
+          NEAR_MISS: 56
+          CONTROL: 1
+        role: RESEARCH_TIER_NOT_VALIDITY
+        used_as_sample_filter: false
+      zone_error_count: 0
+      zone_error_rate: 0.0
+      zone_error_by_reason: {}
+      eligibility_counts:
+        s0_eligible: 254
+        timing_eligible: 254
+        r0_eligible: 254
+        portfolio_eligible: 254
+    sample_selection_leak:
+      s0_eligible_formula_mismatch: 0
+      timing_eligible_formula_mismatch: 0
+      n_candidate_status_invalidated: 132
+      n_invalidated_sample_data_valid: 132
+      n_invalidated_s0_eligible: 132
+      candidate_status_used_as_sample_filter: false
+      n_dropped_by_candidate_status: 0
+      note: INVALIDATED 是 D 日 replay 结果, 属研究信息; 据此删样本 = selection leakage
+    trace_scenario_coverage:
+      present_in_samples:
+        DIP_TO_BREAKDOWN: 8
+        SECOND_TEST_HIGHER_LOW: 1
+        LATE_SESSION_TOUCH: 4
+      scenarios:
+        DIP_TO_BREAKDOWN:
+          desc: INTRADAY_DIP_SETUP 触 Zone 后 BREAKDOWN
+          status: PRESENT
+          n_present: 8
+          cert:
+            status: FOUND_IN_SCAN
+            scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+              (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+              (与 gate4 同源)'
+            n_scanned: 1947
+            found_n: 8
+            generated_at: '2026-09-18T08:59:03.920299+00:00'
+        SECOND_TEST_HIGHER_LOW:
+          desc: ZONE_TOUCH 后 recovery, 二次测试抬高低点
+          status: PRESENT
+          n_present: 1
+          cert:
+            status: FOUND_IN_SCAN
+            scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+              (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+              (与 gate4 同源)'
+            n_scanned: 1947
+            found_n: 1
+            generated_at: '2026-09-18T08:59:03.920612+00:00'
+        LATE_SESSION_TOUCH:
+          desc: 14:00 之后才首次触及 Zone
+          status: PRESENT
+          n_present: 4
+          cert:
+            status: FOUND_IN_SCAN
+            scan_scope: 'v11 pool uniform scan: plan_date 20250102..latest, pool=1167210
+              (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine
+              (与 gate4 同源)'
+            n_scanned: 1947
+            found_n: 4
+            generated_at: '2026-09-18T08:59:03.920653+00:00'
+    attrition:
+      n_attempted: 250
+      n_built: 241
+      n_rejected_engineering: 9
+      n_exceptions: 0
+      reject_by_reason:
+        no_adjustment_chain: 7
+        minute_empty: 2
+      exception_by_type: {}
+      note: exc:* 必须逐条归因 (类型/symbol/date/setup/stack); 不得作为未知桶进 Freeze
+    policy: SAMPLE_INTEGRITY_PASS 与 SAMPLE_SELECTION_LEAK_PASS 为一票否决项。
+  component_audit_20260918:
+    log: audit_component_tests.log
+    log_sha256: 16bf746b24e1af3e6fce7e95a9a30a74e539c0fff4c7823876ab6c8bf3a75d42
+    results:
+      market_proxy_v1.py: ALL MARKET_PROXY_V1 CHECKS PASSED (exit 0)
+      execution_contract_test.py: ALL CHECKS PASSED (exit 0)
+      zone_state_contract_test.py: 20/20 passed, 0 failed (exit 0)
+      gate4_harness.py: synthetic self-test PASS (exit 0)
+    build_pool_inspection:
+      allowed_change_classes_present:
+      - DIP Gate Decomposition (DIP_ELIGIBLE_v11 = PriorStrength & StructureIntact
+        & Liquidity & ~ClearDistribution & ~StructuralBreakdown)
+      - PriorStrengthPass = (ret_60d>=-0.02) & (dist_from_60h<=0.45) & (up_vol_expansion>=0.8)
+      - StructureIntact = ~StructuralBreakdown & (support_break_depth_atr<1.5) & (recent_lower_low_count<=5)
+      - StructuralBreakdown = BREAK_DOWN | (recent_lower_low_count>=5) | ((support_break_depth_atr>=1.0)&(support_break_volume_ratio>=1.5))
+      - ClearDistribution = (distribution_score_raw>=3.5) & (C<MA20)
+      - LiquidityPass = (VR>=0.5)&(VR<=3.0)&(AMT>=5e7)
+      - IMPULSE>=0.10 硬门槛已移除 (仅保留为 §6 研究阈值)
+      - dip_stage / quality / readiness / audit fields
+      forbidden_change_classes_verified_frozen:
+      - BOTTOM_SETUP 硬门槛 = (DistLow60<=6%) & (9 条止跌证据>=1)
+      - ATR_ref = ATR14.rolling(5).median(), ATR14 = TR.rolling(14).mean()
+      - Universe = total_mv in [2.5e9, 1.0e10]
+      - 'KEEP: DIP 入口仅 DIP_ELIGIBLE_v11 (DIP_SCORE 仅用于分层, 不再作为入口 KEEP)'
+      hash_mismatch_vs_provisional_manifest:
+        build_pool.py: GREEN-WATCH-v1.1 改造 (已批准)
+        market_proxy_v1.py: MARKET_PROXY-V1 正式实现 (已批准)
+        action: '不回滚; 审计确认后由 freeze.py 重新采集 hashes (用户 2026-09-18 裁定 #5)'
+  freeze_sequence_enforced:
+  - A. sample eligibility semantics 修复
+  - B. TypeError 归因 (gate4_attrition.json)
+  - C. 场景 trace 定向补样 (scenario_cert.json + 注入)
+  - D. float_mv regime 调查与登记
+  - E. build_pool / market_proxy 审计 + 组件契约测试
+  - F. freeze.py 重新采集 component_hashes
+  - G. freeze.py --verify 必须 TRUE (freeze_gate3_final.py 内部强制)
+  - H. 生成 gate3_final_evidence.json (ALL_GREEN)
+  - I. freeze_gate3_final.py --confirm -> FINAL_FROZEN
+  - J. snapshot_step9_frozen.py --confirm -> 只读快照 + SHA256SUMS.txt
+  - K. 再次 freeze.py --verify
+  ALL_GREEN: true
+  gate4_verdict_note: 'CONDITIONAL_PASS 不构成 ALL_GREEN (用户 2026-09-18 裁定: 样本口径未修完前
+    Gate4 只能 CONDITIONAL)。'
+component_hashes_verified: true
+component_hashes_verified_at: '2026-09-18T11:24:26+00:00'
+snapshot_dir: step9_final_frozen_snapshot/
+rollback_point: '本仓库非 git: 唯一代码回滚点 = step9_final_frozen_snapshot/ (含 SHA256SUMS.txt),
+  由 snapshot_step9_frozen.py 生成并只读化'

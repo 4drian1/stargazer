@@ -1,0 +1,57 @@
+kimi:
+  api_key: ''
+  base_url: https://api.kimi.com/coding/v1
+  model: kimi-k2.6
+agent:
+  strategy_file: STRATEGY.md
+  watchlist_file: data/watchlist.json
+  max_tool_rounds: 10
+tavily:
+  api_key: ''
+push:
+  enabled: true
+  provider: serverchan
+  serverchan_sendkey: ''
+  pushplus_token: ''
+  interval_minutes: 30
+  close_time: '15:05'
+  dedup_hours: 4
+  in_app_notify: true
+  morning_report: true
+  morning_time: 09:05
+  stop_watch: true
+  auction_check: true
+  auction_time: '09:26'
+model:
+  enabled: true
+  python: D:\stargazer\.venv\Scripts\python.exe
+  batch_script: D:\stargazer\stargazer_ml\v5_9_live_batch.py
+  # 本地用增量刷新：基于 data_daily_parts 补全最新数据； portable 环境请改成 v5_9_portable_refresh.py
+  refresh_script: D:\stargazer\stargazer_ml\v5_9_refresh_live_data.py
+  cache_dir: data/model
+  intraday_db: data/model_state.sqlite
+  device: auto
+  top_n: 50
+  monitor_top_n: 20
+  intraday_interval_seconds: 60
+  # 实时监控板块扫描间隔（秒）；默认 5 分钟——20 个板块成分股批量行情 + 盘中模型打分预热，3 分钟偏紧凑
+  user_sector_scan_seconds: 300
+  # 绿盘低吸(G0) 盯盘门控：只有模型输出的胜率、收益/回撤比、效用同时满足阈值，才提示人工复核
+  green_g0_gate:
+    min_entry_utility: 0.0        # 点位模型效用必须 > 0
+    min_win_rate: 0.35            # 模型估算胜率（1 - 对应T风险概率）
+    min_payoff_ratio: 3.0         # 收益/回撤比 = 预期收益 / |触发回撤|，>=3 才提示
+    max_risk_probability: 0.65    # 对应T的下跌风险概率上限
+# 冻结计划监控：盘中规则源 = plan_file（stargazer_plan `python -m cli export_frozen`
+# 的输出；每日把本机导出的 json 拷到 data\plan_frozen.json，监控机同一路径）。
+# 盘中监控沿用「模型监控」开关（model.enabled），开盘自动跑，无独立开关。
+# 「交易计划页」（侧栏入口：盘后选股双名单 → 勾选生成计划 → 冻结并导出到 plan_file）：
+#   · 总开关 plan.enabled，缺省 true；监控机设 `enabled: false` 即隐藏该页
+#   · 全链（green_v2\model_shadow_draft.py / rule_python / plan_dir）不存在时页面自动隐藏
+#   · 15:05 盘后日终汇总（候选数/触发清单 → 微信 + data\plan_daily_summary_YYYYMMDD.json）
+plan:
+  ml_root: D:\stargazer\stargazer_ml   # 交易计划页双名单脚本根（打包迁移时按 PACKAGING_TARGET 纪律替换）
+  plan_file: data/plan_frozen.json          # 相对本程序目录
+  interval_seconds: 180                     # 计划规则求值间隔（检查点到点必查）
+  plan_dir: D:\stargazer\stargazer_plan     # 「盘后总结」按钮 settle 子进程 cwd
+  rule_python: D:\stargazer\_dev_venv\Scripts\python.exe   # settle 解释器（需 PG）

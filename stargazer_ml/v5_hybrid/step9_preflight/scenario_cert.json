@@ -1,0 +1,136 @@
+{
+  "DIP_TO_BREAKDOWN": {
+    "status": "FOUND_IN_SCAN",
+    "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+    "n_scanned": 1947,
+    "n_pool": 1167210,
+    "found_n": 8,
+    "examples": [
+      {
+        "symbol": "600997",
+        "plan_date": 20260803,
+        "d_date": 20260804,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "301025",
+        "plan_date": 20250827,
+        "d_date": 20250828,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "600881",
+        "plan_date": 20250619,
+        "d_date": 20250620,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "300967",
+        "plan_date": 20250318,
+        "d_date": 20250319,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "600103",
+        "plan_date": 20250109,
+        "d_date": 20250110,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "600337",
+        "plan_date": 20250218,
+        "d_date": 20250219,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "603697",
+        "plan_date": 20260612,
+        "d_date": 20260615,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "605080",
+        "plan_date": 20250917,
+        "d_date": 20250918,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      }
+    ],
+    "generated_at": "2026-09-18T08:59:03.920299+00:00"
+  },
+  "SECOND_TEST_HIGHER_LOW": {
+    "status": "FOUND_IN_SCAN",
+    "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+    "n_scanned": 1947,
+    "n_pool": 1167210,
+    "found_n": 1,
+    "examples": [
+      {
+        "symbol": "300639",
+        "plan_date": 20250827,
+        "d_date": 20250828,
+        "setup": "BOTTOM_SETUP",
+        "final_state": "BREAKDOWN",
+        "first_state": "WATCH"
+      }
+    ],
+    "generated_at": "2026-09-18T08:59:03.920612+00:00"
+  },
+  "LATE_SESSION_TOUCH": {
+    "status": "FOUND_IN_SCAN",
+    "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+    "n_scanned": 1947,
+    "n_pool": 1167210,
+    "found_n": 4,
+    "examples": [
+      {
+        "symbol": "301116",
+        "plan_date": 20250408,
+        "d_date": 20250409,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "ZONE_TOUCH",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "301202",
+        "plan_date": 20260513,
+        "d_date": 20260514,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "ZONE_TOUCH",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "603239",
+        "plan_date": 20260818,
+        "d_date": 20260819,
+        "setup": "BOTTOM_SETUP",
+        "final_state": "ZONE_TOUCH",
+        "first_state": "WATCH"
+      },
+      {
+        "symbol": "002376",
+        "plan_date": 20260210,
+        "d_date": 20260211,
+        "setup": "INTRADAY_DIP_SETUP",
+        "final_state": "ZONE_TOUCH",
+        "first_state": "WATCH"
+      }
+    ],
+    "generated_at": "2026-09-18T08:59:03.920653+00:00"
+  }
+}

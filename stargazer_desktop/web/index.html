@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stargazer</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ 顶栏 ═══ -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <span class="brand-name">Stargazer</span>
+    </div>
+    <div class="market-pill">
+      <span class="dot" id="marketDot"></span><b id="marketText">…</b>
+      <span class="last-check" id="lastCheck"></span>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="top-actions">
+      <button class="tb-btn" id="manualCheckBtn">立即巡检</button>
+      <button class="tb-btn" id="planSettleBtn" title="对最新冻结计划跑 settle（五结局打标 + 未执行反事实），需本机 plan 库">盘后总结</button>
+      <button class="tb-btn" id="testPushBtn">测试推送</button>
+      <div class="push-quick"><span>微信推送</span><label class="switch"><input type="checkbox" id="pushEnabled"><span class="slider"></span></label></div>
+      <button class="tb-btn" id="openSettings">设置</button>
+    </div>
+  </header>
+
+  <!-- ═══ 主导航 ═══ -->
+  <nav id="mainNav">
+    <button class="nav-item active" data-page="monitor">监控</button>
+    <button class="nav-item" data-page="premarket">盘前助手与实时监控</button>
+    <button class="nav-item" data-page="plan" id="navPlan" hidden>交易计划</button>
+    <button class="nav-item" data-page="chat">AI 对话<i class="badge"></i></button>
+    <span class="nav-sep"></span>
+    <span class="nav-hint" id="navHint">本地模型</span>
+  </nav>
+
+  <div id="shell">
+
+    <!-- ═══ 左侧栏 ═══ -->
+    <aside id="sidebar">
+      <div class="side-tabs">
+        <button class="active" data-side="positions">持仓<i id="posCount">0</i></button>
+        <button data-side="watch">观察<i id="watchCount">0</i></button>
+        <button data-side="trades">交易<i id="tradeCount">0</i></button>
+      </div>
+
+      <section id="sidePositions" class="side-page active">
+        <div class="side-title"><span>持仓</span><button class="mini-btn" id="addPosBtn" title="登记持仓">+</button></div>
+        <div id="posList" class="card-list"><div class="empty">无持仓，点 + 登记</div></div>
+      </section>
+
+      <section id="sideWatch" class="side-page">
+        <div class="side-title"><span>观察名单</span><button class="mini-btn" id="addWatchBtn" title="加观察">+</button></div>
+        <div id="watchList" class="card-list"><div class="empty">空，点 + 添加或从候选卡片加入</div></div>
+      </section>
+
+      <section id="sideTrades" class="side-page">
+        <div class="side-title"><span>交易记录</span>
+          <span class="title-actions">
+            <button class="mini-btn" id="addTradeBtn" title="登记成交">+</button>
+            <button class="mini-link" id="exportTradesBtn" title="导出 CSV">CSV</button>
+          </span>
+        </div>
+        <div id="tradeList" class="card-list"><div class="empty">暂无成交</div></div>
+      </section>
+
+      <section class="side-section engine">
+        <div class="side-title"><span>数据引擎</span><button class="mini-link" id="runModelBtn">生成建议</button></div>
+        <div class="model-status" id="modelStatus">尚未读取</div>
+        <div class="model-list-hint" id="modelHint">候选详情见监控页</div>
+      </section>
+    </aside>
+
+    <!-- ═══ 主内容 ═══ -->
+    <main id="content">
+
+      <!-- 监控页 -->
+      <section id="pageMonitor" class="page active">
+        <nav class="strategy-tabs">
+          <button class="stab active" data-tab="green"><i class="st-dot green"></i>绿盘低吸</button>
+          <button class="stab" data-tab="horizontal"><i class="st-dot cyan"></i>横盘埋伏</button>
+          <button class="stab" data-tab="t5"><i class="st-dot gold"></i>T5 影子</button>
+          <span class="tabs-hint" id="greenStatus">加载中…</span>
+        </nav>
+
+        <section id="greenPanel" class="dash-panel active">
+          <header class="dash-header">
+            <h2><i class="st-dot green"></i>绿盘低吸<span class="dash-status" id="greenCount">共 0 只</span></h2>
+            <button class="mini-link" id="runModelBtnDash">生成建议</button>
+          </header>
+          <div id="greenList" class="dash-list"><div class="empty">暂无绿盘低吸候选</div></div>
+        </section>
+
+        <section id="horizontalPanel" class="dash-panel">
+          <header class="dash-header">
+            <h2><i class="st-dot cyan"></i>横盘埋伏<span class="dash-status" id="horizontalCount">共 0 只</span></h2>
+            <button class="mini-link" id="runModelBtnHorizontal">生成建议</button>
+          </header>
+          <div id="horizontalList" class="dash-list"><div class="empty">暂无横盘埋伏候选</div></div>
+        </section>
+
+        <section id="t5Panel" class="dash-panel">
+          <header class="dash-header">
+            <h2><i class="st-dot gold"></i>T5 影子双头<span class="dash-status" id="t5Count">只记录不推荐 · 人工复核</span></h2>
+          </header>
+          <div id="t5List" class="dash-list"><div class="empty">暂无影子决策行（盘后生成建议后自动留痕）</div></div>
+        </section>
+      </section>
+
+      <!-- 盘前助手与实时监控页 -->
+      <section id="pagePremarket" class="page">
+        <div class="monitor-page">
+          <div class="section-card">
+            <div class="section-head">
+              <h2>盘前助手</h2>
+              <span class="sub">隔夜市场映射 · 今日应对判断</span>
+              <span class="status-pill" id="pmDecision">待输入</span>
+            </div>
+            <div class="pm-fields">
+              <label>美股 %<input id="pmUs" type="number" step="0.1" placeholder="0.0"></label>
+              <label>日股 %<input id="pmJp" type="number" step="0.1" placeholder="0.0"></label>
+              <label>韩股 %<input id="pmKr" type="number" step="0.1" placeholder="0.0"></label>
+              <label class="pm-wide">板块影响<input id="pmImpact" type="text" placeholder="板块名:影响(-1~+1); 例：半导体:-0.8"></label>
+            </div>
+            <div class="pm-actions">
+              <button class="save-btn" id="pmSaveBtn">保存判断</button>
+              <span id="pmReason" class="pm-reason"></span>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-head">
+              <h2>实时监控板块</h2>
+              <span class="sub">同花顺概念 · 最多 20 个 · 盘中下跌&gt;3% 推送</span>
+              <span class="status-pill" id="swStatus">未设置</span>
+            </div>
+            <div class="pm-fields">
+              <label class="pm-wide">板块名（逗号分隔）<input id="swInput" type="text" placeholder="例：共封装光学(CPO), 军工, 存储芯片"></label>
+            </div>
+            <div class="pm-actions">
+              <button class="save-btn" id="swSaveBtn">保存板块</button>
+              <span id="swResult" class="pm-reason"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 交易计划页（本机专属；监控机 plan.enabled=false 或全链不存在时隐藏入口） -->
+      <section id="pagePlan" class="page">
+        <div class="monitor-page">
+          <div class="section-card">
+            <div class="section-head">
+              <h2>盘后双名单</h2>
+              <span class="sub">规则名单 ∥ 模型影子名单（未验证模型输出 · 纯观察不进计划）</span>
+              <span class="status-pill" id="planDualStatus">未生成</span>
+              <button class="mini-link" id="planRunBtn">盘后选股</button>
+            </div>
+            <div id="planDualLog" class="pm-reason" style="margin-bottom:10px"></div>
+            <div id="planDualMd" class="dash-list plan-md"><div class="empty">点「盘后选股」生成今日双名单（全链子进程，约数分钟）</div></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-head">
+              <h2>生成交易计划</h2>
+              <span class="sub">从规则名单勾选（模型名单仅观察）· 触发价可改 · 改动请填理由</span>
+              <span class="status-pill" id="planDraftStatus">未生成</span>
+            </div>
+            <div class="pm-actions" style="margin-bottom:14px">
+              <button class="save-btn" id="planDraftBtn">生成计划</button>
+              <button class="save-btn" id="planFreezeBtn" disabled>冻结并导出</button>
+              <span id="planResult" class="pm-reason"></span>
+            </div>
+            <div id="planPoolList" class="dash-list"><div class="empty">点「盘后选股」后，从下方规则名单勾选候选</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI 对话页 -->
+      <section id="pageChat" class="page">
+        <div class="chat-page">
+          <header class="chat-head">
+            <span class="chat-title">AI 对话</span>
+            <span class="chat-sub">信息搜集 · 行情分析 · 确定性命令</span>
+          </header>
+          <div id="chatLog"></div>
+          <div id="quickBar">
+            <button data-prompt="给我一份晨报：大盘指数与情绪（涨停/炸板/成交额）、隔夜美股表现、最新财经快讯里和我持仓/观察名单相关的消息、我持仓现在的风控状态，然后给出今天的应对分析。">晨报分析</button>
+            <button data-prompt="昨晚美股怎么样？对今天我A股的持仓和观察名单有什么映射影响？">美股映射</button>
+            <button data-prompt="最新财经快讯里有什么值得注意的？按我的交易手册解读一下，哪些板块有动静、哪些是噪音。">新闻解读</button>
+            <button data-cmd="/check">/check 风控</button>
+            <button data-cmd="/flow">/flow 资金流</button>
+            <button data-cmd="/quote ">/quote 体检</button>
+            <button data-cmd="/scan ">/scan 扫板块</button>
+            <button data-cmd="/score ">/score 打分</button>
+            <button data-cmd="/model">/model 建议</button>
+          </div>
+          <div id="inputBar">
+            <textarea id="input" rows="1" placeholder="直接对话，或 / 开头走确定性命令… (Enter 发送, Shift+Enter 换行)"></textarea>
+            <button id="sendBtn">发送</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ═══ 底部状态栏 ═══ -->
+  <footer id="statusbar">
+    <span class="sb-item" id="pushStatusBar">未配置推送</span>
+    <span class="sb-spacer"></span>
+    <span class="sb-item" id="sectorMapBar">无监控板块</span>
+  </footer>
+</div>
+
+<!-- 设置弹窗 -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modal-body">
+    <div class="modal-title">推送设置 <span class="modal-close" id="closeSettings">×</span></div>
+    <label class="field">
+      <span>推送通道</span>
+      <select id="cfgProvider">
+        <option value="serverchan">Server酱 Turbo（推荐）</option>
+        <option value="pushplus">PushPlus</option>
+      </select>
+    </label>
+    <label class="field" id="sendkeyField">
+      <span>Server酱 SendKey <a href="https://sct.ftqq.com" target="_blank">去获取 →</a></span>
+      <input type="text" id="cfgSendkey" placeholder="SCT 开头的 SendKey">
+    </label>
+    <label class="field hidden" id="pushplusField">
+      <span>PushPlus Token <a href="http://www.pushplus.plus" target="_blank">去获取 →</a></span>
+      <input type="text" id="cfgPushplus" placeholder="pushplus 的 token">
+    </label>
+    <div class="field-row">
+      <label class="field"><span>盘中巡检间隔(分钟)</span><input type="number" id="cfgInterval" min="5" step="5"></label>
+      <label class="field"><span>收盘巡检时刻</span><input type="text" id="cfgClose" placeholder="15:05"></label>
+    </div>
+    <div class="field-row">
+      <label class="field check"><input type="checkbox" id="cfgMorning"> <span>交易日 09:05 自动晨报</span></label>
+      <label class="field check"><input type="checkbox" id="cfgStopWatch"> <span>盘中5分钟止损盯梢</span></label>
+      <label class="field check"><input type="checkbox" id="cfgAuction"> <span>交易日 09:26 竞价三条件检查</span></label>
+    </div>
+    <label class="field">
+      <span>Tavily API Key（研报/深度搜索，可选）<a href="https://tavily.com" target="_blank">tavily.com →</a></span>
+      <input type="text" id="cfgTavily" placeholder="tvly- 开头，留空表示不修改">
+    </label>
+    <div class="modal-actions">
+      <button id="saveSettings" class="primary-btn">保存</button>
+      <span id="settingsMsg"></span>
+    </div>
+    <div class="help-text">配置后点左侧「发测试推送」验证微信是否能收到。盘中每 30 分钟巡检持仓+观察名单，有止损/止盈/超卖信号才会推；收盘 15:05 固定推一次总结。止损盯梢：持仓盘中触及止损线、观察名单单日跌超5% 立即推（按收盘确认纪律不变）。晨报：每个交易日 09:05 自动推隔夜美股+昨日盘面+持仓风控。同一信号 4 小时内不重复。</div>
+  </div>
+</div>
+
+<!-- 登记/编辑持仓 弹窗 -->
+<div id="addPosModal" class="modal hidden">
+  <div class="modal-body">
+    <div class="modal-title" id="apTitle">登记持仓 <span class="modal-close" id="closeAp">×</span></div>
+    <div class="field-row">
+      <label class="field"><span>代码</span><input id="apCode" placeholder="600207"></label>
+      <label class="field"><span>名称</span><input id="apName" placeholder="安彩高科"></label>
+    </div>
+    <div class="field-row">
+      <label class="field"><span>买入价</span><input id="apEntry" type="number" step="0.01"></label>
+      <label class="field"><span>买入日期</span><input id="apDate" placeholder="2026-08-05"></label>
+    </div>
+    <label class="field"><span>结构止损线</span><input id="apLow" type="number" step="0.01"></label>
+    <label class="field"><span>买入逻辑(可选)</span><input id="apLogic" placeholder="光伏玻璃+国企改革双标签"></label>
+    <div class="modal-actions">
+      <button id="saveAp" class="primary-btn">保存</button>
+      <span id="apMsg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 登记/编辑观察 弹窗 -->
+<div id="addWatchModal" class="modal hidden">
+  <div class="modal-body">
+    <div class="modal-title" id="awTitle">加观察名单 <span class="modal-close" id="closeAw">×</span></div>
+    <label class="field"><span>代码</span><input id="awCode" placeholder="600725"></label>
+    <div class="field-row">
+      <label class="field"><span>目标买入价</span><input id="awTarget" type="number" step="0.01" placeholder="可选，到价提醒"></label>
+      <label class="field"><span>止损价</span><input id="awStop" type="number" step="0.01" placeholder="可选，破价提醒"></label>
+    </div>
+    <label class="field"><span>策略来源</span><input id="awStrategy" placeholder="horizontal / green_g0 / 自定义"></label>
+    <label class="field"><span>理由(可选)</span><input id="awReason" placeholder="振幅压回2.5%以下再看"></label>
+    <div class="modal-actions">
+      <button id="saveAw" class="primary-btn">保存</button>
+      <span id="awMsg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 卖出确认弹窗 -->
+<div id="sellModal" class="modal hidden">
+  <div class="modal-body">
+    <div class="modal-title">卖出 <span class="modal-close" id="closeSell">×</span></div>
+    <div id="sellInfo" class="sell-info"></div>
+    <div class="field-row">
+      <label class="field"><span>卖出价</span><input id="sellPrice" type="number" step="0.01"></label>
+      <label class="field"><span>股数</span><input id="sellShares" type="number" placeholder="可选"></label>
+    </div>
+    <label class="field"><span>卖出理由(可选)</span><input id="sellReason" placeholder="触及止损 / 止盈 / 纪律"></label>
+    <div class="modal-actions">
+      <button id="confirmSell" class="primary-btn" style="background:#ff4d4f;border-color:#ff4d4f">确认卖出</button>
+      <span id="sellMsg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 买入确认弹窗（从候选/观察买入） -->
+<div id="buyModal" class="modal hidden">
+  <div class="modal-body">
+    <div class="modal-title">买入 <span class="modal-close" id="closeBuy">×</span></div>
+    <div id="buyInfo" class="sell-info"></div>
+    <div class="field-row">
+      <label class="field"><span>买入价</span><input id="buyPrice" type="number" step="0.01"></label>
+      <label class="field"><span>股数</span><input id="buyShares" type="number" placeholder="可选"></label>
+    </div>
+    <label class="field"><span>止损线</span><input id="buyLow" type="number" step="0.01"></label>
+    <label class="field"><span>买入逻辑(可选)</span><input id="buyLogic" placeholder="按手册建议"></label>
+    <div class="modal-actions">
+      <button id="confirmBuy" class="primary-btn">确认买入</button>
+      <span id="buyMsg"></span>
+    </div>
+  </div>
+</div>
+
+<script src="marked.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

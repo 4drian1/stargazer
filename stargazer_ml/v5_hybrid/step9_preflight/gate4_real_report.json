@@ -1,0 +1,212 @@
+{
+  "verdict": "PASS",
+  "n_samples": 254,
+  "failing_checks": [],
+  "attrition": {},
+  "report": {
+    "PIPELINE_PASS": {
+      "pass": true,
+      "detail": {
+        "missing_columns": [],
+        "n_required": 48
+      }
+    },
+    "TIME_TRAVEL_PASS": {
+      "pass": true,
+      "detail": {
+        "n_violations": 0
+      }
+    },
+    "NO_FUTURE_LEAK": {
+      "pass": true,
+      "detail": {
+        "transition_future_leak": 0
+      }
+    },
+    "S0_NO_D_INFO": {
+      "pass": true,
+      "detail": {
+        "no_fill_rows": 0,
+        "no_fill_rows_with_s0_label": 0,
+        "no_fill_rows_lost_s0_label_not_censored": 0,
+        "note": "S0 锚 D 日 open; 不成交不得导致 S0 样本被丢弃 (仅 CENSORED_TAIL 可缺)"
+      }
+    },
+    "S0_ANCHOR_INDEPENDENT_PASS": {
+      "pass": true,
+      "detail": {
+        "s0_missing_but_not_censored": 0,
+        "timing_label_without_fill": 0,
+        "n_censored_tail": 0
+      }
+    },
+    "TIMING_FILL_CORRECT": {
+      "pass": true,
+      "detail": {
+        "timing_label_without_fill": 0
+      }
+    },
+    "ALPHA_INTERVAL_ALIGNED": {
+      "pass": true,
+      "detail": {
+        "max_alpha_misalign": 1e-05,
+        "n_checked": 254
+      }
+    },
+    "TRACE_COVERAGE_PASS": {
+      "pass": true,
+      "detail": {
+        "missing_states": [],
+        "present_states": [
+          "BREAKDOWN",
+          "INVALIDATED",
+          "MODEL_SCORE_REQUEST",
+          "WATCH",
+          "ZONE_APPROACH",
+          "ZONE_TOUCH"
+        ],
+        "scope": "STATE_PRESENCE_ONLY"
+      }
+    },
+    "TRACE_SCENARIO_COVERAGE_PASS": {
+      "pass": true,
+      "detail": {
+        "present_in_samples": {
+          "DIP_TO_BREAKDOWN": 8,
+          "SECOND_TEST_HIGHER_LOW": 1,
+          "LATE_SESSION_TOUCH": 4
+        },
+        "scenarios": {
+          "DIP_TO_BREAKDOWN": {
+            "desc": "INTRADAY_DIP_SETUP 触 Zone 后 BREAKDOWN",
+            "status": "PRESENT",
+            "n_present": 8,
+            "cert": {
+              "status": "FOUND_IN_SCAN",
+              "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+              "n_scanned": 1947,
+              "found_n": 8,
+              "generated_at": "2026-09-18T08:59:03.920299+00:00"
+            }
+          },
+          "SECOND_TEST_HIGHER_LOW": {
+            "desc": "ZONE_TOUCH 后 recovery, 二次测试抬高低点",
+            "status": "PRESENT",
+            "n_present": 1,
+            "cert": {
+              "status": "FOUND_IN_SCAN",
+              "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+              "n_scanned": 1947,
+              "found_n": 1,
+              "generated_at": "2026-09-18T08:59:03.920612+00:00"
+            }
+          },
+          "LATE_SESSION_TOUCH": {
+            "desc": "14:00 之后才首次触及 Zone",
+            "status": "PRESENT",
+            "n_present": 4,
+            "cert": {
+              "status": "FOUND_IN_SCAN",
+              "scan_scope": "v11 pool uniform scan: plan_date 20250102..latest, pool=1167210 (DIP=339475), sampled=2000, state_engine_ok=1947, seed=20260918, path=build_zones+run_state_engine (与 gate4 同源)",
+              "n_scanned": 1947,
+              "found_n": 4,
+              "generated_at": "2026-09-18T08:59:03.920653+00:00"
+            }
+          }
+        }
+      }
+    },
+    "SAMPLE_INTEGRITY_PASS": {
+      "pass": true,
+      "detail": {
+        "layers": {
+          "candidate_contract": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          },
+          "zone": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          },
+          "execution": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          },
+          "label": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          },
+          "proxy": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          },
+          "feature": {
+            "n_in": 254,
+            "n_valid": 254,
+            "n_dropped": 0,
+            "drop_reason": {},
+            "unreasoned_drops": 0
+          }
+        },
+        "unreasoned_drops": {
+          "candidate_contract": 0,
+          "zone": 0,
+          "execution": 0,
+          "label": 0,
+          "proxy": 0,
+          "feature": 0
+        },
+        "sample_valid_formula_mismatch": 0,
+        "research_tier": {
+          "column": "candidate_status",
+          "distribution": {
+            "INVALIDATED": 132,
+            "PASS": 65,
+            "NEAR_MISS": 56,
+            "CONTROL": 1
+          },
+          "role": "RESEARCH_TIER_NOT_VALIDITY",
+          "used_as_sample_filter": false
+        },
+        "zone_error_count": 0,
+        "zone_error_rate": 0.0,
+        "zone_error_by_reason": {},
+        "eligibility_counts": {
+          "s0_eligible": 254,
+          "timing_eligible": 254,
+          "r0_eligible": 254,
+          "portfolio_eligible": 254
+        }
+      }
+    },
+    "SAMPLE_SELECTION_LEAK_PASS": {
+      "pass": true,
+      "detail": {
+        "s0_eligible_formula_mismatch": 0,
+        "timing_eligible_formula_mismatch": 0,
+        "n_candidate_status_invalidated": 132,
+        "n_invalidated_sample_data_valid": 132,
+        "n_invalidated_s0_eligible": 132,
+        "candidate_status_used_as_sample_filter": false,
+        "n_dropped_by_candidate_status": 0,
+        "note": "INVALIDATED 是 D 日 replay 结果, 属研究信息; 据此删样本 = selection leakage"
+      }
+    },
+    "OVERALL": true
+  }
+}

@@ -1,0 +1,43 @@
+name: L0_V0_NEGATIVE_BASELINE
+frozen_at: '2026-09-18T11:23:53+00:00'
+source: D:\stargazer\stargazer_ml\v5_hybrid\green_exit_v1\step6_rescue
+rule: 禁止因新 Label Contract 重算并覆盖 Step 6 失败证据。
+artifacts:
+  step6_verdict.md: e33ef2f2337368fce4b33024916b06314368336b5823116b799e42cafa1ace50
+  diagnostics_60.md: 60d8c4a887c41bba03d78ef3b683b2a86e3a5cc5f3dbd8e8e1d7dc7958bcff31
+  out/:
+    diag_2025_minute.csv: a117934102ea4ea77677e60050a3f40d3e63d1082fc9a8afcfb9b0c677454ee1
+    diag_concentration.csv: 9f89992f9b0a6428954d10b9098a331efb240c0178532eae9c5ae7c2825237d9
+    diag_deciles_old.csv: 4b194c6c5177afe75ca19ab210bbe2cb8d9556e4aaaa7926d63efe5a44ac937f
+    diag_ic_old.csv: 0054bbcc204da1e1952a39b3ba8293fe358304f8c32c90ac5b0faeb4cbf58b34
+    diag_pool_month_X0_CONTROL_daily.csv: d63f735598f3a38e9ce23adbc33f0fbd7dc2483c6d4943d5ee210f0c76123ade
+    diag_pool_month_X0_CONTROL_minute.csv: 577947479b2ee2009de0ce90207b8bfcf10aa1ca54912ab10e302df7e60e98b6
+    diag_pool_month_X1_daily.csv: a12192af4593fe4b2f527183fe7f93a0296ab6334c831b5ade2079f75b3ee28a
+    diag_pool_month_X1_minute.csv: 315325a47cb2e7734f90c27b2714f1f5fae52b932e15bfa511490af9eebb2562
+    diag_pool_sector_X0_CONTROL_daily.csv: e41f86bacb5b9db258c6b33806082d753b6b65c3c1d24ed163596893fa9c4d05
+    diag_pool_sector_X0_CONTROL_minute.csv: f49b199a30bcd61c8bdad7ffd4a83e7123c499d64cf748351df082f0671573e3
+    diag_pool_sector_X1_daily.csv: b1ec425ba359c6583ea1af51bbcc31826b591fe3f720de50eddc23b0ee583671
+    diag_pool_sector_X1_minute.csv: aa1cc8b7d5d55856116d1540764fd8678ab59cd85deeb2156c0746b00e728cc1
+    diag_pool_year_X0_CONTROL_daily.csv: 5dc2b56f11965f43c7a6020da51e37e435edcb08f26d54b506657fd9907e6308
+    diag_pool_year_X0_CONTROL_minute.csv: 2b70c9ad86994e0ce18a58403463077c8f907f35fdebcc8671a4b2b7cf20ae88
+    diag_pool_year_X1_daily.csv: a5588739c2391a02dd5f1a47a665a4a578cd044e312242dc6f8f6243a37d7c1c
+    diag_pool_year_X1_minute.csv: 0da574f0a7d5b765348969a8ac66371ab46c5c61fe1660f5631ba725bb18bbd2
+    diag_preclose_sample.csv: b0bd3cc7b827f5cb3ee37dbabafb440491185a75e66ef836a3e44af7e003696c
+    diag_stop_mae.csv: 13470e0d5eeb5b66c6e5c322d85a9e390f8268727d03a29748521d553e3c7502
+    gate_seed_counts.csv: ee56c564cc17e5eed3154feeadbc58e465f2fb1d4b82162e492d8132df9e008e
+    r0_eval.csv: 6bc2480b1ca573e3bca378928b7a5355555fb7c499cec183c4dd6a3337ffe158
+    r0_layers.csv: b3846bb7661a39adc7b75a8a706d1acc4d799fb3ddedf6ef0b70702e7fad20b0
+    s0_candidates_x0.csv: 9491ea20a5f84998942ba4ed6385e820cb0fae8d89ef8c4a033b6a9fd56e779a
+    s0_eval.csv: 9e63012e12126916ee103be33f7169c98a99fc4aa2a516d5aee4d20d5673b716
+    final_equity_S0X0_A1_lgbm_p_pos.parquet: 571140fb4d963965a0337e6299a8618f99b70e312a53c1b53b5701885f004383
+    final_equity_S0X1_A1_lgbm_p_pos.parquet: 89a1fd71ee9ed44d1c210d9c0f16dd1f6998a197f3ea668c0cd86e6df9ffbd50
+    final_flow_POOL_RANDOM.parquet: b3a4fcb9fbec2aa5ee4decb57dc57d32bf172667e505f3bbb327b313735bccec
+    final_flow_S0X0_A1_lgbm_p_pos.parquet: 00eb21795c7fec3fd1c5aa4af41cf4f97fd49ee4afccb709b3b8300396e538c0
+    final_flow_S0X1_A1_lgbm_p_pos.parquet: 45db06397e3ea635522331c2899ff09183c2ed0ae921e7e2d2a9b7b511e21d93
+    final_trades_S0X0_A1_lgbm_p_pos.parquet: 88c8ed07c215b23011e2cf7c547cd9bfce2539a46995c92387972f56597805bb
+    final_trades_S0X1_A1_lgbm_p_pos.parquet: 2678195379d3e87171f22e3aacc15482c45a318de81973a6e6c11c53bcdd2c6b
+    s0_scores_X0_CONTROL.parquet: 6ee6a344b69ada1854c3c228dc00d901e5422adc4d91df881cd074dfbb693eba
+    s0_scores_X1.parquet: d8582fc6a0eb203ea08004a6c60f7167ef49211e6711a2bf35e6299962bd269c
+    final_validation.json: 03ff95c83921828bfc3dc8aa88777980ae62a7f37a2ce93fdc681108135efb4c
+    s0_winner.json: 31c6662ae7957e13e3123cb6a9cf96a9cbed87fda881c8e1b6135969366db539
+replay_note: 如需新合同下可比对照, 产生 A0_REPLAY_LABEL_V2, 不得与 L0_ORIGINAL 混用。

@@ -1,0 +1,1686 @@
+
+
+- 近期主线：把新绿盘低吸做成一个可回测、可解释、可影子运行的模型。
+- 中期主线：完成 Corvus → Pyxis → Astrolabe，使环境风险能够调节买入和退出。
+- 两条线最终在 Stargazer Agent 汇合，但现在不让未验证的环境判断污染绿盘训练。
+
+## 一、最终系统结构
+
+```text
+Corvus 信息服务
+  ├─ 新闻/公告/政策事实抽取
+  ├─ 外围市场状态
+  └─ 信息影响标签与历史反应
+             │
+             ▼
+Pyxis 风险服务
+  ├─ 大盘风险
+  ├─ 板块/龙头风险
+  ├─ 个股位置与流动性风险
+  ├─ 盘中风险变化
+  └─ 持仓退出风险
+             │
+             ▼
+Astrolabe 风险信息融合
+  ├─ 买入许可
+  ├─ 风险等级
+  ├─ 止损/止盈参数建议
+  └─ evidence_ids
+             │
+     ┌───────┴────────┐
+     ▼                ▼
+Tarot 选股服务       持仓管理
+  ├─ 绿盘低吸         ├─ 动态止损
+  ├─ 横盘埋伏         ├─ 移动止盈
+  └─ 打板追龙接口     └─ 时间退出
+             │
+             ▼
+Stargazer Agent
+  ├─ 盘后两类观察池
+  ├─ 盘中触发提醒
+  ├─ 模型与风险相互质询
+  ├─ LLM解释
+  └─ 人工最终决策
+```
+
+LLM只负责交流与解释，不直接计算概率、改模型权重或替代回测。
+
+---
+
+# 二、当前最优先：修复绿盘低吸的真实收益口径
+
+现在最大的阻碍不是因子数量，而是训练目标与真实交易不一致。
+
+目前应正式作废以下口径：
+
+- `t1_rule_return` 作为真实交易收益；
+- `(MFE+5%)/2` 这种用未来最高点构造的收益；
+- 固定持有到第五日；
+- 将未来五日最高价直接当作可实现卖价；
+- 把收益平均摊到五个交易日的伪净值。
+
+这些字段仍可作为辅助标签，但不能进入真实组合账本。
+
+## 阶段0：冻结退出规格
+
+建议建立：
+
+```text
+stargazer_ml/v5_hybrid/green_exit_v1/
+├─ exit_dyn_spec_v1.md
+├─ build_exit_labels.py
+├─ portfolio_backtest_v2.py
+├─ exit_ablation.py
+└─ reports/
+```
+
+### 统一交易时序
+
+- T日收盘生成候选；
+- T+1按真实开盘或指定可成交价买入；
+- A股T+1制度下，买入当天不能卖出；
+- 最早卖出日为T+2；
+- T+5只是最长观察期限，不是默认卖出日；
+- 涨跌停、停牌和无法成交必须延迟到下一可成交时点。
+
+这是不可修改的执行基础。
+
+---
+
+# 三、EXIT-DYN-v1：第一代动态退出规则
+
+第一版先依赖个股自身价格路径，不能等待 Pyxis。
+
+## 1. 初始风险距离
+
+使用入场前已知的冻结波动率：
+
+\[
+ATR_{ref}=\operatorname{median}(ATR14_{T-4},...,ATR14_T)
+\]
+
+\[
+D_{stop}=\operatorname{clip}
+\left(
+1.5\times \frac{ATR_{ref}}{Entry},
+3\%,6\%
+\right)
+\]
+
+\[
+StopPrice=Entry\times(1-D_{stop})
+\]
+
+这是基础参数，不代表1.5一定最优。正式实验可比较1.2、1.5、1.8 ATR，但只能在开发段选一次并冻结。
+
+## 2. 高水位
+
+从买入后开始更新：
+
+\[
+HWM_t=\max(Entry,High_1,...,High_t)
+\]
+
+\[
+PeakRet_t=\frac{HWM_t}{Entry}-1
+\]
+
+\[
+PeakDrawdown_t=\frac{HWM_t-Price_t}{HWM_t}
+\]
+
+只能使用当时已经出现的最高价，禁止引用未来五日最高价。
+
+## 3. 初级反弹退出
+
+当：
+
+\[
+PeakRet_t\ge
+\max\left(2\%,0.8\times ATR_{ref}/Entry\right)
+\]
+
+且从高点回撤达到：
+
+\[
+PeakDrawdown_t\ge
+\max\left(1\%,0.45\times ATR_{ref}/Entry\right)
+\]
+
+视为“反弹开始失败”。
+
+基线实验比较：
+
+- E1-A：全仓退出；
+- E1-B：先卖50%，剩余仓位继续跟踪。
+
+不应事先认定分批一定更好，需要账本检验。
+
+## 4. 盈利后的移动止盈
+
+当浮盈达到：
+
+\[
+PeakRet_t\ge
+\max\left(5\%,1.5\times ATR_{ref}/Entry\right)
+\]
+
+启动移动止盈：
+
+\[
+TrailDistance=
+\max\left(1.5\%,0.75\times ATR_{ref}/Entry\right)
+\]
+
+\[
+TrailStop_t=HWM_t\times(1-TrailDistance)
+\]
+
+价格跌破移动止盈位，在下一合法可成交时点退出。
+
+## 5. 时间衰减
+
+- T+2：给正常反弹空间；
+- T+3：若未形成有效反弹，降低继续等待的价值；
+- T+4：收紧移动止盈或反弹失败条件；
+- T+5：仍未形成有效走势则时间退出。
+
+所以这是“最多观察五日”，不是“死捏五日”。
+
+---
+
+# 四、两种历史回测口径必须分开
+
+## 2019–2024：日线保守近似
+
+由于缺少完整分钟数据，必须采用保守规则：
+
+- 当日开始前只使用前一日已经形成的高水位；
+- 当日同时触及止损和上涨目标时，按止损先发生；
+- 不能使用当日新高同时推导当日回撤退出；
+- 跳空跌破止损按实际开盘价，而非理想止损价；
+- 除权窗口单独隔离；
+- 日线结果标记为 `DAILY_APPROX`。
+
+## 2025以后：分钟精确回放
+
+- 按分钟顺序更新高水位；
+- 按真实先后判断止损、反弹确认和移动止盈；
+- 使用下一分钟成交价或VWAP；
+- 处理涨跌停锁死、午间休市和交易成本；
+- 标记为 `MINUTE_EXACT`。
+
+两种结果不能混成一个收益表。
+
+---
+
+# 五、重写真实组合账本
+
+新账本必须包含：
+
+- 现金；
+- 持股数量；
+- 买卖时间和价格；
+- 每笔佣金、印花税和滑点；
+- 每日逐仓盯市；
+- 20槽真实占用率；
+- 同一股票重复买入限制；
+- 冷却期；
+- 无法成交处理；
+- 年末未平仓继续回放至实际退出；
+- 正确的最大回撤：
+
+\[
+MDD=\min_t\left(\frac{Equity_t}{RunningPeak_t}-1\right)
+\]
+
+不能再把退出收益平均分摊到持有日。
+
+## 必须输出的指标
+
+- 年化收益；
+- 夏普比率；
+- 最大回撤；
+- Calmar；
+- 胜率；
+- 平均盈利、平均亏损；
+- 盈亏比；
+- 期望收益；
+- STOP率；
+- 时间退出率；
+- 移动止盈率；
+- 平均持有时间；
+- 资金利用率；
+- 成本占毛收益比例；
+- 月度收益；
+- 板块和个股集中度；
+- 去掉最佳月、最佳10笔后的稳健性。
+
+---
+
+# 六、重新训练绿盘低吸模型
+
+只有退出标签和账本修复后，才值得重新判断F1、F2、F3谁更好。
+
+## 模型拆分
+
+### S0：选股头
+
+回答：
+
+> 在符合绿盘战法的股票里，哪只更值得进入观察池？
+
+采用当前较稳的干净特征版本作为起点：
+
+- 训练折中位数填充；
+- 训练折拟合MAD标准化；
+- 删除常量；
+- 暂定同时删除 `impulse_flag` 和 `first_divergence_flag`；
+- 市场上下文保留为上下文，不重复充当个股排序因子。
+
+但“同时删除两个标志”只是当前候选结论，需在新退出标签下重新确认，不能直接永久冻结。
+
+### R0：个股风险头
+
+回答：
+
+> 如果买入，这只股票先发生止损、反弹失败或持续走弱的概率多大？
+
+建议预测：
+
+- `p_hard_stop_3d`
+- `p_hard_stop_5d`
+- `p_failed_rebound`
+- `p_timeout_loss`
+- `expected_MAE`
+- `MAE_q80/q90`
+
+R0可以使用与S0不同的特征表，不再强迫两个头共用一套因子。
+
+### X0：退出头
+
+第一代不直接让模型决定卖出，而是预测：
+
+- 未来1日继续创新高概率；
+- 未来1日跌破移动止盈概率；
+- 反弹失败概率；
+- 未来2日正净收益概率；
+- 继续持有的条件EV。
+
+规则负责执行，X0先做建议和影子评分。
+
+## 第6步：入场流诊断与重建闸门
+
+第5步真实账本若证明旧入场流为负，第6步不得按“正常升级”处理，而是一次有硬停止条件的救援实验。目标只回答：**在同一候选池和真实可执行退出下，使用正确目标重新排序，能否提取出成本后正期望子集。**
+
+### 6.0 训练前诊断
+
+- 分别报告 `DAILY_APPROX` 与 `MINUTE_EXACT`，不得把两种精度混成正式收益结论；全期间混合曲线只能作描述。
+- 2019—2023逐年、2024开发年、2025分钟精确子集分别报告候选池裸收益、旧F1/F2/F3分位收益、日Rank IC、STOP/MAE、月份和板块集中度。
+- 核查账本行情与标签行情的入场价、复权尺度、涨跌停判定分歧；若只属于 `pre_close` 假阳性，必须用抽样证据证明当前开盘价和逐日盯市价格仍同尺度，不能仅写“以标签为准”。
+- 判断是否存在“全池为负但上分位为正”的可学习结构；若所有旧分数分位均无排序，明确记录旧目标失效。
+
+### 6.1 新目标
+
+- 禁止继续用 `best_rule_return`、未来最佳入场日或多退出策略事后取最大值训练。
+- S0主目标使用单一、预注册、可执行策略下的净收益/正收益概率；`X0_CONTROL` 作为最简控制目标，X1作为独立挑战者，不按全样本事后表现选择目标。
+- R0分别预测硬止损、3/5日左尾、MAE分位和反弹失败风险；机会与风险保持双轴，不先压成一个分数。
+- 四种退出标签可用于消融，但禁止对每笔交易事后选择最有利退出。
+
+### 6.2 训练与验证
+
+- 先做规则/线性/LightGBM基线；在传统模型没有稳定增量前不启动深度模型。
+- 使用时间切分和embargo；2024只用于预注册开发裁决，2025分钟精确子集只作跨口径稳定性诊断，已经参与假设形成的年份不称为纯锁箱。
+- F1/F2/F3按同一标签、同一训练期、同一成本、同一容量比较；至少三个随机种子，避免单seed晋级。
+- 评估旧特征重训和新目标本身，不在本轮同时加入LATR，保证后续增量可归因。
+
+### 6.3 晋级/判负闸门
+
+只有同时满足以下条件，才允许形成可用基线 `V0`：
+
+- 2024开发段Top分层成本后净期望为正，日Rank IC方向为正且不依赖极少数日期；
+- 2025分钟精确子集不发生明确方向反转；
+- 真实20槽组合成本后收益转正，最大回撤显著低于未筛选负基线；
+- 去掉最佳月和最佳10笔后不改变核心结论；
+- R0高风险分层损失率单调，Brier/PR-AUC至少一项优于简单基线且另一项不显著恶化；
+- 三个随机种子至少两个通过，板块/个股集中度不过度依赖单一来源。
+
+若未通过：
+
+- 当前F1/F2/F3入场流正式标记 `V0_NEGATIVE_BASELINE`，只保留为研究对照，不生成正式买入建议；
+- 不进入“已获得可用V0”的叙事，也不继续微调同一特征与阈值；
+- 保留第8步观察池的数据契约测试，但候选只作研究影子；
+- 转入第9步LATR/流动性区域与板块强—个股滞后新假设，检验新信息是否能够创造正期望；若LATR仍失败，则需要重构候选池定义，而不是继续修退出。
+
+---
+
+# 七、盘后必须生成两类观察池
+
+用户之前明确区分的两类股票，应在系统中物理分开。
+
+## A. `BOTTOM_SETUP`
+
+日线已经调整到位、接近阶段谷底。
+
+主要由：
+
+- 旧绿盘能力；
+- S0选股头；
+- 支撑/位置；
+- 调整质量；
+- 板块背景；
+- R0风险评分
+
+共同产生。
+
+## B. `INTRADAY_DIP_SETUP`
+
+日线未必已经在谷底，但第二天可能出现可利用的盘中下杀。
+
+主要依据：
+
+- 前期强势；
+- ATR波动空间；
+- 板块可能继续活跃；
+- 个股尚未充分补涨；
+- 上方空间；
+- 高位耗散风险；
+- 次日可能出现分歧。
+
+两类股票不能混成同一个排行榜，因为它们的入场理由和标签不同。
+
+## 盘后候选到次日计划的交付链
+
+两类观察池不能只输出股票代码或冷冰冰的分数。每个候选必须先生成一份**待讨论计划草案**，写入 `stargazer_plan`，但状态保持 `DRAFT`，不能由模型自行冻结。
+
+每份草案至少包含：
+
+```text
+setup_type                  BOTTOM_SETUP / INTRADAY_DIP_SETUP
+candidate_rank              各自池内排名，不混排
+selection_reasons           选中原因和主要正因子
+risk_reasons                个股/板块/大盘主要风险
+expected_scenario           次日预期路径，不冒充确定预测
+entry_zone                  观察价格区域
+arm_conditions              进入重点监控的前置条件
+trigger_conditions          允许提示买入候选的盘中条件
+invalidation_conditions     计划失效条件
+initial_stop_reference      基础止损参考
+exit_reference              动态止盈/反弹失败/时间退出参考
+model_version
+evidence_ids
+```
+
+盘后流程固定为：
+
+```text
+Tarot 生成两类候选
+→ 为每只股票生成 DRAFT 计划
+→ Stargazer 与用户逐项讨论理由、触发和失效条件
+→ 用户采纳/修改/否决
+→ 只有人工确认的版本转为 FROZEN
+→ 次日状态机只监控 FROZEN 计划
+→ 触发、失效、人工决策、成交和反事实回写数据库
+```
+
+`INTRADAY_DIP_SETUP` 只表示“次日可能出现值得观察的分歧/下杀”，**不等于下跌即买入**。必须在板块/龙头未明显失效、价格进入预定区域，并出现冻结计划中规定的承接或修复条件后，才能输出 `BUY_CANDIDATE` 提醒。`BOTTOM_SETUP` 同样必须满足自己的入场触发，不能因为日线处于低位就自动推荐买入。
+
+该能力分两次实现：
+
+1. 第8步建立两类观察池时，立即接入 `stargazer_plan` 自动生成结构化 DRAFT，开始真实盘后讨论和数据积累；第一版只使用当时已经验证的 Tarot/S0/R0 信息。
+2. 第15步完整 Agent 集成时，再把 Corvus、Pyxis、Astrolabe 的信息风险、结构化质询、相似历史计划检索和自然语言解释补入同一草案流程。后续增强不得改变“模型起草、人工冻结、次日确定性监控”的权责边界。
+
+---
+
+# 八、LATR：流动性密集区与ATR融合
+
+在基础动态退出、真实账本和干净绿盘基线重跑完成后，进入下一轮绿盘优化。
+
+**LATR 不是等待某个“ATR模型”训练完成后再外挂。** ATR/ATR_ref 是按历史价格确定计算的尺度指标，本身不需要训练。之所以与第一轮基线重训分开，是为了做可归因的增量实验：先证明修复后的 S0/R0 基线在真实退出口径下表现如何，再逐组加入流动性区域、穿透速度、量价修复和板块相对强弱，判断增量来自哪里。
+
+LATR 通过消融后必须回到绿盘体系重新训练相应的 S0/R0/盘中时机头，并刷新两类观察池和计划草案；它最终是绿盘低吸模型的一部分，不是模型完成后的独立插件。若 LATR 未通过，则保留干净基线，不因主观上“技术逻辑合理”而强行接入。
+
+## LATR特征组
+
+### 位置与密集区
+
+- 前低；
+- 已确认拐点低点；
+- MA20；
+- BOLL下轨；
+- Anchored VWAP；
+- 分钟成交密集区POC/VAL；
+- 整数价格；
+- 多支撑位聚类强度。
+
+如果多个位置在0.35 ATR内，合并成一个流动性区域。
+
+### 下杀强度
+
+\[
+PenetrationATR=
+\frac{ZoneLower-CurrentPrice}{ATR_{ref}}
+\]
+
+以及：
+
+- 5/15/30分钟下跌速度；
+- 开盘15分钟波动占日线ATR比例；
+- 是否创新低；
+- 二次回踩是否抬高低点；
+- 阴线量是否收缩；
+- 下跌量/反弹量；
+- VWAP收复程度；
+- 收针幅度；
+- 停留在密集区下方的时间。
+
+### 板块强、个股尚未启动
+
+- 板块相对大盘收益；
+- 龙头相对板块收益；
+- 个股相对板块收益；
+- 板块上涨但个股仍下跌；
+- 龙头/中军保持强势；
+- 个股距离前高和阻力区；
+- 板块走强后个股的延迟反应。
+
+这里不把“跌破流动性位”直接认定为洗盘。模型要区分：
+
+- 流动性扫荡后收回；
+- 真破位；
+- 高位派发；
+- 板块强、个股滞后；
+- 板块和个股同步走弱。
+
+## 消融顺序
+
+- L0：修复后的基础模型；
+- L1：L0 + ATR位置区域；
+- L2：L1 + 穿透深度/速度；
+- L3：L2 + 成交量与恢复；
+- L4：L3 + 板块强、个股滞后；
+- L5：L4 + 高位耗散交互。
+
+不把所有新因子一次塞进去，否则无法归因。
+
+---
+
+# 九、Pyxis什么时候介入退出
+
+## 现在
+
+只建立字段、日志和接口，保存：
+
+- 大盘风险状态；
+- 板块状态；
+- 龙头状态；
+- 风险发生时间；
+- 当时模型输出；
+- 后续个股路径；
+- 如果按环境提示退出会怎样。
+
+暂不让其改变正式交易。
+
+## Pyxis最小可用后
+
+输出：
+
+```text
+p_market_drawdown
+p_sector_deterioration
+p_leader_failure
+p_stock_failure
+p_systemic_liquidity_shock
+risk_level
+evidence_ids
+```
+
+然后做三个版本：
+
+- P0：只用个股动态退出；
+- P1：个股退出 + Pyxis提示，但不改变交易；
+- P2：Pyxis动态收紧退出；
+- P3：Pyxis同时控制买入许可与退出。
+
+Pyxis的作用不是重新发明止损，而是调整基础退出参数：
+
+- 风险低：不放宽初始亏损止损，只允许利润运行更久；
+- 风险中：保持基准；
+- 风险高：收紧移动止盈、缩短等待时间；
+- 极端风险：暂停新开仓，已有仓位按下一可成交时点处理。
+
+只有P2/P3跨期稳定优于P0，才进入正式建议。
+
+---
+
+# 十、Corvus与Pyxis的开发顺序
+
+Corvus采集继续后台运行，不需要每天调参。**闭环完成只代表数据工程可用，不代表信息模型已经训练，更不代表信息具有预测力。** Corvus 与 Pyxis 按以下阶段分别晋级。
+
+## Corvus 信息模型训练路线
+
+### C0：采集与事实层（已完成）
+
+- 新闻/公告原文、来源、哈希和三时间戳落库；
+- Qwen 只做事实候选抽取，保留证据与人工复验；
+- P0/P1/P2、否定语境、金额/日期证据和中性对照分层。
+
+### C1：最小事件—价格闭环（工程闭环已完成）
+
+- 正式事件、实体链接、重叠事件、30分钟/1日/3日/5日价格反应与标签运行账本进入 SQL；
+- 价格标签以 `available_at` 后第一个合法可见/可交易时点起算；
+- 当前真实日级标签仍可能为 `CENSORED_TAIL`，工程通过不等于数值标签通过。
+
+### C2：历史回填与可训练数据集（从 C1 后开始，和第4—10步并行后台进行）
+
+- 回填历史公告、政策和新闻，按原始可见时间重建事件；
+- 补齐股票/板块/市场映射、市场与板块异常收益、MFE/MAE、冲击—反转—持续性路径；
+- 重复转载不扩充样本量，按事件簇/交易日计算有效样本；
+- 事件重叠、停牌、除权、数据缺失和尾部截断显式标记；
+- 日线更新后自动解封 `CENSORED_TAIL`，每批真实标签做数值重算抽查。
+
+**首次烟雾基线最低条件**：不少于500个已完成、证据完整、实体明确的有效事件，覆盖不少于150个独立交易日；只验证链路和方向，不做事件类别有效性结论。
+
+**正式第一代模型最低条件**：原则上不少于3,000个去重后的完整事件、覆盖至少3个市场年度；需要单独建模的主要事件族原则上不少于200个有效事件。若达不到，则合并事件族或维持规则/描述统计，不强行训练复杂模型。阈值如需因实际分布调整，必须在训练前修改规格并记录理由。
+
+### C3：第一代历史信息影响模型（开发路线第11步正式启动）
+
+先训练可解释基线，不直接上深度模型：
+
+```text
+materiality_head       信息后是否出现显著异常波动
+direction_head         1日/3日/5日 UP / FLAT / DOWN 概率
+reflexivity_head       初始冲击后是否收复、反转或继续扩散
+persistence_head       信息影响是短暂、持续还是已被提前定价
+```
+
+- 输入只使用 `available_at` 时已经可见的信息、历史市场状态和事件事实；
+- 先比较简单规则、正则化逻辑回归和 LightGBM；复杂模型必须证明有独立增量；
+- Qwen 输出是事实特征与证据，不作为“利好/利空真值”；
+- 2019—2025历史结果属于开发证据，已经参与过假设形成的年份不得重新包装成纯锁箱。
+
+### C4：Corvus 影子评分与前瞻校准
+
+- 输出事件重要性、方向、反身性和持续性概率，以及校准度、缺失警告和 `evidence_ids`；
+- 只写数据库、展示和归因，不直接允许/禁止交易；
+- 代码冻结后的新前瞻期用于否定、校准和晋级，不按每日结果追着改参数。
+
+### C5：接入 Pyxis
+
+- Corvus 只输出结构化信息概率与证据；
+- Pyxis 负责判断这些信息在当前市场、板块、个股和持仓状态下是否构成风险；
+- Corvus 不直接发买卖指令。
+
+## Pyxis 风险模型训练路线
+
+### Y0：冻结风险对象与标签（第5步真实20槽账本完成后开始）
+
+Pyxis 不能先凭指数涨跌定义风险，必须由真实可执行账本和候选池定义：
+
+```text
+market_risk_label      未来1/3/5日候选池或组合左尾风险
+sector_risk_label      板块/梯队/龙头走弱后的条件损失
+stock_risk_label       个股STOP、MAE、失效和流动性风险
+position_risk_label    已持仓继续持有相对退出的条件风险
+intraday_risk_label    盘中风险突变、炸板、流动性与相关性扩散
+```
+
+必须区分“未来波动很大”和“应该暂停买入”，不能再次把短期波动警告当成持续亏损标签。
+
+### Y0.5：历史行为表征层——大盘共性、板块状态与个股个性
+
+在正式训练 Y1 风险头之前，先建立可复用的历史行为表征层。该层的目标不是直接给出买卖指令，而是回答三个基础问题：
+
+```text
+1. 当前大盘处于历史上哪一类状态，类似状态过去的风险分布怎样？
+2. 当前板块相对大盘处于什么状态，板块—龙头生态是否异常？
+3. 当前个股相对自己的历史行为基线是否异常？
+```
+
+这一层必须严格使用决策时点以前的数据滚动构造，禁止用全历史统计量回填过去样本。所有画像和 Regime 特征都必须带 `as_of_time / feature_version / lookback_window`，保证历史回放、训练和线上推理使用同一口径。
+
+#### Y0.5-A：Market Regime——学习大盘历年共性
+
+目标：从多个市场年度中学习可重复出现的市场状态，而不是用“指数涨跌多少”直接等价为风险。
+
+第一代至少保存：
+
+```text
+market_trend_state
+market_volatility_state
+market_liquidity_state
+market_breadth_state
+market_correlation_state
+market_momentum_state
+market_leader_state
+market_sector_rotation_state
+
+market_regime_id
+market_regime_embedding       # 深度模型阶段可选
+historical_regime_similarity
+```
+
+基础输入可包括：
+
+- 主要指数 1/3/5/20 日收益、趋势和回撤；
+- 实现波动率、ATR、跳空和尾部波动；
+- 全市场上涨/下跌家数、涨跌停数量、炸板率；
+- 全市场成交额及其历史分位、流动性收缩/扩张；
+- 大盘/小盘、价值/成长、权重/题材相对强弱；
+- 板块收益离散度、板块集中度和轮动速度；
+- 个股相关性、同步下跌比例和系统性共振程度；
+- 龙头/高位股持续性、连板生态和高位亏钱效应；
+- 候选池自身的横截面收益、MAE、STOP率和左尾分布。
+
+Market Regime 的训练目标不是人为固定“牛/熊/震荡”标签，而是先形成连续状态表征，再由 Y1 的 `market_risk_label` 学习不同历史状态对应的真实候选池/组合左尾风险。
+
+必须报告：
+
+- 相似历史 Regime 的后续 1/3/5 日候选池收益和左尾分布；
+- Regime 样本量和年份覆盖；
+- 是否过度依赖单一年份；
+- 时间外 Regime 表征稳定性；
+- 加入 Regime 后相对简单指数/波动率规则是否有独立增量。
+
+#### Y0.5-B：Sector Regime——学习板块自己的历史状态
+
+目标：区分“板块今天弱”和“板块相对它自己的历史与当前大盘状态异常地弱”。
+
+至少保存：
+
+```text
+sector_beta_market
+sector_relative_strength_1d_3d_5d
+sector_breadth
+sector_turnover_state
+sector_leader_concentration
+sector_rotation_speed
+sector_drawdown_state
+sector_volatility_state
+sector_abnormal_return
+sector_regime_id
+sector_regime_similarity
+```
+
+其中 `sector_abnormal_return` 应尽量表示：
+
+```text
+实际板块表现
+-
+在当前 Market Regime 下该板块历史上通常的条件表现
+```
+
+板块状态必须和龙头/中军生态联合建模，避免只用板块指数涨跌判断强弱。
+
+#### Y0.5-C：Stock Behavioral Profile——学习个股长期个性
+
+每只股票建立滚动更新的行为画像，用于描述“这只股票平时是什么性格”，而不是让模型只看跨股票统一阈值。
+
+第一代建议建立 `stock_behavior_profile`，至少包含：
+
+```text
+stock_beta_market_60d
+stock_beta_sector_60d
+idio_vol_20d
+idio_vol_60d
+
+atr_pct_median_60d
+atr_pct_q80_60d
+
+gap_mean_60d
+gap_vol_60d
+
+open_dip_mean_60d
+open_dip_q80_60d
+open_dip_stock_percentile_60d
+open_dip_stock_zscore_60d
+
+recovery_after_dip_rate
+recovery_speed_median
+support_reclaim_rate
+vwap_reclaim_rate
+break_support_failure_rate
+higher_second_low_success_rate
+
+turnover_median_60d
+turnover_q80_60d
+volume_elasticity
+
+sector_follow_beta
+sector_lag_tendency
+drawdown_recovery_speed
+
+historical_MAE_profile
+historical_MFE_profile
+```
+
+核心原则：同一个绝对行为必须同时保留三种尺度。以 `OpenDipATR` 为例：
+
+```text
+open_dip_atr                    # 绝对状态
+open_dip_market_percentile      # 相对当日横截面
+open_dip_stock_percentile_60d   # 相对个股自身历史
+open_dip_stock_zscore_60d       # 相对个股自身分布
+open_dip_regime_percentile      # 相对当前 Market Regime 的条件分布
+```
+
+这样模型才能区分：同样 `OpenDipATR=0.20`，对一只平时波动很大的股票可能只是正常噪音，对一只平时很稳的股票可能已经是异常风险。
+
+个股画像第一代必须优先使用可解释、可滚动更新的行为统计特征；`symbol_id → embedding` 只能作为后续 challenger，不能取代行为画像，也不能让模型通过记忆股票代码获得虚假时间外性能。
+
+#### Y0.5-D：三层历史上下文的共享方式
+
+历史表征层最终形成：
+
+```text
+Market Regime
+    ↓
+Sector Regime
+    ↓
+Stock Behavioral Profile
+```
+
+职责边界：
+
+- Tarot/S0/Timing/R0 可以读取部分 Stock Behavioral Profile，使机会模型知道“这次行为对这只股票自己是否异常”；
+- Pyxis 负责把 Market Regime、Sector Regime、Stock Behavioral Profile、持仓状态和 Corvus 信息风险结合起来，判断当前环境是否正在放大损失概率；
+- 个股行为画像不替代 R0，Market/Sector Regime 也不直接替代买点模型；机会与风险继续保持双轴。
+
+建议新增或冻结以下数据表：
+
+```text
+market_regime_snapshot
+sector_regime_snapshot
+stock_behavior_profile
+stock_behavior_snapshot
+regime_similarity_history
+```
+
+其中 Profile 表保存滚动历史画像，Snapshot 表保存决策时点可见的实际特征版本，禁止收盘后回写过去快照。
+
+#### Y0.5 晋级条件
+
+只有满足以下条件，历史行为表征层才允许进入 Y1 正式风险训练：
+
+- 所有特征严格 point-in-time，可从历史时点复现；
+- Market Regime 覆盖多个市场年度，不由单一年份主导；
+- Sector Regime 有足够板块和不同市场状态覆盖；
+- Stock Behavioral Profile 对低历史样本股票有缺失/冷启动处理，不能使用未来补齐；
+- 加入历史表征后，相对简单市场/板块/个股基线至少在风险分层、Brier、PR-AUC或真实左尾识别中出现可复验增量；
+- 去掉某一年、某一板块或少数高频股票后结论不反转；
+- 深度 embedding 若使用，必须相对可解释行为画像证明独立增量。
+
+若 Y0.5 不通过，则 Y1 继续使用简单可解释上下文，不因为“历史模式听起来合理”而强行接入。
+
+### Y1：分头基线训练（开发路线第12步）
+
+- 大盘/候选池风险头：显式使用 Market Regime，并与简单指数/波动率基线做有/无历史表征消融；
+- 板块—龙头生态风险头：显式使用 Sector Regime、板块异常收益和龙头生态状态；
+- 个股位置、流动性和高位耗散风险头：显式加入 Stock Behavioral Profile，判断当前行为相对个股自身历史是否异常；
+- 持仓与盘中风险头：同时使用当前价格路径、持仓状态、Market/Sector Regime 与个股行为偏离；
+- Corvus 信息风险作为独立特征组做有/无消融；
+- 历史表征层同样必须做有/无消融，禁止把 Regime/Profile 的复杂度直接视为有效性。
+
+每个头先与简单规则、逻辑回归比较，再决定是否使用 LightGBM/Transformer；不预设深度模型一定更优。
+
+### Y2：校准与风险融合
+
+输出：
+
+```text
+p_market_drawdown
+p_sector_deterioration
+p_leader_failure
+p_stock_failure
+p_position_exit_risk
+p_systemic_liquidity_shock
+risk_level
+evidence_ids
+```
+
+概率必须在训练外时间段校准，风险等级由冻结阈值产生，不使用当期收益反向调档。
+
+### Y3：Astrolabe 增量实验（开发路线第13步）
+
+- P0：只有个股动态退出；
+- P1：加入 Pyxis 提示但不改变交易；
+- P2：Pyxis 调节买入许可和退出参数；
+- P3：Pyxis + Corvus 信息交互。
+
+只有高风险组损失率单调上升、概率指标优于简单基线、放行池收益风险不恶化，并且 P2/P3 在时间外样本稳定优于 P0，Pyxis 才能影响正式建议。
+
+### Y4：盘前/盘中/持仓影子运行
+
+- 盘前提供市场和板块风险背景；
+- 盘中监控龙头炸板、板块扩散、流动性突变和信息冲击；
+- 持仓层提示收紧、减仓或退出候选，但仍由人工决定；
+- 前瞻日志用于周期性离线复训，不进行每日在线学习。
+
+---
+
+# 十一、数据库什么时候接
+
+完整数据库迁移不是当前退出实验的前置条件，但**最小交易计划/人工决策日志不能等到 Agent 最后接入时才开始**。否则模型没有“盘前原始观点→盘中修改→实际执行→事后结果”的可训练链路，会丢失数月关键样本。
+
+因此数据库分两步：
+
+1. Corvus 最小信息闭环完成后，立即建立最小计划日志层，只记录计划、触发条件、模型建议、人工决策和结果归因；不改变模型权重、不自动下单。
+2. Agent 集成前再完成全量 SQL 状态层和跨服务迁移。
+
+建议：
+
+- 大型历史行情继续使用 Parquet；
+- SQL保存状态、模型输出、人工决策和审计链；
+- 单机阶段使用 SQLite WAL；
+- 多电脑或多进程同时写入时再迁移 PostgreSQL。
+
+核心表：
+
+```text
+model_prediction
+market_risk_snapshot
+sector_risk_snapshot
+position_risk_snapshot
+trade_plan
+plan_candidate
+trigger_rule
+watchlist_state
+human_decision
+execution_log
+outcome_attribution
+hypothesis_registry
+dialogue_evidence
+```
+
+最小计划日志必须从启用之日起保存：
+
+```text
+plan_session
+plan_candidate
+trigger_rule
+model_recommendation
+human_decision
+execution_log
+outcome_attribution
+dialogue_evidence
+```
+
+盘前计划一经确认即写入不可变版本；盘中修改另建新版本并保留时间戳，禁止收盘后回写美化盘前判断。
+
+禁止继续用自由文本JSON作为唯一记录，但模型解释性JSON可以作为SQL字段中的附加证据保存。
+
+---
+
+# 十二、Stargazer Agent的决策流程
+
+不要让两个LLM自由争论。使用结构化协议：
+
+1. Tarot输出候选与因子证据；
+2. Pyxis提出风险质询；
+3. Tarot只能针对指定风险逐项回应；
+4. Astrolabe按冻结规则合成；
+5. LLM把结构化结果翻译成人话；
+6. 人工决定买入、等待或否决；
+7. 决策及理由落库；
+8. 事后归因，不直接在线修改模型。
+
+最终动作限定为：
+
+```text
+REJECT
+WATCH
+ARMED
+BUY_CANDIDATE
+HOLD
+REDUCE
+EXIT_CANDIDATE
+```
+
+模型只提供建议，不自动下单。
+
+## 从交易计划对话中学习的分层
+
+对话内容必须拆成四类，不能直接整段拿去微调：
+
+1. **用户硬约束/风险偏好**：如最大单票仓位、禁止追高、最大可接受回撤。经用户确认后进入配置层，不需要训练。
+2. **次日交易计划**：候选、触发条件、失效条件、观察证据和优先级。结构化并冻结版本，次日由状态机监控。
+3. **市场假设**：如“板块强而个股滞涨可能出现低吸机会”。进入假设注册表，必须回测或前瞻验证后才能进入模型。
+4. **人工偏好与真实结果**：同时保存“用户更喜欢哪个方案”和“哪个方案事后经济结果更好”，两者不得混为一个标签。
+
+近期只做结构化抽取、检索相似计划、触发提醒和事后归因；禁止每日在线微调、禁止由聊天直接改模型权重。积累足够完整样本后，优先训练轻量排序/偏好模型；只有在样本量、稳定仿真和独立锁箱均满足时，才评估 DPO 或受约束策略学习，RL 不是默认路线。
+
+## 交易计划对话学习的渐进路线
+
+### DL0：数据契约与不可变日志
+
+- 将盘前对话抽取为：市场判断、候选、计划类型、触发条件、失效条件、目标/止损参考、风险依据、置信度和证据。
+- 用户确认后冻结 `plan_version`；盘中修改只能追加新版本，不能覆盖盘前原文。
+- 同时保存模型原建议、人工决策、实际成交和未执行反事实。
+- 本阶段不学习，只保证未来有可信样本。
+
+**晋级条件**：字段可唯一解析；时间戳和版本不可回写；同一计划可从原对话复现；触发、失效、成交和结果能够关联。
+
+### DL1：计划助手与确定性提醒
+
+- LLM 负责把对话转为待确认计划，不自行补造价格或条件。
+- 次日由确定性状态机监控 `WATCH→ARMED→TRIGGERED→INVALIDATED`。
+- 命中条件时提醒用户，不自动下单、不修改模型。
+
+**晋级条件**：历史重放中触发时点无未来信息；漏报、误报和重复提醒可统计；所有提醒能指回冻结计划与证据。
+
+### DL2：相似历史计划检索与风格档案
+
+- 从 SQL 结构化字段和对话证据建立检索索引；向量检索只负责找相似案例，不直接决定买卖。
+- 风格档案只保存经用户确认的稳定偏好和硬约束；临时观点不自动升级为长期风格。
+- 生成计划时并列展示相似案例当时的市场背景、计划和真实结果，避免只检索成功案例。
+
+**晋级条件**：检索严格使用决策时点以前的数据；成功/失败/未执行案例均覆盖；人工确认计划的一致性改善且没有增加风险违规。
+
+### DL3：归因与假设学习
+
+- 区分模型建议、用户盘前计划、盘中修改、实际执行和不操作反事实。
+- 按理由统计 Human Alpha、Override Regret、触发质量和失效条件有效性。
+- 从对话提取的新观点进入 `hypothesis_registry`，经回测或前瞻验证后才允许转为 Tarot/Pyxis 特征。
+
+**晋级条件**：至少积累一个完整前瞻观察周期；缺失记录、中途改写和事后补录率达到验收要求；增量结论不依赖少数月份、股票或单一板块。
+
+### DL4：轻量双目标学习
+
+- 先训练两个彼此独立的轻量模型：`human_preference_score` 预测用户更可能接受什么；`realized_quality_score` 预测方案的真实收益风险质量。
+- 两个分数并列输出，由 Astrolabe 按冻结规则使用；不得把“用户喜欢”直接等同于“更赚钱”。
+- 优先使用可解释的排序模型/分类模型，不直接训练端到端交易 Agent。
+
+**晋级条件**：按时间切分的未见数据上，偏好预测稳定；经济质量模型相对冻结基线有增量；组合收益、回撤和人工违规率不恶化。
+
+### DL5：可选的 LLM 偏好微调
+
+- 只有积累足够多、明确、互不矛盾且可审计的方案偏好对后，才评估 SFT/DPO。
+- 微调只改善提问方式、计划组织、解释和方案呈现，不获得自动下单权限，也不替代 Tarot/Pyxis 的数值输出。
+- 每次模型升级固定训练数据快照、版本和独立验证集。
+
+**晋级条件**：盲评中计划质量和一致性提升；事实编造率、风险遗漏率不升；不会改变冻结的交易约束或伪造证据。
+
+### DL6：可选的受约束策略学习
+
+- 只有在长期完整轨迹、可信反事实、稳定仿真器和新锁箱均具备时，才研究 contextual bandit 或受约束策略学习。
+- 仓位上限、禁止事项和风险纪律保持硬约束，不能仅作为可被收益抵消的奖励惩罚。
+- RL 不是项目必经阶段；若轻量模型与人机决策已经满足目标，则不实施。
+
+**最终目标**：Stargazer 能基于 Tarot 候选、Pyxis 风险、Corvus 信息和用户冻结计划进行结构化讨论与次日实时提醒；能够解释采纳/否决原因、检索相似历史、量化人工增量，并在独立验证通过后逐步学习稳定偏好与有效决策模式。最终决策权仍属于用户，任何学习阶段都不得绕过可复现回测、风险闸门和人工确认。
+
+---
+
+# 十三、验收闸门
+
+## 工程闸门
+
+- 零未来数据；
+- T+1交易限制正确；
+- 同bar冲突按悲观顺序；
+- 涨跌停不可成交正确；
+- 除权和价格尺度正确；
+- 标签、回测和线上推理使用同一特征版本；
+- 每个预测可追溯到数据快照和模型版本。
+
+## 模型闸门
+
+- 日Rank IC跨期方向稳定；
+- 风险分层单调；
+- 高风险组真实损失率更高；
+- 放行池收益不能恶化；
+- Brier、PR-AUC至少一项严格改善且另一项不显著恶化；
+- 不依赖单月、单板块或少数交易；
+- 3个随机种子至少2个同向；
+- 20槽真实组合优于规则基线；
+- 成本后仍有正期望。
+
+## 上线闸门
+
+- 先影子运行；
+- 不改变买卖建议；
+- 连续记录至少20–40个交易日；
+- 再做小资金人工执行；
+- 至少60个交易日完整数据后，才考虑从人工对话中提炼新规则。
+
+---
+
+# 十四、实际执行顺序
+
+建议严格按以下顺序：
+
+1. 冻结 `EXIT-DYN-v1`。
+2. 重建可执行退出标签，并完成因果性、交易约束、随机路径和600313/600479分钟案例验收；本阶段暂不重训、暂不运行完整组合账本。 ✅[已完成 2026-09-15：green_exit_v1 双轨四变体标签重算，同bar悲观序/交易日历/涨跌停延迟/持仓改交易日数均落地，15项合成+截断测试、600313/600479审计复放、新旧对比报告通过，旧标签归档SUPERSEDED]
+3. 完成Corvus最小信息闭环：事实事件→实体/板块映射→三时间戳→30分钟/1日/3日/5日价格反应标签→SQL落库，并确认后台采集健康；本阶段不让Corvus输出直接干预绿盘交易。 ✅[工程闭环已完成 2026-09-15：29条正式事件、27条实体链接、24条reaction、重叠与标签运行账本落库，五类可见时点测试和幂等通过；当前24条日级reaction均为CENSORED_TAIL，待日线更新后必须补做首批真实标签数值复验，本项不代表信息预测模型已有效]
+4. 建立最小交易计划/人工决策日志层：盘前计划结构化确认并冻结版本，盘中修改追加版本，次日触发提醒，盘后保存反事实和结果归因；本阶段不做在线学习。 ✅[完全完成 2026-09-16：4.1 生产入口 CLI（create_draft/show_draft/freeze/revise/run_triggers）交付，首个 is_demo=False 真实计划（session 29）完成 录入→人工冻结→篡改拒绝→状态机触发→重放一致 全链验证；监控机 exe 已部署修复版（异常落日志+30分钟心跳+开关留痕）] ⚠[工程核心已完成 2026-09-15：`D:\stargazer\stargazer_plan` 中 PG schema、9表、trigger_event、不可变触发器、DSL状态机、五结局反事实和9项验收已通过；当前只有 is_demo 演示入口。完成4.1正式录入/人工确认CLI或API并成功写入首个非demo冻结计划后，才标记本步完全完成。无需等待该计划走完结果即可并行启动第5步。]
+5. 重写20槽真实账本。 ✅[已完成 2026-09-16：portfolio_backtest_v2.py（现金/股数/逐笔成本/逐日盯市/冷却期/blocked处理/真实MDD），入场流F1/F2/F3 × 退出变体X0/X1/X1_RF/X2_STAGED 共12组合跑通，账本不变量全部核验通过；修复上游标签X0门控缺陷（移动止盈未按变体关闭导致X0≡X1）并重建重跑。关键证伪证据：真实口径下12组合年化全部为负（-18.7%~-23.5%，MDD -65%~-73%），旧t1_rule_return均值+0.32%系口径 artifact；X0（拿到T+5）每年比X1少亏约2pp——移动止盈/反弹失败在负期望入场流上加速割肉。结论：主要矛盾已从退出规则转移到入场流本身；第6步重评S0/R0必须先定判负标准再训练]
+6. 执行“入场流诊断与重建闸门”：先完成标签精度/行情尺度/旧分数分位诊断，再用单一可执行目标重训A1/F1/F2/F3、S0/R0，并按6.3硬闸门决定生成可用V0或判为`V0_NEGATIVE_BASELINE`；本步禁止引入LATR和深度模型。 ✅[已完成 2026-09-16，判定 V0_NEGATIVE_BASELINE：旧排序目标正式失效（旧分数十分位全负无单调、日Rank IC=-0.13 反向）；正确目标重训 S0 最优配置 2024 段 20槽账本仍 -18.69%（vs 随机基线 -30.97% 有筛选价值但远未转正），Top层日均仅~2只、IC +0.027 不显著，硬闸门 1/2/4/5 FAIL 判负；R0 部分有效（p_loss5/mae_q80/q90/反弹失败分层单调 Spearman 0.94-0.99，作影子风险过滤复用；p_hard_stop 头作废）；重要事实：A1≡F1（特征卫生后特征集相同，结果逐位一致）；旧47因子在正确目标下仅剩 IC≈0.03 弱信号，特征内增量耗尽。证据：stargazer_ml/v5_hybrid/green_exit_v1/step6_rescue/（diagnostics_60.md、step6_verdict.md、33 个数据文件）。按判负分支执行：第8步观察池仅影子数据结构；第9步 LATR/流动性区域/板块强-个股滞后新假设；LATR 再败则重构候选池定义。]
+7. 确定新绿盘盘后模型干净基线 V0；这是 LATR 的对照组，不等于最终模型已经冻结。
+8. 先按 V0 建立 `BOTTOM_SETUP` 与 `INTRADAY_DIP_SETUP` 两类观察池的数据契约和影子输出，并为候选写入 `stargazer_plan` 的 DRAFT 计划，用于尽早检验盘后讨论链路；此时明确标记 `baseline_v0`，不宣称最终选股版本。
+9. 执行 `GREEN-WATCH-v1.1 + TIMING_FRONTIER_V1 + BOTTOM-WASHOUT-v0 + LATR`。以第6步 `V0_NEGATIVE_BASELINE`、`A0A4_FIRST_PASS_LEAKED`、`A0A4_CAUSAL_V1` 和 `TIMING-TRIGGER-v2-primary` 为只读对照，不回退旧 F1/F2/F3，也不把影子观察池称为可用模型。本步先回答“确认越深是否只是在消耗收益”，再决定重训 Timing 还是重构 Selection。
+
+   ### 9.0 冻结边界与规范
+
+   - 以 `FE-GREEN-v2.2` 为本阶段特征合同；未登记字段不得进入 Model Matrix，同名字段不得发生语义漂移。
+   - Selection/S0 只使用 `feature_asof <= P_CLOSE`；Timing 只使用 `feature_asof <= signal_ts < actual_fill_ts`；R0 使用独立风险目标，不得反向污染 Selection/Timing。
+   - `BOTTOM_SETUP` 与 `INTRADAY_DIP_SETUP` 可以同时成立，必须分别保存两套分数；`primary_setup` 只用于解释。报告拆分 `BOTTOM_ONLY / DIP_ONLY / BOTH`，组合层同一事件只记一笔交易。
+   - `ATR_ref = median(ATR14[P-4:P])` 于 P 日冻结。分析价格与执行价格必须通过决策时点有效的复权因子映射到同一尺度，禁止 `adjusted_exit / raw_fill` 混算。
+   - PIT sector membership 未解决前，正式 sector/leader 字段保持 `BLOCKED`，不得用当前成分回填历史。
+
+   ### 9.1 `TIMING_FRONTIER_V1`：先做事件/时机实验，不训练模型
+
+   预注册五个 Arm：
+
+   - `T0_TOUCH`：第一次真实 `ZONE_TOUCH`；
+   - `T1_STABLE_1`：TOUCH 后第一根完整分钟 bar，未超过预注册 ATR 容差继续创新低，且未结构破位；
+   - `T2_STABLE_3`：TOUCH 后连续三根完整分钟 bar 满足同一稳定条件；
+   - `T3_EARLY_RECOVERY_25`：从 `running_pullback_low` 达到预注册 25% early recovery；分母、参考高点和零分母处理必须在运行前写入 Trigger Contract；
+   - `T4_V2_PRIMARY`：当前 `TIMING-TRIGGER-v2-primary` 的首次 `MODEL_SCORE_REQUEST`，作为确认最深的控制臂。
+
+   约束：
+
+   - 每个 Arm 独立计算 eligibility、signal、下一合法分钟成交、H1/H3/H5、同终点 market alpha、MFE、MAE、loss 和成本；禁止先筛 T4 成功样本再回看早期 Arm。
+   - “显著新低”ATR容差、结构破位条件、25% recovery 分母和交易日边界必须预注册；本轮禁止根据收益修改。
+   - 为防止晚确认 Arm 只保留幸存者，必须同时报告三种口径：①各 Arm 条件收益；②共同可达样本的逐事件配对比较；③以 T0 全体为起点的策略口径，晚 Arm 未触发记为未交易/现金收益并报告覆盖率。三者不得互相替代。
+   - 切片至少包括 `ALL / BOTTOM_ONLY / DIP_ONLY / BOTH`、`dip_stage`、fold、触发路径和 `pre/post_20260701`；其中 post 段样本不足时只作描述，不作晋级依据。
+   - 本阶段禁止 LightGBM 调参、改 Zone、调 K、增加风险规则或按结果挑“最赚钱 Arm”。
+
+   ### 9.2 Frontier 裁决
+
+   - 全部 Arm 均约等于零：停止“只是确认太晚”的叙事，不继续微调 Trigger，转向 Selection 假设。
+   - 早期 Arm 有 edge 且确认越深 edge 越弱：登记 `TIMING-TRIGGER-v2.1`，先冻结新 Trigger Contract，再重建 causal Timing Dataset，通过五项因果 Gate 后重跑 A1–A4。
+   - BOTTOM 与 DIP Frontier 明显不同：先做路径稳定性、共同样本配对和 Random P95 对照；证据充分后才允许 Setup-specific Trigger，不得在同轮结果中为每个 Setup 各挑最赚钱 Arm。
+
+   ### 9.3 `BOTTOM-WASHOUT-v0`：盘后 Selection 特征族
+
+   本特征族主要服务 `BOTTOM_SETUP`，不新增第三公开 Setup、不直接买入、不把人工 `washout_rule_score` 写成硬门。四只模板股只用于 PIT 案例复放，不用于定阈值。
+
+   为避免组名和实验版本重名，特征组固定为：
+
+   - `BW-G1_PRESSURE_DECAY`：ATR尺度收益/斜率、下跌减速、阴跌量与卖压衰减；
+   - `BW-G2_SUPPORT_RECLAIM`：冻结支撑区距离、穿透、探针、收回与量能；
+   - `BW-G3_DOUBLE_LOW`：因果确认的首低—反弹—二次回踩、二低抬高、破位深度与测试次数；
+   - `BW-G4_TECH_CONFIRM`：MACD/RSI/KDJ/BOLL等连续确认量，不作统一硬门；
+   - `BW-G5_DISTRIBUTION_RISK`：高位涨幅、位置、跌停、下跌/反弹量、失败收回、lower-low与破位负特征。
+
+   所有 Zone/Support、首低和swing必须在特征时点前确认；未来确认不得回写。sector/leader/event字段仅在PIT数据源可用后启用。`washout_rule_score` 初始为 `RULE_AGGREGATE + MODEL_ELIGIBLE=false`。
+
+   ### 9.4 BOTTOM-WASHOUT 消融 (命名 2026-09-22 锁定; 弃用 BW-A0..A5 旧名, 与 Timing A1-A4 区分)
+
+   实验版本固定为：
+
+   - `BW-W0`：GREEN-WATCH v1.1 baseline (A1_CORE 候选特征)；
+   - `BW-W1`：W0 + pressure decay / washout core (zone_distance / is_bottom / ret_5d / neg_vol / sell_vol_decay)；
+   - `BW-W2`：W1 + support / penetration / reclaim (W2_*)；
+   - `BW-W4`：W2 + distribution / breakdown negatives (zone_break_depth / zone_break_duration / new_low_flag / sell_volume_ratio / rebound_volume_ratio)；
+   - `W3`（技术指标 rsi6 / distance_ma20 / macd / boll）：独立 challenger，不进主晋级链。
+
+   判定看增量链 `(W1-W0) / (W2-W1) / (W4-W2)`，不是 `W4>W0` 即成功。优先裁决 W4 的 distribution/breakdown negatives；W3 仅作独立对照。全部版本使用相同 BOTTOM 样本、S0 标签、切分、执行、成本、种子和模型参数，唯一变量是特征组；NaN 留模型处理，样本不因 completeness 被删。lower_wick_ratio (3% 覆盖) 保持 NaN 不填 0，单独报告覆盖。
+
+   注意 (2026-09-22 Gate 1 教训): a14_universe 内所有 zone/volume 特征 (zone_distance_atr / penetration_atr / lower_wick_ratio / zone_break_* / sell_volume_ratio / rebound_volume_ratio) 由 latr_builder 在 `effective_trade_date`(=D日) 15:00 计算, 对 S0(P_CLOSE) 是未来信息泄漏, **禁止使用**。任何 BOTTOM Selection 特征都必须改用 `plan_date` 当日分钟在 15:00 重算 (见 bottom_washout_pclose_zone.py)。A0-A4 harness 的 S0 A2/A3/A4 同样被此污染, 其 s0 IC(+0.01/+0.21/+0.32) 无效, 需 P_CLOSE 重跑。
+
+   ### 9.5 Selection 重训
+
+   - 只将通过9.4的P_CLOSE-safe特征进入 `S0-v1`；主标签 `s0_return_h3`，辅助报告H5、market alpha、MFE和MAE。
+   - `bottom_score / intraday_dip_score / dip_quality_score / dip_readiness_score` 只作规则上下文或对照，不是真值标签。
+   - 必须分别报告 `BOTTOM_ONLY / DIP_ONLY / BOTH`，以及 `v1_rejected_v11_accepted / v1_accepted_v11_rejected / both_accepted / both_rejected`。
+
+   ### 9.6 Timing 重训的条件入口
+
+   - 仅当 Frontier 支持新 Trigger 时，才冻结 `TIMING-TRIGGER-v2.1`、重建 causal Timing Dataset，并重新通过 `MODEL_ROLE_FEATURE / TRAINING_TIME_CAUSALITY / TIMING_TRIGGER_SEMANTICS / WINDOW_SEMANTICS / SECOND_TEST_MODEL_EXCLUSION / SAMPLE_IDENTITY / FEATURE_DELTA` 七项 Gate。
+   - A1–A4必须保持相同sample IDs、标签、切分、执行、成本、随机种子和模型参数；只有Feature Group可以变化。
+   - 若Frontier全部无edge，则不训练新的Timing模型，不用新增特征掩盖事件本身无效。
+
+   ### 9.7 Selection + Timing 闭环评审
+
+   - 报告 signed Rank IC、fold/seed IC、分位单调、Top vs Pool、Top vs Random P95、market alpha、MFE/MAE、loss、coverage与trade count。
+   - 拆分 `BOTTOM_ONLY / DIP_ONLY / BOTH`、dip stage、trigger path、fold/seed和数据口径变化前后；不得用一个Setup的成功掩盖另一个Setup失败。
+
+   ### 9.8 修复后的X0真实20槽账本
+
+   - `X0`只作Reality Check，不充当Selection/Timing标签。
+   - 账户权益必须逐日按 `cash + open_positions_MTM` 计算；禁止把单笔收益当全仓账户收益复利。
+   - 输出annualized、win、Sharpe、MDD、Calmar、turnover、exposure、cost、fold、数据口径切片，并报告去最佳10笔和去最佳月。
+
+   ### 9.9 Green V1硬闸门
+
+   只有同时满足以下条件才允许形成正式 `Green V1`：
+
+   - Selection在冻结验证口径上有时间外增量，Top同时优于Pool和Random P95；
+   - 若训练Timing，Timing相对纯规则事件具有独立增量且全部因果Gate为零违规；
+   - 成本后20槽组合期望必须转正，并相对 `V0_NEGATIVE_BASELINE` 有明确增量；“不明显反向”不构成通过；
+   - 多fold、多seed不反转，三个随机种子至少两个同向；
+   - BOTTOM与DIP分别报告，去最佳月和最佳10笔后核心结论不反转，不依赖模板股、单一板块或极少数交易；
+   - MDD/Calmar使用修复后的逐日盯市权益，涨跌停、停牌、不可成交、成本和冷却期沿用真实账本口径；
+   - 2025分钟数据与已观察2026只作开发/压力诊断；代码和阈值冻结后的新交易日才是纯前瞻影子裁决。
+
+   未通过时保留全部失败证据，不继续围绕同一母池做小阈值微调；根据Frontier与Washout结果决定重构Timing事件还是候选池定义。
+
+   ### 9.10 通过后的后续顺序
+
+   通过后刷新两类观察池、LATR监控、`MODEL_SCORE_REQUEST` 与 `stargazer_plan` DRAFT，再进入第10步风险头影子提示；随后按原路线进入 Corvus、R0、Pyxis Y0.5、Astrolabe、Policy Engine 与前瞻人机结合。
+10. 将已通过的盘中风险头接为影子提示。
+11. 检查 Corvus C2 数据闸门：满足后启动 C3 第一代历史信息影响模型，并进入 C4 前瞻影子校准；不满足则继续回填，不为赶进度强训。
+12. 基于第5步真实账本冻结 Pyxis Y0 风险标签；先完成 Y0.5 历史行为表征层（Market Regime / Sector Regime / Stock Behavioral Profile），用 point-in-time 多年数据学习大盘历年共性、板块条件状态和个股长期个性，并完成历史表征有/无消融；通过后再训练 Y1 大盘/板块龙头/个股/持仓盘中风险头并完成 Y2 校准。Corvus 特征和 Y0.5 历史表征都必须分别做有/无消融。
+13. 由 Astrolabe 对P0/P1/P2/P3做买入许可与退出增量实验，达到 Y3 闸门后才允许 Pyxis 影响正式建议。
+14. 完成全量SQL状态层和跨服务数据契约。
+15. 接入Stargazer Agent解释、计划讨论、结构化质询和相似历史计划检索。
+16. 前瞻影子运行并积累完整计划样本，再决定是否训练轻量偏好排序模型及进入小资金人机结合。
+17. 仅在轻量双目标模型通过时间外验证后，评估是否需要对外层 LLM 做 SFT/DPO；该模型只改进计划生成和解释，不取得交易执行权限。
+18. 仅在长期轨迹、可信反事实、稳定仿真器和新锁箱齐备时，评估受约束策略学习；RL 为可选终局研究，不是既定交付。
+
+最关键的裁决是：**现在不要继续直接训练深度模型，也不要先把龙头、板块、大盘写成硬退出规则。首先修复真实退出标签和组合账本。** 只有这一步完成，我们才能知道新的绿盘低吸究竟有效，还是之前的高收益只是退出假设造成的。
+
+---
+
+## 2026-09-16 路线变更记录：第9步升级为 GREEN-WATCH-v1 / LATR 重建与重训
+
+- **变更原因**：第6步已经以真实可执行口径判定 `V0_NEGATIVE_BASELINE`，旧 F1/F2/F3 排序目标失效、旧47因子增量接近耗尽；第8步已经进入 `BOTTOM_SETUP` 与 `INTRADAY_DIP_SETUP` 两类观察池的数据契约与影子输出，因此不再适合把第9步理解为“给旧模型简单增加几组 LATR 特征”。
+- **新假设**：绿盘候选需要同时覆盖“前一日已经调整到位”和“股票质量好、等待次日分歧”两种 Setup；二者次日都使用 LATR 框架，但 `BOTTOM_SETUP` 可以放宽下杀要求，`INTRADAY_DIP_SETUP` 重点验证更标准的 ATR 分歧下杀。
+- **受影响阶段**：仅扩展第9步职责，将其升级为 `GREEN-WATCH-v1` 候选母池重建、LATR分组消融、`S0-v1 / Timing-v1 / R0-v1` 重训与 Green V1 晋级闸门。
+- **不变内容**：不回退第6步，不覆盖 `V0_NEGATIVE_BASELINE` 失败证据；第8步仍保持观察池/计划数据契约和影子职责；第10–18步顺序与权限边界不变。
+- **作废理解**：作废“第9步只是给 V0 追加 LATR 特征并重训一次”的旧解释；后续以本记录和扩展后的第9步为准。
+
+---
+
+## 2026-09-17 路线变更记录：Pyxis 增加 Y0.5 历史行为表征层
+
+- **变更原因**：原路线已经定义大盘/板块龙头/个股/持仓风险头，但没有把“学习大盘多个年度的共性状态”和“学习个股长期行为个性”正式拆成可执行的数据建模任务，容易让 Y1 直接拿当前状态训练风险而缺少历史条件基线。
+- **新增职责**：在 Y0 风险标签与 Y1 风险头之间增加 `Y0.5`，分别建设 `Market Regime / Sector Regime / Stock Behavioral Profile`，所有表征严格使用决策时点之前的数据滚动生成。
+- **职责边界**：Tarot/S0/Timing/R0 可读取部分个股行为画像作为上下文；Pyxis 承担 Market/Sector Regime、个股异常状态、持仓状态与 Corvus 信息风险的融合，继续保持机会与风险双轴。
+- **受影响阶段**：主要扩展第12步 Pyxis 开发任务；不改变当前第9步先完成绿盘规则层、LATR、Minute State、训练数据闭环的顺序，也不提前让 Pyxis 影响正式买卖。
+- **验证纪律**：历史表征必须相对简单市场/板块/个股基线做有/无消融；Regime/Profile 若无时间外增量则不接入正式风险模型。
+
+---
+
+## 2026-09-22 路线变更记录：TIMING_FRONTIER_V1 与 BOTTOM-WASHOUT-v0
+
+- **变更原因**：`A0A4_FIRST_PASS_LEAKED` 已因 D 日盘中未来信息作废；`A0A4_CAUSAL_V1` 显示原 `FROZEN_TRIGGER_V1` 近似开盘门控；`TIMING-TRIGGER-v2-primary` 虽形成真实盘中触发，但 causal A1–A4 排序增量近零。继续直接加特征无法回答问题来自“确认过晚”还是“候选/事件本身无edge”。
+- **新顺序**：先运行不训练模型的 `TIMING_FRONTIER_V1`，比较 ZONE_TOUCH、1/3分钟稳定、25%早期修复与 v2-primary；同时建设 P_CLOSE-safe 的 `BOTTOM-WASHOUT-v0`。只有 Frontier 支持新触发或 Washout 通过独立消融后，才重训对应的 Timing 或 S0。
+- **方法修正**：Frontier 除独立 Arm 结果外，强制加入共同可达样本的配对比较和 T0 起点的策略覆盖/空仓口径，防止晚确认 Arm 因筛掉失败样本产生幸存者偏差。
+- **命名修正**：`BW-G1…G5` 专用于特征组，`BW-A0…A5` 专用于消融版本；禁止继续使用 W1–W5 同时表达两类对象。
+- **职责边界**：Selection、Timing、R0继续分离；风险目标不塞回Timing Gate，`X0`仅作真实经济Reality Check；Pyxis Y0.5顺序不变，不提前影响正式交易建议。
+- **证据纪律**：保留 `V0_NEGATIVE_BASELINE / A0A4_FIRST_PASS_LEAKED / A0A4_CAUSAL_V1 / TIMING-TRIGGER-v2-primary` 为只读审计证据；2025分钟数据及已观察2026只作开发和压力诊断，冻结后的新数据才构成纯前瞻裁决。
+
+### 2026-09-22 执行结果（DIP 验证 + BOTTOM loader）
+
+- **DIP_ZONE_TOUCH_VALIDATION_V1 = FAIL_TO_PROMOTE（非 PROVEN_NO_EDGE）**
+  - 5 问结论：Overall event alpha(fill→H1) +0.31%，但 matched-random（同日同 stage DIP 池，open→H1）增量 = −0.04%、CI95(−0.34%,+0.25%) **含 0** → Touch 不优于同日同 stage DIP 候选池；仅 17.3% Touch 跑赢池 P95。
+  - 年份：2025 ≈ 0（+0.07%），2026 强（+0.98%）；walk-forward fold F1 −0.10 → F5 +0.65（非平稳，近期效应）。
+  - DIP_ONLY +0.32% 承载全部 edge；BOTH −0.38%（n=22，样本过小，用户“BOTH 才是真 edge”假设**未被支持**）。
+  - post-20260701：event alpha −0.83%、MAE +3.89↑、loss 57%↑；touch rate 相近（25% vs 27%）→ 观察到明显负向 regime divergence，但**未匹配 float_mv**（2026-07-01 是 float_mv 数据制度变化点），尚不能排除 composition。
+  - 口径修正：原 matched-random 用 Touch fill→H1 vs 池 open→H1 不等价；严格 event-time matched control 待补（见下）。
+  - **决策**：不注册 `TIMING-TRIGGER-v2.1`；DIP 线降为次优先级，只补一项诊断 `DIP_TOUCH_EVENT_TIME_MATCHED_CONTROL_V1`。
+
+- **BOTTOM-WASHOUT-v0 真·日线 loader 完成（主线优先级）**
+  - 修正两个“代理冒充正式字段”：`W4_rsi6_current`（原 rsi14 代理）→ 改名 `rsi14_current` 保留参考，另算真 `rsi6_current`；`W4_distance_ma20_atr`（原 ma20_slope 代理）→ 改名 `ma20_slope_5` 保留参考，另算真 `distance_ma20_atr`。
+  - 补完整且语义正确的 W1/W2/W4：`W1_ret_5d_atr / W1_negative_volume_ratio_5d / W1_sell_volume_decay / W2_support_test_count / W4_rsi6_current / W4_distance_ma20_atr / W4_macd_hist_delta / W4_macd_hist_acceleration / W4_boll_pct_b`。
+  - 口径对齐 `build_pool.compute_pool`：raw close、MACD EMA12/26+DEA9、RSI Wilder EWM、BOLL MA20±2σ；PIT 用 `get_daily_parquet` 单一源（避免 parquet/HTTP 双路径口径不一致），按 `plan_date` 索引、长记忆链全历史 warm-up。
+  - **纯工程 QA 通过（未看任何收益）**：19 特征全 100% coverage（除 `lower_wick_ratio` 仅 3% 稀疏，照旧）；NaN 原因分布 `suspended_gap=822 / ok=15370`（无 insufficient_history）；PIT 校验（used_date<=asof）；formula spot-check（loader==重算，rsi6/boll_pct_b 完全一致）；`rsi14_current` 与 `a14.rsi14` **corr=1.0** 验证口径逐位一致。
+  - 产物：`datasets/bottom_washout_v0_features.parquet` + `_summary.json` + `_qa.parquet/json`。脚本 `a0a4/bottom_washout_v0.py`。
+
+- **下一步（已锁定）**
+  1. DIP 线（次优先）：补 `DIP_TOUCH_EVENT_TIME_MATCHED_CONTROL_V1`——控制组按 `trade_date + dip_stage + minute_of_day`（理想含 `float_mv` bucket）匹配，对未 Touch 的 DIP 候选用**与 Touch 完全相同的 signal time / next-legal-fill 执行规则 / H1 end** 评估；若仍增量≈0 且 CI 含 0，才归档 `EVENT_NOT_INCREMENTAL`。不重训、不注册 v2.1。
+  2. BOTTOM 主线：QA 通过后进入预注册 `W0→W1→W2→W4`（BW-W0…W4）消融；看 signed Rank IC / 分位单调 / Top vs Pool / Top vs Random P95 / H3-H5 / market alpha / MFE-MAE；**同候选 universe、同 S0 标签、同 split、同 seed、同模型参数，唯一变量=特征组**；不做单特征 Pearson 初探（防 feature fishing）。
+  3. 仍不进入模型重训、不冻结新 Trigger，直到上述消融给出独立时间外增量。
+
+  #### BOTTOM BW-W0→W4 消融结果 (2026-09-22, 已 P_CLOSE 因果修正)
+  - 【Gate 1 因果审计 FAIL→修正】a14_universe 的 zone/volume 特征 (zone_distance_atr / penetration_atr / lower_wick_ratio / zone_break_* / sell_volume_ratio / rebound_volume_ratio) 全部由 latr_builder 在 `effective_trade_date`(=D日) 15:00 计算 (`feature_asof_ts=d_date 150000`), 对 S0(P_CLOSE) 目标构成未来信息泄漏。仅 `pclose_feature_asof_ts`(P日15:00) 是时间戳注释, 无对应特征存储。
+    → 原 BW-W1/W2/W4 全部用了 D 日泄漏特征; 其中 BW-W4 的 "+0.157" **直接作废** (违反"D日→作废"纪律)。
+    → 同样污染了 A0-A4 harness 的 S0 A2/A3/A4 (zone_distance/penetration/dip_depth/recovery/sell_vol/rebound 均 LATR_FROZEN/ZONE_FROZEN=D日); 原 "v1.1 增量真实集中在 Dip+Recovery (s0 IC +0.21/+0.32)" 的 **S0 结论无效**, 仅 A1(日线) IC≈0 干净。A2/A3/A4 的 S0 需改用 P_CLOSE 特征重跑。
+  - 【修正方法】`bottom_washout_pclose_zone.py` 用 plan_date(P日) 当日分钟在 15:00 stateless 重算 7 个 zone/volume 特征 (pc_*), 与 W0 日线口径一致; 重跑 BW-W0→W4 (`bottom_washout_ablation_v0.py` 已切到 pc_*)。
+  - 【P_CLOSE 修正后增量链】(OOF Rank IC mean, BOTTOM n=3099):
+    - `BW-W0` (v1.1 日线) IC=-0.018 ≈0
+    - `BW-W1` (+pc_zone_distance_atr + is_bottom + ret_5d + neg_vol + sell_vol_decay) IC=+0.078 Δ=+0.097 ← 唯一正增量
+    - `BW-W2` (+penetration/lower_wick/support_test) IC=+0.070 Δ=-0.009 (无增量)
+    - `BW-W4` (+zone_break/volume 负特征) IC=+0.046 Δ=-0.024 (P_CLOSE 下破位≈0, 无增量)
+    - `BW-W3` (technical) IC=-0.021 (无增量)
+  - 【家族 leave-one-out (W1)】W1 全部信号来自单字段 `pc_zone_distance_atr`:
+    - W1_no_zone_distance (仅 4 个 washout dynamics) IC=-0.018 ≈0 → 崩掉
+    - W1_only_zone (仅 pc_zone_distance_atr) IC=+0.069 ≈ 全 W1(+0.078) → 几乎全贡献来自 proximity-to-support
+    → "洗盘结束" 丰富构造塌缩为单一 "距支撑区远近" 特征, 其余 washout dynamics 无增量。
+  - 【稳健性 / regime】W1 per-fold 全正 (f1=+0.06,f2=+0.07,f3=+0.15,f4=+0.03); `PRE_20260701` ic=+0.120 vs `POST_20260701` ic=-0.131 (**翻转**); `BOTTOM_ONLY` ic=+0.066; `BOTH` ic=+0.269(n=173 噪声)。
+  - 【结论】W4 作废, 不冻结 W4 特征族。P_CLOSE 下唯一真实 Selection 信号 = proximity-to-support (zone_distance_atr), 但 (a) 仅单字段, (b) 与 DIP 同源在 2026-07-01 后翻转 (POST 负)。因此 BOTTOM-WASHOUT 不作为特征族冻结; **存在明确的 2026-07-01 前后关系翻转 (DIP 与 BOTTOM 同源), 但尚不能判定为市场环境 regime —— 候选 population/数据制度变化是更强嫌疑 (见 S0 干净证据链 A4); 优先于继续堆特征, 应先做归因**。仍不重训、不冻结 Trigger。
+
+  #### suspended_gap 审计结论 (2026-09-22)
+  - 822 条 `suspended_gap` 经重审: 全部 `daily_feature_staleness_days==0` (source_date==plan_date), 全样本 staleness>0 计数=0 → 并非"plan_date 无日线→用前一完成交易日"(该情形 0 条), 也非数据缺口 (plan_date 柱始终存在)。
+  - 性质 = 真实长停/停牌后于 plan_date 复牌 (lookback 含 >15 自然日洞), 特征按 plan_date 当日计算, PIT-safe (无未来泄漏)。`suspended_gap_flag` 保留供可选剔除。
+  - 训练表今起含 `daily_feature_source_date` / `daily_feature_staleness_days` / `suspended_gap_flag` 三列 (`bottom_washout_v0_features.parquet`)。
+
+  #### S0 干净证据链重建 + 20260701 归因 (2026-09-22, s0_causal_pclose_v2.py)
+  - 【A1 冻结污染审计】在 开发路线 显式标记两条作废记录 (原 a14 / 旧 metrics 文件保留, 不覆盖):
+    - `BW-W4_LEAKED = INVALID_FOR_PERFORMANCE_INFERENCE`
+    - `OLD_S0_A2_A3_A4 = INVALIDATED_BY_D_DAY_LOOKAHEAD`
+    - 统一原因: a14 的 zone/dip/recovery/volume 特征 `feature_asof_ts = D 15:00`, 而 S0 label 从 D open 起 → 未来信息泄漏.
+    - **架构裁定 (永久)**: 从此 S0 不再允许 A3/A4 命名与特征组; A3/A4 永久属于 Timing. S0 正式只做 `A1`(P_CLOSE 日线) / `A2-PCLOSE`(P_CLOSE zone 表征, 命名显式写 `S0-A2-PCLOSE-ZONE` 防与 Timing-A2 混淆). 任何 S0 训练/冻结若再出现 D 日 zone/dip/recovery 字段 = 自动作废.
+  - 【A2 重建: 仅 P_CLOSE-safe 特征组】universe=全 s0_eligible (含 BOTTOM+DIP, n=16072; OOF n=9681); label=`s0_return_h3`; 同 split/seed/LGBM (复用 bottom_washout_ablation_v0 的 build_split/train_version/_analyze).
+    - `S0-A1` (A1_CORE 日线) IC=**-0.006** top-pool=-0.004 beats_RND_P95=False → 复现旧 harness a1≈-0.0085, 一致.
+    - `S0-A1p` (A1 + zone proximity: atr_ref + geometry + pc_zone_distance_atr) IC=**+0.024** top-pool≈0 beats_RND_P95=False.
+    - `S0-A2-PCLOSE` (A1 + 完整 P_CLOSE zone: +zone_band_atr/n_zones/zone_n_sources/pc_zone_strength) IC=**+0.027** top-pool=+0.001 beats_RND_P95=False.
+    - 增量: A1→A1p = **+0.030 IC**; A1p→A2 = **+0.003 IC** → 完整 zone 表征相比单纯 proximity 几乎无增量.
+  - 【A3 单字段归因】S0-A1p(含 pc_zone_distance_atr) ≈ S0-A2-PCLOSE → **信号基本仅由 `pc_zone_distance_atr` 单字段承载**; 正式模型应优先保留简单 proximity 版, 不整包塞 Zone 几何. (BOTTOM_ONLY 切片: A1=-0.035 → A1p=+0.058 → A2=+0.041, 同样 A1p≈A2).
+  - 【A4 20260701 归因 (S0-A1p; 初版"6.4×/9×坍塌"为期长伪影, 已按天归一修正)】
+    - **池总量无台阶**: epoch 对齐 (≥20250101) pool_daily_v11 per-day: PRE(359天)=2816/天 → POST(57天)=2793/天 → 与 Gate3 `NONE_PROVEN` 一致, 不存在候选总量坍塌. (a14 原始计数 2191→341 是 PRE≈200 OOF 天 vs POST≈50 天的期长伪影.)
+    - **组成确实变了 (正式门控口径, per-day)**: `dip_eligible_v11` 1332→551 (**−59%**); `dip_tier WATCH/HPW` 312→103 (**−67%**); `bottom_tier WATCH/HPW` 338→220 (**−35%**); `bottom_gate` 551→479 (−13%). 即 post 期 washout/dip 型 setup 大幅减少 (池总量靠 RESEARCH 层补齐), 候选 MIX 偏移真实存在.
+    - **float_mv 制度疑点已被 Gate3 (2026-09-18) 调查结论排除为主因**: 覆盖率 72.9%→99.96% 阶跃的根因 = ~2,020 只 ETF/基金在 20260701 起获得 float_mv; ETF 不进入股票候选 (候选池 total_mv 25-100亿 过滤, 无台阶); 唯一影响 = Market Proxy 构成变化 (ETF 占 P 日权重 ~4.54%, proxy_weight_coverage 0.72→0.99), 已登记 REGISTERED_KNOWN_DEVIATION. → 候选组成变化**不是** float_mv 数据制度造成的.
+    - **IC 翻转在 common-coverage 下仍在**: 全 universe PRE ic=+0.026 → POST ic=+0.005; COMMON-COVERAGE (pre/post 都出现的 code, n_codes=1199): PRE ic=+0.021 → POST ic=**−0.005**; `BOTTOM_ONLY`: PRE ic=**+0.077** (n=2023) → POST ic=**−0.037** (n=336, label_mean +0.0003→−0.0041). 方向与被作废的 BW-W1 POST=−0.131 一致, 幅度更温和 (n 小).
+    - 结论 (谨慎): 2026-07-01 前后关系翻转 = **候选 MIX 偏移 (washout/dip setup 减少) + 残余 post 走弱 (即便 common-coverage 仍在)**; float_mv/ETF 数据制度已被排除为主因. MIX 偏移本身更像市场环境结果 (setup 形成条件变化) 而非数据 artifact. BOTTOM_ONLY post 仅 n=336/57 天, 统计力有限, 不宜据此断言"Selection 信号已死", 也不宜宣布"真实 regime"—— 记录为 OPEN_QUESTION.
+  - 【下一步】暂不重训、不冻结 Trigger、不冻结 W4 / 旧 S0 A2-A4. 待办顺序: (1) `DIP_TOUCH_EVENT_TIME_MATCHED_CONTROL_V1` (次线诊断, 池内同日同 stage 未-Touch 对照); (2) 若需要更强 20260701 结论, 可延长 post 窗口 (等新数据) 后重评; Selection 当前干净结论 = A1≈0, proximity-to-support (pc_zone_distance_atr) 是唯一真实但小幅 (+0.024~0.078 依切片) 且 post 期不稳定的增量, 不够格冻结为特征族.
+
+  #### DIP_TOUCH_EVENT_TIME_MATCHED_CONTROL_V1 (2026-09-22, dip_touch_matched_control_v1.py) — 裁决: NOT_INCREMENTAL
+  - 【预注册规格】问题 = 同一时点/同类 DIP 候选中, 发生 ZONE_TOUCH 的股票之后是否比尚未 Touch 的更好 (非因果效应检验, Touch 由价格路径决定, 匹配不足以消除全部选择偏差)。Treatment = INTRADAY_DIP_SETUP 且 first real ZONE_TOUCH at S (v2 精确语义, 30/30 与 run_state_engine_v2 的 arm_t0 对齐); Control = 同 effective_trade_date + 同 dip_stage, S 时刻尚未 Touch (first_touch_ts>S 或全天未触, 条件等价 [开盘,S] 无 Touch, S 时刻可知), 禁用"全天 never-touch"筛 control。Primary 匹配 = date+stage+同一 S (control 同刻 synthetic signal); Sensitivity = +|zone_distance@S前一根bar|<=0.25ATR +|realized_dip@S前一根bar|<=0.25ATR +同 float_mv 五分位桶 (全部只用 S 之前状态)。两臂同执行: fill = first legal minute > S (execution_engine, 09:31 规则, 涨停/停牌不可成交双臂对称排除); exit = H1 close raw (复用 a14 冻结口径 exit=actual_fill_a14×(1+timing_return_h1)); alpha = ret − proxy (proxy 复用冻结 MarketProxyV1 = timing_return_h1 − timing_market_alpha_h1, D open→H1 LOO, 与 fill 分钟无关)。
+  - 【关键数据契约发现 (重要, 影响后续所有用 zone 的工作)】a14 顶层 `zone_lower/upper/mid` = build_pool 的窄支撑位 (宽度常为 0), **不是引擎 zone**。触发框架 (v1/v2) 的 zone = latr `build_zones` 的 primary zone (宽/多源, 存 `zones_json`; `select_primary_zone` 规则 = `(-zone_strength, |zone_distance_atr|)`, 其 price 参数实际未用)。重建规则 + 全天扫描在 300/300 随机样本上**精确复现** a14 存储 `time_since_zone_touch`。v0 误用池位线 (touch rate 伪 99.6%, p50 touch 09:35) 已作废; 修正后 touch rate: PRE_PULLBACK 24.3% / PULLBACK_ACTIVE 36.5% / NEAR_ZONE 84% (总体 ~29%, 与 a14 non-null 28.5% 一致)。
+  - 【主结果 (PRIMARY, 1931 strata / 1940 treatments / 15751 control obs)】
+    - 口径澄清 (2026-09-23, 用户裁定): `pooled_treatment_mean`=+0.139% / `pooled_control_mean`=+0.286% (observation-weighted, pooled diff=−0.147pp); 主报告增量 `stratum_weighted_paired_delta`=−0.293pp (1931 strata 等权 paired)。两者同向均含 0, 不改变裁决; 今后报告必须区分命名, 不混称 "mean difference"。
+    - inc_ret = −0.30% (同为 stratum 等权 paired)
+    - win_stratum = 45.0%, win_pairwise = 51.0% (抛硬币)
+    - MFE: T=3.25% **<** C=3.88% (Touch 组最大有利偏移反而更低); MAE 相近 (−2.64% vs −2.87%); loss 相近
+    - fold: f1=−0.10[ns] / f2=+0.96[CI>0] / f3=+0.92[CI>0] / f4=−5.01[ns] → 方向翻转, 不稳定
+    - dip_stage: PRE_PULLBACK −0.43[ns] / PULLBACK_ACTIVE −0.11[ns] / NEAR_ZONE n=1
+    - pre/post: PRE=+0.11% [−0.12,+0.36] (统计上不能与 0 区分); POST=−7.35% [ns, n=104]
+    - SENSITIVITY (caliper): 仅 18 strata 存活 (POST=0), +1.59% [−0.35,+3.92] — n 太小无信息
+    - BOTH (BOTTOM∩DIP, 仅描述不作裁决): n=27 strata, inc=−0.27% [−1.77,+1.00], p=0.74 — 同样无效
+  - 【裁决 (严格按预注册标准)】Touch−Control≈0 ✓ / CI95 含 0 ✓ / 多 fold 不稳定 ✓ → **`DIP_TOUCH_EVENT_NOT_INCREMENTAL`** — 不再为 Touch 注册 TIMING-TRIGGER-v2.1, 不构建 DIP causal Timing Dataset。
+  - 【作废口径备注 (不营救, 不钓鱼)】v0 误用池支撑位线时曾得 inc=+1.24% "显著" — 提示"盘中穿越池支撑位"这一**不同事件**可能含信息, 但属另一个研究问题, 按纪律不升级不追认。
+  - 【当前证据全景 (全部干净口径)】
+    - Selection (S0): A1≈0; `pc_zone_distance_atr` (池位线 proximity) 唯一真实但小幅、post 不稳定 → 无可冻结特征族
+    - Timing (DIP): Touch 事件 vs matched control **无增量** → 与 86008250 "v2 失败=入场时点/trigger 路径设计问题" 结论闭环
+    - 三处独立信号 (BOTTOM proximity / DIP gate 新接受样本 / DIP Touch) 均在 20260701 附近翻转 → OPEN_QUESTION (A4 归因: 候选 MIX 偏移 + 残余 post 走弱; float_mv/ETF 数据制度已排除为主因)
+
+  #### 阶段裁决: GREEN_WATCH_V1_1_SELECTION_TIMING_REVIEW = NO_CLOSED_EDGE (2026-09-23, 用户裁定)
+  - 【状态登记】GREEN-WATCH v1.1 当前 Selection + Timing 假设**不应继续通过加特征/改 Trigger/调模型来救**。完整证据链:
+    - Selection: S0-A1≈0 → A1p(+pc_zone_distance)≈+0.024 → A2-PCLOSE≈+0.027 (弱/单字段/post 不稳定, 不冻结); BOTTOM-WASHOUT W1/W2/W4 causal 修复后不成立 → **无证据证明能可靠识别"调整接近结束"的股票**
+    - Timing: FROZEN_TRIGGER_V1 95.9%@09:30 (开盘门非真 timing) → TIMING-TRIGGER-v2 causal A1-A4≈0 → TIMING_FRONTIER_V1 表观 DIP +0.3% (confirmation depth 无增益) → **event-time matched control: DIP_TOUCH_EVENT_NOT_INCREMENTAL** (inc≈0, CI 含 0, fold 方向不稳定) → 证据链闭合
+  - 【R0 暂缓 (用户裁定)】不在无 alpha 母池上训练 p_loss5/mae_q90/failed_rebound 风险模型——那只是在负期望里删最差尾部, 会制造 "Risk filtering→Selection 成功" 的错觉。
+  - 【Zone namespace 契约 (前瞻性, 冻结的 a14 不回改)】今后任何数据集禁止裸用 `zone_lower/zone_upper/zone_mid` 命名, 至少拆为:
+    - `pool_support_zone_lower/upper/mid` (build_pool 的窄支撑位, 宽度常为 0)
+    - `engine_primary_zone_lower/upper/mid` (latr build_zones primary, 宽/多源)
+    并强制携带 `zone_definition_version` + `zone_source`。a14 顶层的裸命名保留为历史事实。
+  - 【HYPOTHESIS_LOG_ONLY】v0 误用 pool support zone 得到的 +1.24% "显著" 结果: 它测试的是**另一个未预注册事件** (盘中穿越池支撑位线), 既非当前 Trigger 证据也未被证伪, 封存于假设日志, 不追做 (post-hoc chasing 纪律)。
+  - 【下一步唯一主任务】`GREEN_REGIME_RECURRENCE_DIAGNOSTIC_V1` (见下节)。20260701 三处翻转目前**只是值得调查的共同时间断点, 不称 regime 已证实**。
+
+  #### GREEN_REGIME_RECURRENCE_DIAGNOSTIC_V1 (2026-09-23 启动, 预注册)
+  - 【唯一研究问题】历史上是否存在**重复出现的、事前 (PIT) 可观察**的市场状态, 使 GREEN 的弱信号具有一致方向? —— 不问 "什么 regime 能救策略"; 不用 2026-H2 定义任何状态 (防 hindsight overfitting)。
+  - 【状态变量 (全部 P_CLOSE 已知, 极简, 无聚类/embedding)】market trend (EW 指数 vs MA20, 参数自由二值) / market breadth (个股 close>MA20 占比 vs expanding median) / market volatility (20d EW 指数收益 std vs expanding median) / turnover-liquidity (20d 总成交额 vs expanding median)。阈值一律 expanding-window (min 250 交易日) 前向应用, **不做全历史分位回填**。主交叉表 = TREND×BREADTH。
+  - 【被检信号 (两个)】(1) `pc_zone_distance_atr` 每日截面 spearman IC vs 次日超额收益 (DIP eligible 组 + BOTTOM 组); (2) DIP/BOTTOM 候选池次日超额均值 baseline。标签 = D open→H1 close raw (按日截面去均值吸收市场效应; 跨日除权噪声由去均值+秩相关吸收, 已注明局限), 另算 H3 稳健版。
+  - 【数据窗】pool_daily_v11 实际起点 20210104 (非 2018) → 检验床 = 2021–2025 多年度, 2026-H2 仅作对照不参与定义。局限如实记录。
+  - 【预注册出口】
+    - R1 (repeated conditional edge): 多个独立历史时期同一状态方向一致 (非个别年份驱动) → 才允许 Pyxis Y0.5 Market Context 作为 **Context/interaction** 做增量验证 (仍不是 Regime B→禁买)
+    - R2 (no repeatable relation): 正式结束 GREEN-WATCH v1.1 本轮, STATUS=RESEARCH_NEGATIVE, 回到上游设计新的 Opportunity/Candidate hypothesis; 不再加 RSI/washout/换 Zone/改 Trigger/换 LightGBM
+
+  - 【结果 (2026-09-23, green_regime_recurrence_diagnostic_v1.py, 1384 个池交易日 20210104-20260916)】
+    - 校验切片 (2025-01+): `dip_ic_h1`=−0.0187 (负号=proximity-good, 方向与 S0-A1p 一致); H3 版一致。
+    - **pre-2026 (2021-2025) 所有状态下 proximity 信号稳健存在**: TREND×BREADTH 各状态年表 15/15 单元全负 — DN_LO −0.034 (t=−7.6, n=443) / UP_HI −0.029 (t=−8.4, n=627) / UP_LO −0.035 (t=−4.4, n=140); H3 版更强 (DN_LO −0.061)。**历史上不存在任何简单市场状态下该信号曾经失效**。
+    - **2026-H1 翻转是跨状态的期间效应** (全状态 mean +0.015, t=+1.8, n=116; DN_LO/UP_HI/vol_hi/liq_hi 全部同翻), 不是某个状态的复发。2026-H2 全状态均值回到 −0.030 (t=−1.7, n=56), 但主要由强市场状态 (UP_HI −0.053 / breadth_hi=1 −0.081) 贡献; 弱市场状态 (DN_LO +0.024, n=27) 仍翻 — 该状态依赖恢复仅为小样本描述, **不构成 regime 发现**。
+    - pre-2026 状态条件化差异全部微小 (|t|≤1.6; 唯一例外 vol_hi t=−2.27 但逐年方向不一致, 2023 反向)。
+    - baselines: DIP/BOTTOM 候选池次日超额在 pre-2026 各状态各年 ≈0 (±0.1%), 无稳定状态条件化; 2026H2 DN_LO −1.35% (n=27) 仅记录。
+  - 【裁决 (严格按预注册出口)】**R2 — 无重复的 regime relationship**:
+    - 检验床 (2021-2025) 内 GREEN proximity 信号在全部简单 PIT 市场状态下一致存在, 无历史失效先例 → 2026 翻转无法归因于可重复的市场状态条件;
+    - Pyxis Y0.5 Market Context **不立项** (R1 条件不满足);
+    - **GREEN-WATCH v1.1 本轮正式结束: STATUS = RESEARCH_NEGATIVE** → 回到上游设计新的 Opportunity/Candidate hypothesis。
+  - 【局限 (如实)】(1) pool 实际起点 20210104 → 2018 熊市/2019 修复未检验; (2) 2026H2 各状态 n=25-27 天; (3) 标签为 raw open→H1 close 截面去均值近似 (非冻结 proxy 口径), 除权噪声由去均值+秩相关吸收; (4) dip_ic_h1 是单字段信号 (A3 归因已确认其为 S0-A1p 的信号载体), 非全模型 IC。
+
+  ---
+
+  # 十五、路线变更纪律
+
+- 本文件是项目后续开发顺序的唯一主路线；新对话开始时先读取本文件，再判断当前所处阶段。
+- 不因单次实验表现跳过尚未通过的工程、模型或上线闸门。
+- 实验结果若推翻现有假设，先在本文件记录：变更原因、证据、受影响阶段、新顺序和作废口径，再修改代码或启动下一阶段。
+- 参数微调不自动构成路线变更；模型职责、数据口径、标签定义、验证分段、阶段顺序或上线权限发生变化时，必须升级路线记录。
+- 历史失败结果和作废口径保留审计存根，不覆盖成“从未发生”。
+- 路线文档决定开发顺序，但不能覆盖数据证据；若路线与可复现证据冲突，应暂停晋级并修订路线，而不是为了遵守旧路线继续错误实验。
+
+---
+
+## 2026-09-23 路线变更记录：GREEN-WATCH v1.1 收尾 → OPPORTUNITY-DISCOVERY-V2
+
+- **变更原因**：GREEN-WATCH v1.1 全证据链闭合为 NO_CLOSED_EDGE（S0 A1≈0、proximity 信号弱/单字段/post-2026 不稳；Timing Touch 事件 matched control 无增量；REGIME_RECURRENCE R2=无可重复状态关系）。继续围绕 GREEN 迭代的边际价值趋零。
+- **状态登记**：GREEN-WATCH v1.1 = RESEARCH_NEGATIVE / Production=NOT_READY / Shadow=YES / Continue tuning=NO / Evidence=FROZEN。每日闭环（green_watch_daily→freeze→监控机→events 回传）照常运行，版本标 GREEN-WATCH-v1.1-SHADOW，不因短期表现修改；**重评触发器（评审补充）**：再积累 120 个前瞻候选日或至 2026-12-31（先到为准），对 proximity 信号方向做重评——定性为"历史上强、当前制度下未复现、观察中"，非"已证伪"。
+- **新阶段**：OPPORTUNITY-DISCOVERY-V2。核心问题从"怎么把绿盘调到赚钱"改为"哪些 P 日可观察状态有稳定 H3/H5 截面 alpha"。假设注册表 = `stargazer_ml/v5_hybrid/opportunity_v2/hypothesis_registry_v1.yaml`（先注册再实现，未注册禁入 harness）。
+- **评审补充决议（2026-09-23，六条）**：① eligibility 只留可交易性+数据有效性，市值/换手/波动带子降为 HYP 内分层变量（防穿 GREEN 旧鞋）；② 任意两 HYP 候选池 Jaccard 重叠率入档；③ 未过 Confirmation 的 HYP 不接监控机/推送/计划库，只跑历史 replay；④ 注册 mechanism 须写明非 GREEN 镜像；⑤ 跨 HYP 比较限同 label/split/seed/harness；⑥ label/proxy/execution/PIT-sector/split 为冻结基建共享不改。
+- **首轮候选 3 个（定义待用户确认）**：HYP-01 Strength Continuation / HYP-02 Compression→Expansion / HYP-03 Breakout Retest。每族先事件/分层证据（count/coverage/H3-H5 alpha/分位单调/年份/fold/MFE-MAE），pool≈0 即停，不上 LightGBM 讲故事。O3/O5/O6 已登记未启动；+1.24% 封存不追。
+- **R0 继续后置**：无 edge 不建风险模型（防"Risk filtering→Selection 成功"错觉）。Pyxis 非永久取消：待新 Opportunity 有 edge 后，Market/Sector Context 可作为交互验证立项（Y0.5 因 R1 不满足不立项）。
+- **受影响阶段**：GREEN 全部研发线收尾；Step 9 A0-A8 训练线随 GREEN 收尾停止扩张（已产出的 P_CLOSE 修正基建留用）；第 10-18 步中 R0/Pyxis/Astrolabe 继续后置。
+
+---
+
+## 2026-09-23 路线变更记录 #2：O1 归档 + 插入 GREEN-v2.2 Candidate Quality 诊断（预注册冻结）
+
+### O1 裁决（用户裁定）
+- `HYP-01_STRENGTH_CONTINUATION_V0` = **ARCHIVED_FAIL**。理由（预注册标准）：全横截面 IC≈−0.010 / 2023(t=−2.83)、2024 方向显著负 / 宽截面无 continuation edge / 毛 edge 6.5bp/日经济性弱（O1 证据：opportunity_v2/hyp01_strength_continuation/evidence_v0.md，分箱梯度 spearman 0.986 单调与 Top95 四年全正不构救援）。
+- "99-100 极端尾四年全正"仅登记 **HYPOTHESIS_LOG_ONLY**；**禁止 HYP-01b / 重挑桶 / 换阈值**。
+
+### 插入诊断：`GREEN_V21_VS_V22_CANDIDATE_QUALITY_DIAGNOSTIC_V1`（先于 O2A，用户裁定）
+- **唯一问题**：不用任何 Timing，v2.2 的 P_CLOSE Watchlist 是否比 v2.1 更有价值？
+- **输入限制**：feature_asof ≤ P_CLOSE；禁止 D日分钟/Touch/Recovery/Reclaim/Washout intraday/Entry/Exit State。统一执行 signal=P_CLOSE、entry=D first legal open；primary=D open→H3，secondary=H5；MarketProxy 同区间。
+- **匹配契约 MATCH_V1（冻结）**：trade_date + float_mv bucket + turnover/liquidity bucket。**不得加 prior return/zone distance/trend 等变量**（那些正是 Selection 想利用的信息，匹配掉=提前消灭 edge）。多 control 时 random matched + bootstrap + 固定种子体系。
+- **比较组**：ELIGIBLE_POOL / MATCHED_CONTROL / V21_NATIVE / V22_NATIVE / BOTH / V21_ONLY / V22_ONLY，另加 V21_EQUAL_K / V22_EQUAL_K（区分"质量提高"与"只是候选更多"）。
+- **PRIMARY PASS 线（冻结）**：ΔH3 matched alpha ≥ +5bp（Selection 层最低有意义增量，不要求覆盖交易成本——Watchlist 后还有 Entry 筛选）AND ≥3/4 开发年份同向 AND 多数 purged folds>0 AND beat matched-random P95 AND（Top-decile enrichment ≥1.20×V21 或 winner recall 提升 ≥20%，二选一）。+1/+2bp 即使显著也不称有意义。
+- **裁决矩阵（不只有 PASS/FAIL，v2.2 定位=高召回 Watchlist）**：质量↑召回↑=V22_DOMINATES；质量略降但仍高于 control+召回明显↑=HIGH_RECALL_WATCHLIST_VALID；≈control 但召回↑=COVERAGE_ONLY_NO_EDGE；质量↓无提升=V22_SELECTION_FAIL。
+- **样本窗**：Source A(P_CLOSE) 用 2021+ (DAILY_PCLOSE)；Source B(Intraday) 仅 2025+ (MINUTE_EXACT)。**禁止拼接收益表/混成同一 OOF/DAILY 替代 Intraday event**；所有 artifact 强制带 data_resolution + evidence_scope。
+- **Source B 生产约束（现在就写进设计，不是部署再补）**：两级结构 Level1 Market Scanner（实时快照 pct/volume 异动预筛→几十/几百只）→ Level2 Deep Monitor（分钟级 Washout/Entry State）。禁止"全市场5000票×3分钟×逐票新浪接口"设计；研究阶段用 stockdb 历史分钟模拟 Level1。
+- **415 天分钟样本纪律**：Source B 研究必须报告 event count / effective independent days / events per day / trade_date clustering（更严 trade_date×event cluster）/ MDE；event 少即使均值漂亮也标 UNDERPOWERED，不靠 p 值争论。
+- **顺序锁定**：O1(已归档) → 本诊断 → 回到 OD-V2 **O2A Compression→Expansion**（PASS 才开 O2B）→ O3 Breakout Retest。**诊断完成不立即开发 v2.2 Entry/Exit**——先知道 Opportunity Layer 有哪些值得等的来源，统一 Entry State 将服务于 GREEN Watchlist/Compression/Breakout Retest/Intraday 多来源。
+
+---
+
+## 2026-09-23 路线变更记录 #3：GREEN-v2.2 架构修正版冻结（用户终审 + 三处更正）
+
+### 证据核对（2026-09-23，五个 artifact 实机抽查一致）
+- Timing Frontier（a0a4/datasets/timing_frontier_v1_summary.json）：各 Arm 全体 alpha +0.0004~+0.0011（=+0.04%~+0.11%），BOTTOM 更低，确认深度无稳定增益 ✓
+- DIP Touch matched control（dip_touch_matched_control_v1/report.json）：inc≈0、CI 含 0、fold 方向不稳，NOT_INCREMENTAL ✓
+- Washout 消融（bottom_washout_ablation/metrics.json）：W1=+0.078 / POST=−0.131 / LOO no_zone=−0.018 / only_zone=+0.069 ✓
+- Regime 诊断：R2（无可重复状态关系）✓
+- S0 干净证据链：A1p≈+0.024 / A2-PCLOSE≈+0.027 / Top 未超 Random P95 ✓
+→ GREEN-WATCH-v1.1 = RESEARCH_NEGATIVE / PRODUCTION=NO / SHADOW=YES，维持。
+
+### 更正 1（重要）：W1=+0.078 不得解释为"Washout 局部有效"
+LOO 已证明 W1 正结果**几乎全部由单字段 `pc_zone_distance_atr` 承载**（W1_no_zone −0.018 崩 / W1_only_zone +0.069≈全量）。因此：
+- P_CLOSE 侧重新命名 **P_CLOSE_PRECONDITION_CONTEXT**：目前**仅有 support proximity 有证据**；前期卖压/历史缩量/派发风险/调整充分度作为 context 保留、重新验证，**不继承 +0.078**。
+- 禁止把 "W1=0.078" 日后引用为"洗盘因子有效"的历史证据。
+
+### 更正 2：Candidate Quality 匹配变量
+PRIMARY_MATCH 冻结 = trade_date + float_mv bucket + turnover/liquidity bucket（不加行业、不加波动率）。
+- 行业仅在 PIT membership（as_of ≤ P_CLOSE）完全成立后作为 SENSITIVITY_B；波动率作 SENSITIVITY_A（波动率可能是 Selection 机制本身的信息，过度匹配=提前消灭 edge）。三者结论一致才增强证据。
+
+### 更正 3：Timing Frontier artifact 未归档完
+v1.1 研究裁决可关闭，但 TIMING_FRONTIER_V1 ≠ AUDIT_COMPLETE，补三项（非阻塞主线）：① common-reachable paired comparison（各 Arm eligibility 不同，"条件收益相近"≠"等待无益"）；② T0 cohort policy 口径（晚 Arm 未触发=cash）；③ 修复 NEAR_ZONE/T4 非法时间 "11:74"。
+
+### 架构修正（正式图，替换一切串行表述）
+```
+                    PIT DATA
+                       │
+     ┌─────────────────┴─────────────────┐
+     │                                   │
+OPPORTUNITY SYSTEM               RISK / CONTEXT
+     │                            Corvus / Pyxis / R0
+┌────┴─────┐                              │
+│          │                              │
+GREEN-v2.2  OD-V2(Strength/Compression/   │
+│          Breakout Retest)               │
+└────┬─────┘                              │
+     ↓                                     │
+OPPORTUNITY QUEUE                         │
+     ↓                                     │
+ENTRY STATE ──────────────┐               │
+     └─────────────────────┼────→ POLICY ENGINE ←── RISK/CONTEXT
+                           │             ↑
+              HUMAN DECISION ────────────┘
+                       │
+                  EXECUTION
+                       │
+               POSITION STATE
+                       │
+        UPDATED RISK/CONTEXT ──→ POLICY ENGINE → HUMAN EXIT DECISION
+                       │
+        PORTFOLIO / ATTRIBUTION / LOG（贯穿基础设施，非最后阶段）
+```
+**风险/信息是旁路并行输入 Policy，不是 Entry 之后才运行。** Policy Engine 现阶段 = shadow/deterministic rules only。
+
+### Source B 契约（研究第一天就冻结）
+- 扫描边界 = **GREEN_ELIGIBLE_UNIVERSE**（只做 tradability/data health/basic liquidity/basic mcap/停牌涨跌停/结构异常过滤，**禁止偷加 alpha ranking**），不是无边界全市场。
+- 两级结构：Stage1 FAST PREFILTER（快照异动预筛 5000→数十/数百）→ Stage2 DEEP MONITOR（分钟状态机，新浪逐票接口够用）。
+- 每个 INTRADAY_DISCOVERY hypothesis 必须同时满足 RESEARCH_REPLAYABLE=YES（stockdb 历史分钟可复现）+ PRODUCTION_OBSERVABLE=YES（实时可发现）；盘中发现禁止盘后补写"其实当时符合"。
+- 机会记录契约：opportunity_id / source(PCLOSE_WATCHLIST|INTRADAY_DISCOVERY) / discovery_ts / first_observable_ts / feature_asof / setup_type / zone_version / entry_state / risk_snapshot_id / plan_id(可空)。
+- 统计纪律：MIN_EFFECTIVE_DAYS gate；必报 n_events / n_symbols / n_trade_days / median events/day / effective clustered N / MDE / trade-date clustered CI；样本不足标 UNDERPOWERED 不靠 p 值争论。
+
+### CQ-A 与 CQ-B 永久分开
+- **CQ-A（现在做）**：P_CLOSE 候选→D open→H3/H5；GREEN池 vs eligible池 vs MATCH_V1 随机；回答"Watchlist 是否提高好票密度"。
+- **CQ-B（Source B 建成后）**：discovery_ts=S→next legal fill→H1/H3/H5；control=S 时刻 risk set（同日同分钟同基础条件**且截至 S 未触发**）；禁止全天 never-trigger（未来信息）。
+
+### R0 / Pyxis 状态（修正"完全停工"）
+DATA PIPELINE / LABEL BUILDING / FEATURE LOGGING / SHADOW PREDICTION = **CONTINUE**；PRODUCTION FILTER / POLICY INTEGRATION = **BLOCKED（until Opportunity pass）**；ALPHA RESCUE（删差尾美化负期望）= **FORBIDDEN**。理由：Opportunity 通过时不能从零等风险数据；但 edge 必须先独立成立。
+
+### OD-V2 范围控制
+每假设固定流水线：事件定义→裸事件经济学→匹配对照→跨年稳定性→fold→**通过才 ML**；事件层不过即归档停。Intraday Discovery 只负责低吸/下杀修复类事件；HYP-01/02/03 是独立机会机制，两系统禁止重复扫描同种事件（重叠走 overlap_mask 六格报告）。
+
+### 顺序锁定（STEP0-2 与门槛）
+- STEP0：v1.1 SHADOW（每日闭环照常：池→draft→冻结→监控机→events 回传，版本标 GREEN-WATCH-v1.1-SHADOW）；Timing Frontier 三项归档审计并行补完，不阻塞。
+- STEP1（现在）：`GREEN_V21_VS_V22_CANDIDATE_QUALITY_DIAGNOSTIC_V1`（规格见变更记录 #2，PRIMARY_MATCH 按本记录更正 2）。出口四格：V22_DOMINATES / V22_HIGH_RECALL_VALID / V22_COVERAGE_ONLY / V22_SELECTION_FAIL。
+- STEP2：回 OD-V2 → O2A Compression→Expansion（通过才 O2B）→ O3 Breakout Retest。
+- **门槛**：至少一个 Opportunity source 通过后才正式开发 GREEN-v2.2 Intraday Discovery / Washout Entry State / Position-Exit State（统一 Entry State 服务多来源）；R0 正式训练再后；Pyxis/Astrolabe 待 edge 后作交互验证。
+
+### STEP1 最终定义冻结（2026-09-23 用户终审，补充变更 #2）
+- **V21_NATIVE** = build_pool v0 + 25–100亿 float_mv band + 原 v0 candidate logic + tier≥WATCH。**复现当时真实 shadow 版本，不为公平事后修它**（历史输出直接取 pool_daily.parquet，不重算）。代表"旧 GREEN 实际给交易者看的"。
+- **V22_NATIVE** = a14/v1.1 no-band eligible universe + v1.1 P_CLOSE-safe candidate features + v1.1 tier logic + tier≥WATCH。**D日 zone/penetration/recovery/sell-rebound/breakdown 列即使存在也不得参与 candidate decision**（作废口径见变更 #1 的 S0 因果审计）。
+- **强制 Bridge 组**：`V22_BAND_SLICE` = V22_NATIVE ∩ 25-100亿；`V22_OUT_OF_BAND` = V22_NATIVE ∖ 25-100亿。归因分解：V21_NATIVE vs V22_BAND_SLICE = **Selection logic 效应**；V22_BAND_SLICE vs V22_OUT_OF_BAND = **Universe expansion 效应**。
+- **可选第四组**：`V21_LOGIC_NO_BAND` = no-band universe + V21 旧 selection logic（若字段兼容；**不兼容不为补矩阵硬重构**，前三组已足够）。2×2：V21_NATIVE / V21_LOGIC_NO_BAND / V22_BAND_SLICE / V22_NATIVE → Selection 效应 / Universe 效应 / 交互。
+- **组清单**：ELIGIBLE_POOL / MATCHED_CONTROL(MATCH_V1: date+float_mv桶+换手桶, bootstrap 固定种子) / V21_NATIVE / V22_NATIVE / V22_BAND_SLICE / V22_OUT_OF_BAND / V21_ONLY / V22_ONLY / BOTH / [V21_LOGIC_NO_BAND] / V21_EQUAL_K / V22_EQUAL_K。
+- **Q1（产品）** = V22_NATIVE vs V21_NATIVE；**Q2（归因）** = band-slice 两组对比。两问分开报告不混。
+- **tier 口径警示**：两版 WATCH 来自不同 score calibration，文字标签≠相同筛选强度 → 必报 candidates/day、candidate_rate/day、float_mv percentile 分布；EQUAL-K 用 K=min(n_v21,n_v22) 日频对齐 + 固定 Top20/Top50（有合法排序分时）。
+- **窗口**：2021+ 全程列表（2021/2022/2023/2024/2025/2026H1/2026H2），开发期裁决按 2021-2024，不临时找最好窗口。
+
+---
+
+## 2026-09-23 路线变更记录 #4：Orchestration/Runtime Layer 合同冻结（实现选型推迟）
+
+### 定位
+- 正式架构只冻结**功能层**，不冻结第三方框架：`MODEL/SIGNAL LAYER`（Opportunity/Entry State/Position State/R0/Pyxis/Corvus）→ `ORCHESTRATION / RUNTIME LAYER` → `VERSIONED POLICY ENGINE` → `Human Decision`。
+- **ORCHESTRATION ≠ POLICY（第四条硬边界）**：Orchestration 只管"谁什么时候运行、状态去哪"；Policy 只管"冻结输入→什么动作"。换任何 workflow 引擎（LangGraph/自研 runner/Temporal）都不得改变 Policy 结果。Policy 逻辑不得住在 Orchestration 里（"顺便算 policy_action"禁止）。
+- 实现选型=DEFERRED：LangGraph 降级为 IMPLEMENTATION_CANDIDATE。Runtime 层冻结的是能力合同：parallel fan-out / state persistence / resume-recovery / human interrupt / snapshot 汇总 / lifecycle routing / audit trail。到 SHADOW_RUNTIME_V1 立项时 benchmark（LangGraph vs thin custom runner + plan_db/状态机）。
+
+### 快照契约（现在冻结，代码接口已落地 `stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts.py`）
+- 五类世界状态快照：`OpportunitySnapshot / EntryStateSnapshot / RiskSnapshot / ContextSnapshot / PositionStateSnapshot` + 一个决策对象 `PolicyDecision`（**与快照不并列**：五个快照是状态，PolicyDecision 是确定性函数的结果）。
+- 全部强制全局头：`snapshot_id / schema_version / frozen_artifact_ref / symbol / asof_ts（最晚用到的信息时刻）/ created_ts（实际生成时刻）`；`frozen_artifact_ref` 用 `artifact_type:artifact_version:hash` 三元组（非文件路径），防同名误认。
+- `PolicyDecision` 记录：`policy_version / input_snapshot_ids / action / reason_codes / requires_human_review / created_ts`。
+
+### 三条硬纪律
+1. **POLICY_DETERMINISM_CONTRACT**：同输入+同 policy_version ⇒ 同输出。policy_action/reason_codes 必须可复现、可审计。
+2. **LLM = presentation/explanation sidecar only**：可翻译 reason_code、生成摘要；**禁止**修改 score/决定 BUY-WAIT-REJECT/调仓/退出/生成 discretionary override；**LLM 输出不得成为任何确定性节点的输入特征**（防"文本→parser→signal"偷偷进决策路径）。
+3. **SHADOW_RUNTIME_V1 首版本机旁路**：读取监控/历史产生的 Snapshot→调模型→跑 Policy→生成 Shadow Decision；NO order / NO production control / 不依赖监控进程。当前监控机精简 exe 生产路径**禁止**引入 LangGraph/langchain-core/checkpoint DB/async runtime。验证（稳定性/延迟/恢复/一致性/资源/异常恢复）通过后才谈部署。
+
+### 顺序不变
+STEP1（诊断，进行中）→ O2A → O3 → 至少一个 Opportunity Source 通过 → GREEN-v2.2 Intraday/Entry/Exit；**同时** R0/Pyxis/Corvus 继续数据/标签/Snapshot/Shadow 建设（Predict→Snapshot 接口形态）；SHADOW_RUNTIME_V1 届时再评估 LangGraph vs thin runner。现在各模块的接口义务：以纯函数形态暴露 `predict/infer/evaluate(snapshot…)→Snapshot`，不自行操作库、不自行决定交易流程。
+
+### STEP1 结果登记（2026-09-23，green_v22_candidate_quality/report_v1.md）
+- **出口：V22_COVERAGE_ONLY**（dev 2021-2024 matched 口径）。四行判定：L1 ΔH3 matched **+1.87bp** CI[−1.15,+4.88] 含0 FAIL；L2 年份 2/4 FAIL；L3 folds 4/7 PASS；L4 不 beat matched-random P95、enrich 1.01 FAIL。
+- **关键事实：两组 watchlist H3 alpha 均低于 matched random control**（V21 −11.8bp/日，V22 −9.9bp/日）——v2.2 只是"少亏"，非跑赢随机；真实增益 = winner recall +54%（0.232 vs 0.151）而 winner 密度不变（enrich≈1.01）= **更大但不更准**。无 selection edge，与 GREEN RESEARCH_NEGATIVE 一致。
+- Q2 归因：Selection logic 效应（BAND_SLICE−V21_NATIVE）= **+2.60bp**（v1.1 逻辑本身小幅改善）；Universe 效应（OUT−BAND）= **−0.96bp**（扩进来的票稀释）。V21_LOGIC_NO_BAND 跳过（v0 dip_gate 公式无代码存根，规格允许）。
+- candidates/day：V21=742 / V22=1144 / SLICE=509 / OUT=637；fmv P50 0.42 vs 0.56 证实 tier calibration 差异（EQUAL-K 与候选率报告必要）。
+- 后续含义：GREEN Watchlist 只能定位为 coverage/recall 工具；"提高好票密度"未被证明。STEP1 完成 → 按锁定顺序回 O2A（待 O1 修复重跑收尾后启动）。
+
+### 【重大登记】O1 LOO 公式 bug（STEP1 发现）
+- `evidence_v0.py` 的 LOO `(px−w·r)/(1−w)` 仅对归一化权重成立；raw float_mv 权重下退化为 loo≈r_i → alpha_h3 伪零。STEP1 已改精确剔除 `(num−w·r)/(den−w)`。
+- **HYP-01 ARCHIVED_FAIL 所依据的数字（alpha/IC/分箱）受此污染，状态改为 PENDING_RERUN**；修复重跑（evidence_v1.md，v0 标 SUPERSEDED 存根）后重新裁定。修复期间 O2A 可并行准备但不开工正式证据。
+
+### STEP1 正式裁决（2026-09-23 用户裁定）：GREEN 盘后 Selection 收口
+- **GREEN_PCLOSE_SELECTION_V22 = COVERAGE_ONLY，FURTHER_OPTIMIZATION = STOP**。正式结论（一句话）：**GREEN-v1.1/v2.2 的 P_CLOSE 选股没有证明能提高未来赢家密度；v2.2 相对 v1.1 主要提高覆盖率（winner recall +54%）而非精度（enrichment≈1.01），盘后模块正式降级为 Coverage Watchlist；GREEN 后续若要形成 alpha，必须由盘中 Opportunity Discovery / Entry State 重新独立证明，不得再假设 Selection 有效。**
+- 证据链：ΔH3 matched +1.87bp CI含0；两版 watchlist 均低于 matched random（−11.8/−9.9bp）；recall 0.151→0.232 但 enrich 1.01；归因 v1.1 logic +2.60bp / universe −0.96bp。
+- Source A 重定义 = **Coverage Watchlist**：提高监控效率/提供 context/优先级/为盘中 Discovery 提供优先监控子集；**不承担 alpha selection 证明**。停止：加日线因子/调 WATCH 阈值/重设市值带/换 LightGBM。pc_zone_distance_atr 等弱信号仅作 context 保存。
+- Source B 优先级上调：P_CLOSE Selection 无 edge → GREEN 若成立，edge 更可能来自 D 日盘中 Opportunity Formation / Entry State（**新假设，不继承旧 Timing 性能结论**）。
+- GREEN-v2.2 不停工的部分：GREEN_ELIGIBLE_UNIVERSE / 两级扫描 / Opportunity Queue / Snapshot 契约 / Source B replay 基建 + P_CLOSE coverage list 继续 shadow 记录（不调参）。
+- **下一步主线 = O2A Compression→Expansion**（先测是否预测 Expansion，不预测方向；不过→HYP-02 ARCHIVED_FAIL，过→O2B）。
+
+### O1 修复重跑登记（2026-09-23，evidence_v1.md）
+- HYP-01 **维持 ARCHIVED_FAIL 且理由强化**：LOO 修复（精确剔除 `(num−w·r)/(den−w)`，已对拍 MarketProxyV1 exclude_symbol max|diff|=1.7e-17）后证伪四行**全 FAIL**——(a) 分箱梯度 spearman −0.943 倒挂，99-100 桶 −7.6bp；(b) 日 IC −0.0306 (t=−5.6)；(c) 2021-2024 四年全负（每年 t≤−3.1）、folds 0/7 正；(d) Top95 −31.7bp 劣于 pool 与 random P95。**机制判读：该 universe 短期为反转而非动量延续**；confirmation 段（2025 IC t=−5.0）同向旁证。
+- **污染复盘（教训入档）**：v0 的梯度 PASS/Top95 全正系 bug 假象——raw float_mv 权重下旧 LOO 公式退化 loo≈r_i，权重集内 89% 事件 rs/alpha 双零，"梯度"由零填充中段 vs fmv 缺失子集（基金/ETF）假信号构成。**新纪律：任何 LOO/剔除类实现必须与 reference 的 exclude_symbol 对拍后才可采信**（v0 的审计缺口正是 LOO 从未对拍；非 LOO 全 proxy 对拍 1.4e-16 PASS 掩盖了这一点）。
+- "极端尾四年全正"随 v0 一并作废，HYPOTHESIS_LOG_ONLY 条目撤销。
+
+---
+
+## 2026-09-23 路线变更记录 #5：Memory / Personalization Layer 设计冻结（只设计+记日志，不做系统）
+
+### 核心思想（永久）
+**模型的长期记忆存在数据库里，不存在 prompt 里；prompt 每天只从长期记忆取与今日最相关的一小部分。** 禁止"把每天所有聊天塞进 prompt"——历史可无限增长，每次上下文必须有限。
+```
+完整历史 → 持久化存储 → 结构化提取/汇总 → 按当前任务检索少量相关记忆 → 当天上下文 → 生成交易计划
+```
+
+### 五层记忆结构
+1. **Raw Event Log**：不可变事实层（plan/snapshot/policy decision/人工最终决定/修改理由/成交/结果/复盘），量大但永不过 LLM。
+2. **TraderProfileSnapshot**：交易风格载体（entry/risk/position preferences + behavioral_patterns），每日上下文只带当前版本（几 KB），v17→v18 版本化演进；**不因一句话改 Profile，要证据累计+统计确认**。
+3. **Daily/Weekly/Monthly Summary**：压缩链（100 万字聊天 → 1000 daily → 150 weekly → 30 monthly → 1 Profile）。
+4. **Episodic Memory**：代表性交易案例（context/opportunity/entry/系统动作/用户动作/理由/outcome/lesson），当日按相似度检索 3-5 个送入，不送全部历史。
+5. **Recent Working Memory**：当日计划/持仓/盘中已发生/当前机会，日终压成 DailySummary。
+
+### 两条铁律
+- **Preference ≠ Performance 分开学习**："用户喜欢早买"（UserPreference）不得自动推导"早买更赚钱"（Performance）；两套模型并列输出（如："你在此类场景倾向提前介入；但历史 38 笔提前介入 MAE 明显更高，R0 建议等待"）。最终可形成三 Profile：TraderPreferenceProfile / TraderPerformanceProfile / SystemPerformanceProfile。
+- **个性化不得污染确定性 Policy**：未来 Profile 若参与 Policy，只能经**明确字段+冻结版本+明确规则**（如 risk_tolerance_level=2 经 policy_v5 规则引用）；**禁止** LLM 读自由文本/近期聊天悄悄改行为；LLM 永远只做解释/对话/计划展示/历史检索/行为总结（presentation sidecar），且其输出不得成为确定性节点输入。
+
+### 阶段划分（M0-M3，不拖走当前主线）
+- **M0（现在）**：只定义 schema + 不可变日志。四个基础对象即刻开始落库：`DecisionEvent`（decision_id/trade_date/opportunity_id/policy_decision_id/system_action/human_action/override_flag/override_reason_code/human_comment/execution_result/outcome_ref + 全局头）、DailySessionSummary、TraderProfileSnapshot、TradeEpisode。全部沿用 Snapshot 契约全局头（schema_version/frozen_artifact_ref/created_ts/asof_ts）。成本极低，保证从今天起数据不丢。
+- **M1（SHADOW_RUNTIME_V1 时）**：Daily summaries / Episode memory / bounded retrieval。
+- **M2（前瞻数据积累后）**：TraderProfile learning / Preference vs Performance 分离建模。
+- **M3（成熟系统）**：个性化计划 / override learning / 行为归因。
+
+### 与当前主线的关系
+研发主线不变（GREEN-v2.2 Shadow 双名单→O2A→O3→门槛后 v2.2 盘中/Entry）。Memory 层现在**只做 M0 日志合同**，检索/压缩/学习全部后置到 M1-M3。**T5 双名单设计的开工依据 = `stargazer_ml/v5_hybrid/green_v2/T5_SHADOW_DUAL_LIST_DESIGN_v1.md`（DESIGN_FROZEN，待用户开工指令）。**
+
+### O2A 开工登记（2026-09-23 用户裁定）
+- `O2A_COMPRESSION_TO_EXPANSION_V0` = IN_PROGRESS。只研究"压缩是否预测未来 Expansion"，不研究方向。
+- 主目标：future **raw** range H3/H5 为主、ATR-normalized 为辅；vol ratio、|return| H3/H5、MFE/MAE magnitude；压缩分位预注册分箱看梯度不挑桶。
+- **DENOMINATOR_ARTIFACT_SUSPECTED 硬 gate**：仅 /ATR 漂亮而 raw range 不扩张 = 分母伪影，不得 PASS。
+- 出口：FAIL → HYP-02 ARCHIVED_FAIL → O3；PASS → O2B。
+- 伴随登记：`EXTREME_STRENGTH_SHORT_TERM_REVERSAL`（HYP-01 修复后呈现的强势→反转）= **HYPOTHESIS_LOG_ONLY**，禁开反转版 HYP-01b；须独立机制+独立研究窗口才可单独立项。
+- LOO/exclude-symbol/leave-one-out parity gate 永久纪律已入档（O1 教训：bug 同时污染 feature 与 label，修复前整个经济解释不成立）。
+
+### O2A 结果登记（2026-09-23，hyp02_compression/expansion_v0.md）：FAIL
+- **五行全 FAIL**：raw 分箱梯度 spearman +1.0（倒挂 5/5，压缩票未来绝对振幅**更小**：<10 桶 1.55 → ≥50 桶 2.07）；日 IC +0.076（t=+13.5，方向与假设相反）；压缩组 raw_range 1.244 显著低于池 1.796 与 matched P95 1.645（paired increment −0.225，t=−11.4）；年份 3/4 正但含 2024 负、folds 4/7；confirmation 段同向。
+- **DENOMINATOR_ARTIFACT_SUSPECTED 实锤**：/ATR 口径梯度 −1.0 完美单调（压缩组 2.463 > 池）但 raw 不成立——除以自身 ATR 机械放大低波票，属相对自身基期的波动均值回归，**不构成 raw 扩张预测力**（预注册分母 gate 防的正是这个）。
+- **裁决**：HYP-02 ARCHIVED_FAIL（02B 保持 LOCKED 不开）→ 按锁定顺序下一项 = **O3 Breakout Retest**。
+- HYPOTHESIS_LOG_ONLY（不追）：`COMPRESSION_RELATIVE_VOL_MEAN_REVERSION`——压缩只预测"相对自身基期的波动回升"，无绝对扩张、无方向；须独立机制+独立窗口才可立项。
+- 坑入档：250 日分位窗预热会静默吞掉首年（中间特征须算全历史仅事件循环截 dev）——dry-run 实抓。
+
+### 方法纪律永久入档（2026-09-23 用户裁定，源自 O1/O2A）
+1. **报告方向标注合同**：任何 spearman/IC 必须旁边写明 bin ordering 与 good direction（如 "compression_depth ↑ → future_raw_range ↓ => FAIL"），禁止只写 spearman 正负（防数月后误读）。
+2. **DENOMINATOR_ARTIFACT_GATE（永久）**：凡是 低波动/低ATR/压缩 类特征 + `/ATR`、`/volatility` 归一化未来标签的实验，必须同时报告 raw label；raw 不成立而仅归一化成立 = 分母伪影，归一化口径降级 DIAGNOSTIC ONLY，不得作 primary evidence。
+3. **LONG_LOOKBACK_WARMUP_CONTRACT**：rolling_250/120、历史分位、长窗 beta、行为画像等长回看特征，**特征计算用全历史，事件/训练阶段才截时间窗**（feature history ≠ evaluation history）；禁止先截 dev 再 rolling（首段样本被静默吞掉 + 跨实验 universe 不一致）。
+
+### O3 设计增补（2026-09-23 用户裁定）
+- 事件组（核心对照 = A vs B）：
+  - **A** = 已发生 Breakout（B≤P-1，B∈[P-20,P-1]）+ 第一次有效 Retest 进行中（首次回落至 breakout_level±1ATR_ref）
+  - **B** = 相同 Breakout（同窗、B≤P-1）但截至 P 尚未发生 Retest——**匹配同日+breakout 龄(±2日)+MATCH_V1 桶**；回答"已突破票中第一次缩量回踩有无增量"（防"其实是 Breakout 本身有 edge"的混淆，同 DIP Touch 教训）
+  - **C** = 同日 matched eligible control（MATCH_V1）
+- 阈值（回踩量<突破日 60% / ±1ATR / −0.5ATR 不破）标 RESEARCH_THRESHOLD，预注册不分好坏调参。
+- 流水线照 O0-O8：事件经济学→A/B/C→年份/fold→MFE/MAE→通过才 ML。
+
+### O3 结果登记（2026-09-23，hyp03_breakout_retest/retest_v0.md）：FAIL
+- **HYP-03_BREAKOUT_RETEST = ARCHIVED_FAIL**。事件量 n_A=85,896 / n_B=879 / AB 配对 677（breakout 基率 2.13%，20 日内首次回踩率 32.2%）。
+- 主行 A vs B：alpha_h3 increment **−0.196%（t=−0.41，CI[−1.13,+0.74] 含 0）**；路径上回踩组 MFE −2.2pp / MAE +1.3pp（更差）；A 组显著劣于池（−0.30%/日）与 C（−0.27%）= 负 alpha 组。
+- 分层双倒挂（带方向标注）：突破龄梯度 +0.8（期望负，1-3 日桶最差）；突破幅度梯度 −0.8（期望正，最强突破桶最差 −0.44%）。年份 2/4 非正、folds 2/7。缩量敏感性 near-zero。confirmation 段同向。
+- 结构注记（不营救）：±1ATR 带定义下 B 组天然稀少（多数突破次日即入带），A vs B 实为"贴带整固 vs 强势 runner"——属冻结定义内在形态，**禁止事后改定义救援**。
+- **OD-V2 开场三假设全灭：O1 反转 / O2A 分母伪影 / O3 CI 含 0**。快速证伪机制未进 ML/Timing/Risk 即淘汰三个弱机制——按 §67 纪律：记录失败证据，下一步候选 = O5（板块强-个股滞后，PIT sector 源已通，差 ETL）或 O6（需 Gate1C 分钟基建）或暂停重构 candidate 框架；由用户裁定，不做阈值微调。
+
+### OD_V2_ROUTE_REVIEW_V1（2026-09-23 用户裁定，插入 O3 与 O5 之间）
+- **动因**：O1/O2A/O3 非随机失败而是同模式（"看起来该有利的状态未来更差/不增量"）→ 先检查是否处于系统性不利的研究框架，再提第四个假设。不推出"日频 P_CLOSE 一定无用"的强结论。
+- **只回答四问**：
+  1. 目标适用性：P_CLOSE→D open→H3/H5 的 base rate、截面 alpha 分布、market-alpha 分布、winner 集中度（**不调 horizon**）。
+  2. Universe 性格：当前 eligible universe 是否均值回复主导（短期收益自相关/反转倾向、波动/换手分布）——**只描述，不开反转模型**。
+  3. 机制诊断：失败是否主要来自"价量状态≠信息优势"（前三个均为单票自身价量；O5 的跨实体信息关系是唯一机制差异）。
+  4. 横向一致性审计：O1/O2/O3 的 universe/label/MarketProxy(LOO parity)/corporate-action(qfq)/P_CLOSE as-of/matched-control/warm-up 逐项对账（O1 已证明一个 bug 足以翻转结论）。
+- **出口两岔**：发现框架/标签/universe 系统问题 → 先修框架不开新假设；框架基本健康 → 开 O5。
+- **O5 预注册（框架健康才生效）**：机制拆四段（板块冲击存在→个股有暴露→未吸收→补涨？）；对照 A=强板块+滞后个股 / B=同强板块+已同步个股（**核心 A vs B**）/ C=同日相近市值流动性非强板块；**禁止把"板块涨个股没涨"直接定义成"会补涨"**；先事件经济学+matched control，PASS 才 ML。
+- **O6 暂不选**：被 Gate1C 分钟基建锁+分钟窗仅 2025+；继续准备 Gate1C 但不作当前主实验。
+- 并行不停：GREEN-v2.2 Shadow / T5 健康观察 / R0/Pyxis 数据积累照常。
+
+### OD_V2_ROUTE_REVIEW_V1 结果（2026-09-23，route_review_v1/review_v1.md）：框架基本健康
+- **Q1 目标适用性**：H3 alpha base rate 47.2%、中位 −0.22%、std 5.6%；**winner 高度集中（每日 top10% 占正 alpha 总和 60.3%）**——判别空间薄、对无信息排序器不友好；但不解释 O1/O3 的稳定负 IC（那是真信号，方向反）。
+- **Q2 universe 性格（关键发现）**：**日频 lag-1 自相关 +0.030（涨停惯性），但 k≥5 日收益自相关全负且强**（5日=−0.053（负，负值占比79%）/ 10日=−0.042（负）/ 20日=−0.078（负，占比76%）——三个全为负值，无正号）——在三个假设实际使用的周~月 horizon 上 **universe 明确均值回复主导**；"日频延续、周频反转"并存，一切延续/强势类价量机制先验逆风。
+- **Q3 机制诊断**：三连 FAIL = 同一系统性模式（单票价量状态撞 reversal 结构；O2A 的 /ATR 假梯度连波动预测都由分母伪造）；**跨实体信息关系（O5）是唯一未测的机制差异维度**。
+- **Q4 横向审计**：12 项对账，主干全部 CONSISTENT；2 项 DIVERGENT 入档（O1 的 random P95 未做 MATCH_V1 匹配——已归档不重跑；O3 ATR 逐日锚 by design）；无 BUG。
+- **两口径教训入档**：自相关判定必须并列"相邻日重叠窗"与"k日相邻不重叠窗"两口径（单口径会误判）；winner 集中度用"正 alpha 之和"口径（总 alpha 分母 35% 天数不稳）。
+- **出口**：框架健康 → 按用户预注册决策，下一项 = **O5 Sector Strength → Stock Lag**（前置：申万 PIT 成分 ETL）。
+
+### O5 预注册冻结（2026-09-23 用户终审，OD_V2_ROUTE_REVIEW 出口=HEALTHY 后生效）
+- **定位**：首个跨实体信息传播机制（非单票价量形态）；机制链四段：板块冲击存在→个股有真实 PIT exposure→未同步反映→是否 catch-up。**禁止定义成"板块涨了没涨的就会补涨"**。
+- **O5-0 前置（独立过 Gate）**：申万 PIT membership ETL，表字段 symbol/industry_code/industry_name(l1/l2/l3)/effective_from/effective_to/source/source_version/snapshot_version；membership(P) 仅由 effective_from≤P<effective_to 决定，禁当前归属回填。QA 五项：同日单票唯一归属/区间无重叠/无未来回填/抽样人工核对/snapshot 可复现。**过 Gate 才开 O5**。
+- **O5_GATE_LOO_PARITY（Hard Gate）**：sector strength 若用成分股聚合，必须 leave-one-out（`sector_strength_ex_stock`，自包含防机械关联）；任何 exclude-symbol 聚合须与 reference 实现对拍，未 PASS 不许看 performance。若用官方申万指数则豁免，但须显式记录数据源类型。
+- **变量（全 P_CLOSE as-of）**：sector_excess_return_h = sector_return_h − market_proxy_return_h（h 预注册 5d/10d，不事后挑窗）；stock_excess_return_h 同口径；lag_gap = 前者−后者（不得单独使用，防把坏弱股当 laggard）。
+- **对照组**：**A=强板块+滞后股 / B=同强板块+已同步股（核心 A vs B）** / C=同日 matched eligible；**D=非强板块中 past-return/lag 幅度相近的 generic reversal control**（防"纯弱股均值回复"混淆：A>D 且 A>B 才支持信息扩散；A≈D>B = 只是弱股反转）。
+- **流水线**：事件经济学先行（count/coverage/H3/H5/A-B/A-D/MFE/MAE/loss/年份/fold/sector·symbol 集中度/lag_gap 分位梯度不挑桶）；**PASS 预注册**：A−B>0 且 CI 明确偏正且多年份多 fold 同向 + lag_gap 有合理梯度非单桶驱动 + A 对 D 仍有增量 + 幅度有经济意义（非 1-2bp）+ 集中度不过度。**A vs B 不成立 = ARCHIVED_FAIL，不上 ML 救**。
+- **时间因果**：全部 feature_asof≤P_CLOSE，entry=D legal open，label=D→H3/H5；"盘中板块突发→个股滞后"另立 INTRADAY_SECTOR_DIFFUSION，不与 O5 日频混淆。
+
+### O5-0 结果登记 + O5-1 规格（2026-09-23 用户终审）
+- **GATE_1B = PASS_FOR_RESEARCH**：`o5_sector_lag/pit_membership.parquet`（12920 行×5929 票，QA 五项全过，原始 xls sha256 `8940ac98…` 存档）。availability assumption 明写：官方 SW 分类自 effective_from 起可用；**residual risk**：源无可靠公告/可知时间戳（update_time=维护戳已证），日后找到正式公告日可补强、**不得悄悄改历史结果**。O5 用一级行业（对拍一致 98.78%）；l3 55% "不一致"=码空间错位（分类码 vs 85xxxx 指数码），不阻塞。
+- **O5-1A**：SectorProxy 构造先行（exclude target 的 float_mv 加权 sector return/strength，5d/10d；成员过少 sector_proxy_valid=0 不硬算）；**O5-1B LOO parity 硬 Gate**：≥300 stock-date 对拍 reference exclude_symbol（membership/member_count/denominator/return 四项全查 + 单票/双票行业、大权重、mv 缺失、停牌、effective 当日专项），未 PASS 不看 performance。
+- **O5 主实验补充**（并入预注册）：连续变量（sector_strength/stock_rs/lag_gap）预注册分箱看梯度，**禁事后改阈值**；A/B/C/D 四组（核心 A−B；D=generic reversal control，A>B 且 A>D 才支持信息扩散）；**Concentration gate 强制**：by_sector + leave-one-sector-out + top-10 symbol 贡献。
+- **交接文档**：`opportunity_v2/O5_STATUS_AND_NEXT.md`（记分板/O5-0 产物/O5-1A/1B/主实验规格/复用基建清单/纪律红线），新会话续 O5 必读。
+- **O5 若 FAIL 的后续纪律**：不开第五个 P_CLOSE 假设填坑，交还路线级讨论（候选议题：研发预算是否从 P_CLOSE 静态状态部分转向信息事件/盘中形成的机会）。
+
+### O5-1A / O5-1B 完成登记（2026-09-23）
+- **O5-1A SectorProxy 落盘**（`o5_sector_lag/o5_1a_sector_proxy.py` → `o5_1a_sector_proxy.parquet`，7,749,477 行 / 1386 交易日 / 2021-01-04~2026-09-18）：
+  - **sector 分组键最终 = `index_code_l1`**（不是名称、也不是 (era,code)）。实查依据：l1 名称跨时代混存且同义不同名（化工/基础化工 同为 801030、商业贸易/商贸零售 同为 801200、纺织服装/纺织服饰 同为 801130、休闲服务/社会服务 同为 801210、电气设备/电力设备 同为 801730）；31 个码中名称不唯一的 9 个逐一核验后**无真语义分裂**（5 个为 SW2014→SW2021 改名，其余 4 个的异名各 ≤1 条旧时代残留）。用 code 为键可让"2023 仍持 sw2014 时代记录"的 ~1000 票并入同码 sw2021 组（按 (era,code) 拆组会人为缩小行业）。
+  - 键构成 32 = 31 个 `index_code_l1` + 1 个名称回退键（`N:采掘` 95 条/92 票，index_code 缺失且无法反查，单独成组，占 membership 0.74%）。
+  - exclude-target 聚合：float_mv 加权 `sector_return_ex` 与 market LOO，5d/10d；退化情形容器化不硬算（no_membership 13.9% / target_return_invalid / sector_switch_effective_day / weight_share>50%）；valid 率 dev 86-90%，2025/2026 降至 82.6%/78.5%。
+  - **REGISTERED_KNOWN_DEVIATION**：no_membership 行以基金/ETF 为主（代码前缀 51/16/15/50/56/58/18），dev 年占 10.2-13.5%，2025/2026 升至 17.3%/21.4%（O5 母池随时间略偏股票化；conf 段只作确认不参与定义）。
+  - 修正入档：1A 报告模板曾残留"(era_class, index_code_l1)"旧表述，已改正并重跑；**重跑 parquet md5 与主实验所用完全一致（`781a3874a77e5e1af6e627332d2f74f4`）= 主实验结果不受影响**。
+- **O5-1B GATE_LOO_PARITY = PASS**（`o5_1b_parity_gate.py`）：抽样 1048 条（去重 stock-date 524 ≥ spec 300）+ 5 类专项用例（大行业>500 / 无归属 / 停牌 / 行业切换当日 / target 权重>50%）；**meta·裁决 0 不一致、Layer-1 数学层 0 不一致、Layer-2 存储层 0 不一致**（float32 容差 2e-6）。合成退化单元测试 4724 条，10 项结构期望全达成（单票/双票/三票行业→reason4、四票→valid、fmv 缺失→reason2、权重>50%→reason5、切换当日→reason7、无归属→reason1、回看窗缺口→reason3、同行业正常成员仍 valid）；真实数据 SW l1 最小行业含 20+ 票，故 `n_ex<3`/`no_market` 规则只能靠合成覆盖。
+- **对拍中修掉的 3 个真实 bug（入档，O1 教训的复现价值）**：① 无归属行（ETF/基金）的成员数落进 `np.bincount` 的 0 号桶 → 报出 40/43 等垃圾成员数；② 市场 LOO 在 target 停牌（有 fmv 但收益无效）时仍从分母减掉自己没加进去的权重（→ mkt 误差 ≈ 单票权重占比）；③ `target_weight_share` 只按 h=5 存一份，h=10 裁决误用 5d 份额（改按 h 分别存 `wshare_5d/10d`）。→ **任何 exclude-symbol 聚合必须双层对拍（数学层 + 存储层），单层会漏**。
+
+### O5 结果登记（2026-09-23，`o5_sector_lag/sector_lag_v0.md`）：FAIL
+- **HYP-05-SECTOR-STRENGTH-STOCK-LAG = ARCHIVED_FAIL(no_edge)**。dev 母池（有 PIT 行业归属）4,486,489 行 / 969 日；A=364,483(8.12%) / B=312,760(6.97%) / A2=249,670 / B2=149,568 / strong=826,811(18.43%)。
+- **预注册 8 条判据**：P1 A−B>0 且 CI 下界>0 **YES** / P1b pooled A−B>0 **YES** / P2 年份≥3/4 **YES** / P2b fold≥3/4 **YES** / **P3 lag_gap 剂量梯度 spearman≥0.6 → NO（实得 0.20）** / **P4 A−D>0 且 CI 下界>0 → NO** / **P5 |A−B|≥+0.30pp → NO（实得 0.261pp）** / P6 集中度 **YES** → **FAIL**（任一不满足即 FAIL，不调阈值重跑；阈值 STRONG_PP=2.0pp / LAG_PP=2.0pp / MIN_ALPHA=0.30pp 事前硬编码于脚本顶部、单次执行）。
+- **主数字**：paired A−B **+0.261pp** [+0.145,+0.364] p<0.001；pooled A−B +0.125pp；**A−C(MATCH_V1) +0.041pp [−0.030,+0.116] p=0.132**；**A−D(generic reversal control) +0.015pp [−0.072,+0.101] p=0.370**。年份 A−B：2021 +0.037 / 2022 +0.390 / 2023 −0.076 / 2024 +0.082（dev 3/4 正）；fold 同序（f3=2023 为负）；conf 2025 +0.354 / 2026 −0.128 仅列示。
+- **梯度（关键机制证据，带方向标注）**：强行业内 `lag_gap_5d` 10 分位 —— bin0（已跑赢行业，lag_gap≤−0.067）均值 **−0.139%**，bin1-8 几乎恒定 **+0.26~+0.32%**，bin9 +0.443%；单调 spearman **0.20**。**判定：是"是否已跑赢行业"的单步台阶，不是"越落后 → 未来越强"的剂量关系（期望剂量为正）→ P3 FAIL**。对照：全母池 `stock_ex_5d` 梯度 spearman −0.04（hi−lo −0.055pp，弱反转）；全母池 `sec_str_ex_5d` 梯度 spearman 0.76（hi−lo +0.144pp）。
+- **集中度**：base paired 0.212%；去最佳行业 0.211%；去最大行业 0.251%；top-10 票贡献 10.4% → 非集中驱动（P6 YES，排除"最佳行业/龙头票撑起"）。
+- **三点判读**：① A−B 的 0.26pp **全部来自 B 组（强行业内 5 日已跑赢行业的票）未来更差**（−0.14% vs +0.28%）= **短期 winner 反转**，不是 laggard 补涨；与 O1 `EXTREME_STRENGTH_SHORT_TERM_REVERSAL`(HYPOTHESIS_LOG_ONLY) 及 Route Review Q2（k≥5 日自相关全负）一致。② **A≈D 且 A≈C**（两者 CI 均含 0）→ A 的收益可被"同档弱势、非强行业票"或"同日 matched eligible"完全解释 = **无 sector 信息增量**。③ lag_gap 无剂量梯度 → 处理组不是"行业已动、个股未吸收"的连续强度。
+- **O5 故事的结论**：跨实体信息扩散（板块冲击→个股未同步→补涨）**不成立**。OD-V2 四连 FAIL（O1 反转 / O2A 分母伪影 / O3 CI 含 0 / O5 A−D≈0 且无剂量梯度），且**"跨实体信息关系"这一唯一机制差异维度也已被证伪**。
+- **纪律执行**：O5 线关闭；**不开第五个 P_CLOSE 静态状态假设填坑**、不调阈值/不换窗/不换匹配口径/不上 ML 救；不设 HYP-05b。
+- **可复用资产（与结论无关，保留）**：`pit_membership.parquet`（PIT 申万 membership，PASS_FOR_RESEARCH）+ `o5_1a_sector_proxy.parquet`（exclude-target float_mv 加权 sector/market 5d/10d proxy，已过 LOO parity；键 = `index_code_l1`）+ `o5_1b_parity_gate.py`（两层对拍范式，可作后续 LOO 类实现的 Gate 模板）。**不入档**：`sector_lag_v0.py`（O5 专用、阈值硬编码，禁换参重跑）。
+- **登记同步**：`hypothesis_registry_v1.yaml` 已把 O5 槽位更新为 `HYP-05-SECTOR-STRENGTH-STOCK-LAG-v1 = ARCHIVED_FAIL`；原占位符保留为 `O5b-RELATIVE-STRENGTH-DIVERGENCE`（REGISTERED_NOT_STARTED，默认不启动）。
+- **待用户裁定的路线级议题（本记录不自行立项）**：① 研发预算是否从"P_CLOSE 静态状态 + H3/H5 截面 alpha"部分转向 **信息事件 / 盘中形成的机会**（候选 `O3-SHOCK-OVERREACTION`；`O6-LIQUIDITY-IMBALANCE` 被 Gate1C 分钟级 same-time 量基建锁）；② 是否先补齐 Gate1C 分钟基建，把"盘中板块突发→个股滞后"作为 `INTRADAY_SECTOR_DIFFUSION` 另立（不属日频 O5）；③ `O5b` 是否单独立项。
+
+---
+
+## 2026-09-23 路线变更记录 #6：战略切换 — 暂停 P_CLOSE 静态假设，Gate1C 盘中基建优先（用户三条裁决）
+
+### 判断（为什么切换）
+- OD-V2 日频四连 FAIL（O1 反转 / O2A 分母伪影 / O3 CI 含 0 / O5 A≈C≈D>B 且 lag_gap 无剂量梯度）后，O5 补足最后一块理由：**日频跨实体 lag 无独立增量**。再在日频截面找"看起来该涨"的形态，边际价值已低。
+- **准确定性**：不是"Opportunity-Discovery-V2 失败"，而是 **"P_CLOSE 静态 + 单票中周期价量 + 日频跨实体 lag" 这一批 Opportunity hypotheses 没有形成 edge；研究框架正常** → 下一阶段应改变**信息时间尺度与机制维度**，而不是继续调日频阈值。
+
+### 三条裁决
+1. **转向盘中 / 信息事件：YES**。新假设另立编号，**不复用 O3**（`O3 Breakout Retest` 已归档，避免历史证据链混乱）→ `HYP-07 = INTRADAY_SHOCK_OVERREACTION`（注册，排队）。
+2. **先补 Gate1C：YES，最高优先级**。它不是救单一假设，而是**一次性解锁**：`INTRADAY_SECTOR_DIFFUSION` / `LIQUIDITY_IMBALANCE(O6)` / `INTRADAY_SHOCK·WASHOUT` / `GREEN-v2.2 Source B` / `same-time volume·turnover controls` —— 可复用基础设施，价值远高于再测一个 P_CLOSE 小假设。
+3. **O5b 不立项**：`RELATIVE_STRENGTH_DIVERGENCE` 本质回到"单票自身相对强弱形态 → 未来收益"，处 Route Review 已证实的周-月尺度均值回复逆风；现在立 O5b = 连续失败后换一个相近构造。→ `O5b = REGISTERED / DORMANT / DO_NOT_START`（除非出现新的**独立机制证据**，而非"当前结果里看到某个漂亮切片"）。
+
+### 新开发顺序（用户裁定，不得跳步）
+```text
+OD-V2 DAILY TRACK:  O1 FAIL / O2 FAIL / O3 FAIL / O5 FAIL
+→ 暂停新增 P_CLOSE price/volume hypothesis
+→ Gate1C  分钟级 same-time 基建
+     ├─ same-minute market / sector snapshot (exclude-target)
+     ├─ same-time volume baseline
+     ├─ turnover / liquidity state
+     ├─ execution-safe timestamps
+     ├─ event risk-set construction
+     └─ replay + production observability contract
+→ INTRADAY_SECTOR_DIFFUSION_V1      ← 第一个正式盘中实验
+→ 若 FAIL → HYP-07 INTRADAY_SHOCK_OVERREACTION
+→ 若仍有价值 → O6 LIQUIDITY_IMBALANCE
+```
+- **为何 Diffusion 先于 Shock**：Diffusion 测的是**新的信息维度**（跨实体传播）；Shock 仍主要是**单票价格事件**，只是换成分钟尺度。
+
+### Gate1C 冻结输出合同（"一次做到可复用"，不是"够某个实验跑"）
+```text
+minute_ts / symbol
+market_return_same_time
+sector_return_same_time_ex_stock     (复用 PIT 申万 + exclude-target LOO 口径)
+same_time_volume_ratio
+same_time_turnover_ratio
+intraday_return_from_open
+drawdown_from_intraday_high
+recovery_from_running_low
+liquidity_state / tradability_state
+feature_asof_ts / data_resolution = MINUTE_EXACT
+```
+- 硬约束：**`signal_ts < actual_fill_ts`**；**同一分钟 risk-set 对照**，**禁止事后 `never-trigger` 筛选**；分钟口径与 P_CLOSE 的 H3/H5 表**禁止混表**（照 Source A/B 隔离规定）。
+- 契约文档：`stargazer_ml/v5_hybrid/opportunity_v2/gate1c/GATE1C_CONTRACT.md`（含数据源口径、构建步骤 C0-C6、验收 Gate、复用清单）。
+- 分钟纪元事实（取自 `step9_preflight/DATA_GATE1A_FULL.yaml`）：`MINUTE_START_frozen = 20250102`、`minute_last_ts = 20260917150000`、`bars_total = 668,770,024`、`symbols_with_minute_data = 7539/7562`、`bars_per_symbol_day p50 = 241`、`symbol_day_count p50 = 415`；本地 `pullback_train/minute_cache_clean` = 3959 票（HTTP 子集，`n_local_days_missing_in_http = 0`）。
+
+### INTRADAY_SECTOR_DIFFUSION_V1 预注册要点（全新 intraday hypothesis）
+- **问题**：当行业在盘中出现**可观测、且排除目标股自身贡献**的异常冲击时，尚未同步反应但**仍具备可交易条件**的同行股票，随后**短窗口**是否出现增量响应？
+- **不是**："O5 日频失败，所以换成分钟一定会成功"。
+- 对照沿用 O5 骨架：`A = sector impulse + lagging stock` / `B = same sector + already synchronized` / `C = same-minute matched eligible` / `D = generic weak-stock / reversal control`。
+- 标签改为分钟事件：`signal_ts → first legal fill > signal_ts → H1/H3 或固定盘中 horizon`（`MINUTE_EXACT`）；**不与 P_CLOSE 的 H3/H5 表混表**。
+- 前置：Gate1C 完成 + 分钟级 same-time parity Gate PASS（`o5_1b_parity_gate.py` 同类对拍）。
+
+### 资产晋升（实验产物 → 共享基础资产）
+- `opportunity_v2/o5_sector_lag/pit_membership.parquet`（PIT 申万 membership，PASS_FOR_RESEARCH）
+- `opportunity_v2/o5_sector_lag/o5_1a_sector_proxy.parquet`（exclude-target sector/market 5d/10d proxy）
+- `opportunity_v2/o5_sector_lag/o5_1b_parity_gate.py`（两层对拍范式）→ **今后所有 `leave-one-out market` / `leave-one-out sector` / `exclude-symbol aggregation` 必须先过同类 Gate**。
+- `sector_lag_v0.py` **保持不可复用**（阈值硬编码；防未来"换两个阈值 = O5-v2"）。
+
+### 登记同步
+- `hypothesis_registry_v1.yaml`：新增 `track_pivot_2026_09_23` 块；`dev_sequence` 追加 Gate1C / INTRADAY_SD / HYP07 / O6_LIQ；`O3-SHOCK-OVERREACTION → SUPERSEDED_BY_HYP-07`；`O5b → REGISTERED_DORMANT_DO_NOT_START`；新增 `INTRADAY_SECTOR_DIFFUSION_V1`（QUEUED_AFTER_GATE1C）与 `HYP-07-INTRADAY-SHOCK-OVERREACTION-v1`（QUEUED）；`O6 → REGISTERED_QUEUED_AFTER_GATE1C`。
+- `O5_STATUS_AND_NEXT.md` §8 已同步为"已裁定"版本。
+- **并行不变**：GREEN-v2.2 Shadow 每日闭环照常；T5 双名单（DESIGN_FROZEN 待令）；R0/Pyxis 数据积累继续。

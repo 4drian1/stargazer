@@ -1,0 +1,568 @@
+{
+  "generated_at": "2026-09-18T09:41:02.358094+00:00",
+  "mechanism": {
+    "failing_expression_old": "round(x, 5) if not np.isnan(x) else None  # x is None",
+    "failing_fields": [
+      "s0_alpha_h3",
+      "timing_alpha_h1"
+    ],
+    "legacy_expr_on_None": {
+      "raises": true,
+      "exc_type": "TypeError",
+      "exc_msg": "ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''"
+    },
+    "fixed_helper": "latr_builder._num_or_none(None) -> None",
+    "fixed_helper_on_None": null,
+    "trigger": "proxy alpha 不可用 = (a) CENSORED_TAIL 分支 alpha_out 全 None; (b) 非删失但 symbol alpha 覆盖缺口",
+    "consequence_if_unfixed": "样本被当异常丢弃 -> 违反 CENSORED_TAIL 保留契约 + alpha 缺口样本静默丢失 (用户 #1/#4 禁止)",
+    "fix_location": "latr_builder.py :: _num_or_none()"
+  },
+  "part1_real": {
+    "scope": "v11 pool tail plan_dates=[np.int64(20260914), np.int64(20260915), np.int64(20260916)] (H3 beyond data end -> CENSORED_TAIL)",
+    "n_attempted": 24,
+    "n_typeerror": 0,
+    "results": [
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "603896",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.37642860412597656,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": false,
+        "rejected": true,
+        "reject_reason": "engineering_reject (build_one_sample returned None)",
+        "symbol": "515010",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.01964284692491804
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "000006",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.3014285905020578,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "512200",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.031357143606458394,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "000420",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.11642852851322719,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "300587",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.18357140677315847,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "600751",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.08000012806483678,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "600748",
+        "plan_date": 20260914,
+        "d_date": 20260915,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.14142865794045584,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "300926",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.4664287567138672,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "180602",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.06985717160361153,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "603299",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.1664285659790039,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "603767",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.4221427781241281,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "301067",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 1.9957143238612585,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "001233",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 1.1099987030029297,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "600997",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.20642863001142228,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "508009",
+        "plan_date": 20260915,
+        "d_date": 20260916,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.06599998474121094,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "000701",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 0.1499999931880406,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "603299",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.1621428898402623,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "688533",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.517857415335519,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "301008",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 3.491428647722517,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "301072",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 2.061428887503488,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "000025",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.9535713876996722,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "300864",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 2.0771427154541016,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "tail_censored_or_noalpha",
+        "ok": true,
+        "rejected": false,
+        "symbol": "002950",
+        "plan_date": 20260916,
+        "d_date": 20260917,
+        "primary_setup": "BOTTOM_SETUP",
+        "atr_ref": 0.24357141767229354,
+        "label_status": "CENSORED_TAIL",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      }
+    ]
+  },
+  "part2_synthetic": {
+    "scope": "mid-history candidates + stub proxy (s0_market_alpha_h3=None)",
+    "n_attempted": 4,
+    "n_typeerror": 0,
+    "results": [
+      {
+        "tag": "synthetic_alpha_unavailable",
+        "ok": true,
+        "rejected": false,
+        "symbol": "002768",
+        "plan_date": 20260105,
+        "d_date": 20260106,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 17.588356835501536,
+        "label_status": "OK",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "synthetic_alpha_unavailable",
+        "ok": true,
+        "rejected": false,
+        "symbol": "002768",
+        "plan_date": 20260106,
+        "d_date": 20260107,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 17.61128534589495,
+        "label_status": "OK",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "synthetic_alpha_unavailable",
+        "ok": true,
+        "rejected": false,
+        "symbol": "301266",
+        "plan_date": 20260107,
+        "d_date": 20260108,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 9.335071427481514,
+        "label_status": "OK",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      },
+      {
+        "tag": "synthetic_alpha_unavailable",
+        "ok": true,
+        "rejected": false,
+        "symbol": "002768",
+        "plan_date": 20260108,
+        "d_date": 20260109,
+        "primary_setup": "INTRADAY_DIP_SETUP",
+        "atr_ref": 17.70242827279227,
+        "label_status": "OK",
+        "s0_alpha_h3": null,
+        "alpha_label_available": 0
+      }
+    ]
+  },
+  "attribution": {
+    "root_cause": "np.isnan(None) on s0_alpha_h3 / timing_alpha_h1 when proxy alpha unavailable (含 CENSORED_TAIL 分支 alpha_out 全为 None)",
+    "n_typeerror_total": 0,
+    "failing_locations": [],
+    "symbols": [],
+    "note": "同一守卫缺失: 删失样本被当作异常丢弃 (违反 CENSORED_TAIL 保留契约), alpha 缺口样本同样被丢弃。修复后应 0 TypeError 且样本保留。"
+  },
+  "post_fix_check": {
+    "n_retained": 27,
+    "label_status_distribution": {
+      "CENSORED_TAIL": 23,
+      "OK": 4
+    },
+    "alpha_label_available_distribution": {
+      "0": 27
+    },
+    "expectation": "TypeError=0 且 CENSORED_TAIL 样本出现在 label_status 分布 (未被丢弃)"
+  },
+  "pre_fix_capture": {
+    "captured_at": "2026-09-18",
+    "captured_from_revision": "latr_builder.py BEFORE _num_or_none fix (旧写法 round(x,5) if not np.isnan(x) else None)",
+    "why_captured": "用户 2026-09-18 #2b: 不允许把 exc:TypeError 作为未知桶带进 Final Freeze, 必须归因到 类型/symbol/date/state/字段/stack。修复后无法再复现, 故在此归档修复前的实测结果。",
+    "original_observation": {
+      "source_run": "trace_04_scenarios.py --budget 160 (orchestrator ④)",
+      "drop_reasons": {
+        "missing_minute": 3,
+        "exc:TypeError": 2
+      },
+      "note": "④ trace 只统计了 exc:TypeError 计数, 未记录 symbol/date/stack -> 本脚本补齐归因"
+    },
+    "targeted_reproduction": {
+      "part1_tail_censored": {
+        "scan_scope": "v11 pool tail plan_dates=[20260914, 20260915, 20260916], head(8) each",
+        "n_attempted": 24,
+        "n_typeerror": 23,
+        "n_engineering_reject": 1,
+        "reject_symbol": "515010",
+        "typeerror_symbols": [
+          [
+            "603896",
+            20260914
+          ],
+          [
+            "000006",
+            20260914
+          ],
+          [
+            "512200",
+            20260914
+          ],
+          [
+            "000420",
+            20260914
+          ],
+          [
+            "300587",
+            20260914
+          ],
+          [
+            "600751",
+            20260914
+          ],
+          [
+            "600748",
+            20260914
+          ],
+          [
+            "300926",
+            20260915
+          ],
+          [
+            "180602",
+            20260915
+          ],
+          [
+            "603299",
+            20260915
+          ],
+          [
+            "603767",
+            20260915
+          ],
+          [
+            "301067",
+            20260915
+          ],
+          [
+            "001233",
+            20260915
+          ],
+          [
+            "600997",
+            20260915
+          ],
+          [
+            "508009",
+            20260915
+          ],
+          [
+            "000701",
+            20260916
+          ],
+          [
+            "603299",
+            20260916
+          ],
+          [
+            "688533",
+            20260916
+          ],
+          [
+            "301008",
+            20260916
+          ],
+          [
+            "301072",
+            20260916
+          ],
+          [
+            "000025",
+            20260916
+          ],
+          [
+            "300864",
+            20260916
+          ],
+          [
+            "002950",
+            20260916
+          ]
+        ]
+      },
+      "part2_synthetic_alpha_unavailable": {
+        "scan_scope": "mid-history candidates (20260101-20260331) + stub proxy 强制 s0_market_alpha_h3=None",
+        "n_attempted": 4,
+        "n_typeerror": 4,
+        "typeerror_symbols": [
+          [
+            "002768",
+            20260105
+          ],
+          [
+            "002768",
+            20260106
+          ],
+          [
+            "301266",
+            20260107
+          ],
+          [
+            "002768",
+            20260108
+          ]
+        ]
+      },
+      "n_typeerror_total": 27,
+      "failing_location": {
+        "file": "latr_builder.py",
+        "lineno": 448,
+        "source_line": "\"s0_alpha_h3\": round(s0_alpha_h3, 5) if not np.isnan(s0_alpha_h3) else None,",
+        "exc_type": "TypeError",
+        "exc_msg": "ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''",
+        "state": "CENSORED_TAIL 分支 (h3_date/h1_date 为 None -> alpha_out 全 None) 或 非删失但 proxy alpha 覆盖缺口 (attach_alpha_labels 返回 None)"
+      },
+      "sibling_failing_field": {
+        "lineno": 450,
+        "source_line": "\"timing_alpha_h1\": round(timing_alpha_h1, 5) if not np.isnan(timing_alpha_h1) else None,",
+        "note": "line 448 先抛; 修 448 后 450 同因会抛 -> 一并修复"
+      }
+    },
+    "conclusion": "exc:TypeError 根因 = np.isnan(None) 守卫缺失; 触发面 = 所有 proxy alpha 不可用样本 (含 CENSORED_TAIL)。已由 latr_builder._num_or_none() 修复。"
+  }
+}

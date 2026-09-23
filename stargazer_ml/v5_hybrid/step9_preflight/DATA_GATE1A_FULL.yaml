@@ -1,0 +1,436 @@
+report_name: DATA_GATE1A_FULL
+mode: full
+generated_at: '2026-09-17T12:31:10+00:00'
+generated_by: step9_preflight/gate1a_full_scan.py
+universe_size: 7562
+interpreter: D:\stargazer\_dev_venv\Scripts\python.exe
+stock_minute_history:
+  n_symbols_universe: 7562
+  symbols_with_minute_data: 7539
+  symbols_empty: 23
+  symbols_empty_list:
+  - '000022'
+  - '000043'
+  - '920011'
+  - '920012'
+  - '920028'
+  - '920036'
+  - '920050'
+  - '920055'
+  - '920069'
+  - '920076'
+  - '920078'
+  - '920119'
+  - '920125'
+  - '920159'
+  - '920166'
+  - '920168'
+  - '920177'
+  - '920180'
+  - '920181'
+  - '920183'
+  - '920187'
+  - '920188'
+  - '920191'
+  symbols_empty_note: 21 只为北交所 920xxx (分钟 feed 不覆盖北交所), 2 只为 2025 前已退市/被吸收 (深赤湾A/中航善达); 结构性无分钟, 非数据缺口
+  symbols_error: 0
+  errors_top: 见运行日志 [retry] 行; 失败票重跑后仍失败才计入 symbols_error
+  bars_total: 668770024
+  symbol_day_total: 2772176
+  bars_per_symbol_day:
+    p1: 239
+    p5: 240
+    p50: 241
+    p95: 242
+    p99: 271
+    expected: 240
+  missing_bar_ratio_vs_240_p50: -0.0042
+  duplicate_bar_ratio: 0.0
+  minute_first_ts: 20250102093000
+  minute_last_ts: 20260917150000
+  min_symbol_first_day: 20250102
+  MINUTE_START_frozen: 20250102
+  minute_start_confirmed: true
+  symbol_day_count_distribution:
+    p1: 19
+    p5: 61
+    p50: 415
+    p95: 416
+    max: 416
+  coverage_by_month:
+    '202501':
+      symbols: 6387
+      bars: 27718050
+    '202502':
+      symbols: 6407
+      bars: 27635296
+    '202503':
+      symbols: 6448
+      bars: 32446112
+    '202504':
+      symbols: 6497
+      bars: 32903197
+    '202505':
+      symbols: 6531
+      bars: 29438023
+    '202506':
+      symbols: 6561
+      bars: 31700946
+    '202507':
+      symbols: 6610
+      bars: 36225149
+    '202508':
+      symbols: 6651
+      bars: 33457597
+    '202509':
+      symbols: 6710
+      bars: 35543808
+    '202510':
+      symbols: 6737
+      bars: 27544632
+    '202511':
+      symbols: 6778
+      bars: 32553166
+    '202512':
+      symbols: 6814
+      bars: 37625109
+    '202601':
+      symbols: 6852
+      bars: 32223321
+    '202602':
+      symbols: 6530
+      bars: 21927027
+    '202603':
+      symbols: 6644
+      bars: 34813992
+    '202604':
+      symbols: 6677
+      bars: 33492191
+    '202605':
+      symbols: 6717
+      bars: 28975882
+    '202606':
+      symbols: 7171
+      bars: 34486913
+    '202607':
+      symbols: 7171
+      bars: 39709228
+    '202608':
+      symbols: 7245
+      bars: 36316285
+    '202609':
+      symbols: 7233
+      bars: 22034100
+  scan_seconds: 0.0
+  local_cache_cross_check:
+    n_local_symbols: 3959
+    n_common: 3959
+    n_cross_checked: 200
+    n_local_days_missing_in_http: 0
+    examples: []
+    verdict: 本地缓存日集合 ⊆ HTTP 日集合
+  merge_strategy: HTTP 全拉单一路径聚合; 本地 minute_cache_clean (3959 票, <= 20260908) 仅作日集合交叉校验, 不做合并源 (避免本地截止日当日完整性不确定的边界风险)
+  status: VERIFIED_PASS
+  known_issue: ''
+free_float_market_cap:
+  n_symbols: 7562
+  n_rows: 11532080
+  float_mv_present_ratio_overall: 0.8283
+  float_mv_present_ratio_minute_era: 0.7911
+  float_mv_present_ratio_minute_era_median_per_symbol: 1.0
+  n_symbols_in_minute_era: 7560
+  n_symbols_era_coverage_ge_95pct: 5507
+  n_low_coverage_symbols: 2053
+  low_coverage_symbols_all_fund_like: true
+  non_fund_low_coverage_examples: []
+  float_mv_present_ratio_median_per_symbol: 1.0
+  symbols_varying_float_mv: 7517
+  symbols_constant_float_mv: 45
+  adjacent_change_rate_median: 0.9787
+  delisted_like_symbols_last_day_lt_global: 29
+  delisted_tail30_float_mv_present_ratio_median: 1.0
+  float_share_x_close_sanity:
+    n_symbols_sampled: 50
+    n_rows_used: 58453
+    ratio_median: 0.998262
+    ratio_p05: 0.979404
+    ratio_p95: 1.0
+  as_of_boundary: '结构验证(存在率/时变/退市止日/量纲)已过; 无外部 as-of 数据源, D日 float_mv 来自 <=P日 已发布快照 这一点以数据源声明为准 (结构证据: 非恒定 + 退市股止于退市日, 与后处理回填特征不符)'
+  status: VERIFIED_PASS
+  known_issue: ''
+halt_trading_status:
+  minute_era_start: 20250102
+  n_symbols_with_daily_in_era: 7560
+  n_symbols_with_no_minute_at_all: 21
+  total_missing_symbol_days: 227661
+  day_counts_by_class:
+    days_DATA_MISSING_PROVIDER_GAP: 94283
+    days_INFERRED_HALT: 32
+    days_DELISTED: 18
+    days_DATA_MISSING_CHRONIC: 132047
+    days_DATA_MISSING_SYMBOL: 1281
+  symbol_counts_by_class:
+    NORMAL_full_minute_coverage: 5726
+    NORMAL_except_provider_gap: 1000
+    INFERRED_HALT: 10
+    DELISTED: 2
+    DATA_MISSING_CHRONIC: 801
+    DATA_MISSING_SYMBOL: 21
+  provider_gap_dates: 116
+  provider_gap_top10:
+  - date: 20250508
+    presence: 0.7815
+    n_symbols_missing: 1520
+  - date: 20250724
+    presence: 0.8247
+    n_symbols_missing: 1237
+  - date: 20260428
+    presence: 0.842
+    n_symbols_missing: 1176
+  - date: 20260429
+    presence: 0.8796
+    n_symbols_missing: 893
+  - date: 20260304
+    presence: 0.8833
+    n_symbols_missing: 862
+  - date: 20260203
+    presence: 0.8832
+    n_symbols_missing: 859
+  - date: 20260302
+    presence: 0.8836
+    n_symbols_missing: 859
+  - date: 20260303
+    presence: 0.8836
+    n_symbols_missing: 859
+  - date: 20260225
+    presence: 0.8837
+    n_symbols_missing: 858
+  - date: 20260306
+    presence: 0.8839
+    n_symbols_missing: 858
+  examples:
+  - code: 000338
+    class: INFERRED_HALT
+    n_missing: 1
+    last_daily: 20260916
+    first_missing: 20260429
+    last_missing: 20260429
+  - code: '000404'
+    class: INFERRED_HALT
+    n_missing: 1
+    last_daily: 20260916
+    first_missing: 20260429
+    last_missing: 20260429
+  - code: '000553'
+    class: INFERRED_HALT
+    n_missing: 1
+    last_daily: 20260916
+    first_missing: 20260429
+    last_missing: 20260429
+  - code: '000656'
+    class: INFERRED_HALT
+    n_missing: 1
+    last_daily: 20260916
+    first_missing: 20260429
+    last_missing: 20260429
+  - code: '000717'
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  - code: 000719
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  - code: '000720'
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  - code: '000725'
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  - code: 000729
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  - code: '000731'
+    class: INFERRED_HALT
+    n_missing: 33
+    last_daily: 20260916
+    first_missing: 20260121
+    last_missing: 20260316
+  symbol_day_list_file: D:\stargazer\stargazer_ml\v5_hybrid\step9_preflight\GATE1A_INFERRED_HALT_DAYS.jsonl
+  TRADING_STATUS_SOURCE_conclusion: '无独立停牌状态字段; 交易日状态由 日线存在 × 分钟存在 × 退市清单 推断 (INFERRED_HALT, 非真实状态)。两级数据缺口已从 INFERRED_HALT
+    剥离: (a) 市场级缺口日(当日 >10% 有日线的票无分钟, 共 116 日)-> DATA_MISSING_PROVIDER_GAP; (b) 票级慢性缺口(该票纪元内分钟覆盖率 <90%, 约 500 票同形态, feed 未全程覆盖)
+    -> DATA_MISSING_CHRONIC。二者不得当停牌; 剩余孤立缺失方为 INFERRED_HALT。Execution/Label QA 必须显式标注 INFERRED_HALT; DATA_MISSING_SUSPICIOUS
+    / DATA_MISSING_SYMBOL 类不得直接用于 next-legal-fill 门控'
+  status: VERIFIED_PASS
+  known_issue: ''
+adjustment_factors:
+  adjustment_method: anchor_chain_mult
+  pit_safe: true
+  pit_assertion: max(effective_date_used) <= feature_asof_time
+  n_symbols_with_events: 5830
+  total_events: 58773
+  events_per_symbol:
+    p1: 1
+    p50: 8
+    p95: 27
+    max: 50
+  symbols_with_unsorted_dates: 0
+  symbols_with_duplicate_dates: 0
+  canonical_chain:
+    rebuilt_from: mult (not stored cum)
+    n_symbols: 5830
+    note: 链式累乘 mult; cum 字段不再用作口径来源
+  legacy_cum_breaks:
+    n_detected: 318
+    category_counts:
+      REBUILT_OK: 4
+      KNOWN_RESET_HANDLED: 129
+      LEGACY_REPAIRED: 185
+      QUARANTINED: 0
+    n_quarantined: 0
+    quarantined_symbols_sample: []
+  continuity_sanity:
+    n_sampled: 20
+    n_excluded: 3
+    n_ok: 3
+    details:
+    - code: '600570'
+      event: '20230619'
+      mult: 1.003
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '603406'
+      event: '20251204'
+      mult: 1.012
+      matched_close_pc_ratio: 1.011999
+      ex_day: 20251204
+      verdict: ok
+    - code: '600706'
+      event: '20190708'
+      mult: 1.205
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '600566'
+      event: '20160420'
+      mult: 1.029
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '601598'
+      event: '20240722'
+      mult: 1.029
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '603897'
+      event: '20240920'
+      verdict: pre_close_unreliable_symbol_era
+    - code: '159739'
+      event: '20260803'
+      mult: 2.0
+      matched_close_pc_ratio: 2.0
+      ex_day: 20260803
+      verdict: ok
+    - code: '159355'
+      event: '20250715'
+      mult: 1.009
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '601727'
+      event: '20180828'
+      mult: 1.018
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '600801'
+      event: '20010612'
+      verdict: pre_close_unreliable_symbol_era
+    - code: '688216'
+      event: '20210927'
+      mult: 1.003
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '688056'
+      event: '20210617'
+      mult: 1.005
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '159400'
+      event: '20260526'
+      mult: 1.011
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '002261'
+      event: '20120606'
+      mult: 1.303
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '600511'
+      event: '20210622'
+      verdict: pre_close_unreliable_symbol_era
+    - code: '300894'
+      event: '20210527'
+      mult: 1.01
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: 002681
+      event: '20180704'
+      mult: 1.407
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: 002229
+      event: '20170518'
+      mult: 1.501
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '603182'
+      event: '20250530'
+      mult: 1.008
+      matched_close_pc_ratio: null
+      ex_day: null
+      verdict: no_ex_day_match_in_15d
+    - code: '920394'
+      event: '20250516'
+      mult: 1.005
+      matched_close_pc_ratio: 1.008716
+      ex_day: 20250516
+      verdict: ok
+  status: VERIFIED_PASS
+  known_issue: ''
+  upgrade_note: 所有原 cum 链断裂已确定性分类为 REBUILT_OK/KNOWN_RESET_HANDLED/LEGACY_REPAIRED/QUARANTINED, 无 UNKNOWN -> VERIFIED_PASS
+  pre_close_field_quality_note: 日线 pre_close 字段老历史质量差(全历史仅~57.5%可靠,NaN 17%,2025+ 89.7%); 任何 pre_close 派生特征须限定 2025+ 纪元或改读
+    analytic_prev_close; vendor_pre_close 已在 feature_registry 置 model_eligible=false
+verdict:
+  gate1a_final: VERIFIED_PASS
+  item_statuses:
+    stock_minute_history: VERIFIED_PASS
+    free_float_market_cap: VERIFIED_PASS
+    halt_trading_status: VERIFIED_PASS
+    adjustment_factors: VERIFIED_PASS
+  upgrade_condition: 4 项全 VERIFIED_PASS 即满足升级条件
+  MINUTE_START_frozen: 20250102
+  MINUTE_START_declaration: 分钟数据纪元冻结为 20250102 (2025-01-02); 此前无分钟属正常, 不得当 halt/缺失
+  run_seconds: 30.2
