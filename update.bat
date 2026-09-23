@@ -26,14 +26,8 @@ echo [ERROR] git sync failed (network to github.com unstable; check proxy/VPN an
 pause
 exit /b 1
 :step2
-echo [2/2] get latest release tag and download Stargazer.exe ...
-set "TAG="
-for /f "tokens=2" %%r in ('git ls-remote --tags --refs --sort=-v:refname origin 2^>nul') do (
-  if not defined TAG set "TAG=%%~nxr"
-)
-if not defined TAG (echo [ERROR] no release tag found on remote & pause & exit /b 1)
-echo latest tag: %TAG%
-powershell -NoProfile -Command "$urls = @('%TAG%/Stargazer.exe', '%TAG%/stargazer_test', '%TAG%/stargazer_test.exe'); $ok = $false; foreach ($u in $urls) { try { Invoke-WebRequest -Uri ('https://github.com/1075751936a-netizen/stargazer/releases/download/' + $u) -OutFile $env:DIST_DIR'\Stargazer.exe'; Write-Host ('downloaded ' + $u); $ok = $true; break } catch { Write-Host ('miss: ' + $u) } }; if (-not $ok) { exit 2 }"
+echo [2/2] get latest release and download Stargazer.exe ...
+powershell -NoProfile -Command "$creds = 'url=https://github.com' | git credential fill 2>$null; $tok = ($creds | Select-String '^password=').Line -replace '^password='; if (-not $tok) { Write-Host '[ERROR] no git credential for github.com'; exit 2 }; $h = @{ Authorization = ('Bearer ' + $tok); 'Accept' = 'application/vnd.github+json' }; try { $rel = Invoke-RestMethod -Headers $h -Uri 'https://api.github.com/repos/1075751936a-netizen/stargazer/releases/latest'; $asset = $rel.assets | Where-Object { $_.name -eq 'Stargazer.exe' } | Select-Object -First 1; if (-not $asset) { Write-Host '[ERROR] Stargazer.exe not in latest release'; exit 2 }; Invoke-WebRequest -Headers (@{ Authorization = ('Bearer ' + $tok); Accept = 'application/octet-stream' }) -Uri $asset.url -OutFile $env:DIST_DIR'\Stargazer.exe'; Write-Host ('downloaded ' + $rel.tag_name + ' -> ' + $env:DIST_DIR) } catch { Write-Host $_; exit 2 }"
 if errorlevel 1 (echo [ERROR] exe download failed & pause & exit /b 1)
 echo === done. config and data are NOT touched. ===
 pause
