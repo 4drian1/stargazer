@@ -1684,3 +1684,45 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - `hypothesis_registry_v1.yaml`：新增 `track_pivot_2026_09_23` 块；`dev_sequence` 追加 Gate1C / INTRADAY_SD / HYP07 / O6_LIQ；`O3-SHOCK-OVERREACTION → SUPERSEDED_BY_HYP-07`；`O5b → REGISTERED_DORMANT_DO_NOT_START`；新增 `INTRADAY_SECTOR_DIFFUSION_V1`（QUEUED_AFTER_GATE1C）与 `HYP-07-INTRADAY-SHOCK-OVERREACTION-v1`（QUEUED）；`O6 → REGISTERED_QUEUED_AFTER_GATE1C`。
 - `O5_STATUS_AND_NEXT.md` §8 已同步为"已裁定"版本。
 - **并行不变**：GREEN-v2.2 Shadow 每日闭环照常；T5 双名单（DESIGN_FROZEN 待令）；R0/Pyxis 数据积累继续。
+
+### C1 钉死（2026-09-23 用户进一步要求）
+
+- **C1 优先级重排**：先做 **`C1_SOURCE_PARITY_GATE`**（探测 stockdb 分钟级直连 + **多轴对拍**：多个年份 / 多个交易日 / 多个 symbol / 停牌附近 / 涨跌停 / `volume_repaired` / 旧 schema），对拍逐 bar 比较 **ts / OHLC / volume / turnover**。**任意语义不一致 → 不可换源 → 回落层级 2**（冻结镜像子宇宙 + 明确 proxy scope）。HTTP per-symbol 永远只承担事件级补数，不承担全市场聚合。
+- **必须验证按日批量取数能力**：`WHERE trade_date = 'YYYYMMDD'` 一次/少数批次取当天全票 bars；不可批量 → 不可承担 Gate1C 全市场生产化。
+- **Universe Scope 3-tier fallback**（GATE1C_CONTRACT §1.4）：
+  1. `STOCKDB_DIRECT` parity PASS → `aggregation_scope = FULL_AVAILABLE_STOCK_UNIVERSE`
+  2. 不可用 → `pullback_train/minute_cache_clean` 镜像 → `aggregation_scope = MIRROR_SUBUNIVERSE_V1` + 所有字段加 `_proxy` 后缀（**禁止把 52.5% 覆盖包装成"全市场"**）
+  3. 仅当 1、2 不可用 → `DYNAMIC_LIQUID_SUBSET`（独立预注册，**禁止为追求覆盖重造 alpha-relevant universe**）
+- **覆盖合同**（先于任何看 edge 实验冻结）：每日 / 每行业必产 `eligible_member_count / observed_member_count / member_coverage / float_mv_coverage` + 冻结阈值 `MIN_SECTOR_COVERAGE=0.60 / MIN_MARKET_COVERAGE=0.80 / MIN_VALID_MEMBERS_EX_STOCK=5`；任一不达 → `aggregate_valid = 0`（禁止硬算）。
+- **缺分钟语义**（禁止临时决定）：价格状态 = 截至 S 的最后合法可见价（`price_asof <= S`）；量/额无成交 = 真实 0 或 source-defined `no_trade_flag`（**禁止把缺失与 0 混为一谈**）；canonical 镜像 241 bars/日 是否含 synthetic bar 须在 C1a 明确并写入 `MINUTE_SOURCE_V1.synthetic_bar`。
+- **永久 Execution Contract**：`09:30` = price anchor（不可作 signal_ts 成交分钟）；legal fill = `[09:31, 11:30] ∪ [13:01, 15:00]`；`signal_ts < actual_fill_ts` 永远。已冻结为 `EXECUTION_CONTRACT_V1`（`opportunity_v2/contracts/execution_contract_v1.md` + `step9_preflight/execution_engine.py` 顶部常量）；所有分钟级模块必须遵守。
+- **Sector LOO 必须复用** `o5_1b_parity_gate.py` 两层对拍范式；不要重新实现"差不多"的 exclude-symbol 聚合。
+- **顺序重申**：Gate1C 通过后第一个盘中实验 = **`INTRADAY_SECTOR_DIFFUSION_V1`**（全新 intraday hypothesis，**不是**"O5 换时间窗"），然后 `HYP-07 INTRADAY_SHOCK_OVERREACTION`，最后 `O6 LIQUIDITY_IMBALANCE`。
+
+### C1a 裁决 + C1b 完成（2026-09-23）
+
+- **C1a 正式裁决（用户签字）**：`C1a_SOURCE_PARITY=PASS`；`C1a_BULK_BY_DATE_ACCESS=FAIL_BY_SOURCE_DESIGN`（LevelDB 通配仅支持 date 位置，**源设计非缺陷**）；`C1a_PER_SYMBOL_CONCURRENT_ACCESS=PASS`；`Gate1C-A'=PARTIAL_PASS`（数据语义/数值一致性已过，仅访问模式改为 per-symbol concurrent；**不阻塞 Gate1C**）。早前 explorer 报告的"bulk-by-date 181 万条/日"为过期信息，已作废并写入契约。
+- **`MINUTE_SOURCE_V1` 已冻结**（GATE1C_CONTRACT §1.3 YAML）：`source_kind=STOCKDB_HTTP` / `access_pattern=PER_SYMBOL_CONCURRENT` / `aggregation_scope=FULL_AVAILABLE_STOCK_UNIVERSE` / **`default_concurrency=8`（工程参数非语义合同，4/8/16 不触发版本升级）** / `mirror_role=FAST_PATH+REGRESSION_REFERENCE`（A/B 不降级命名；仅 outage 降级 C=MIRROR_PROXY+`*_proxy`） / `synthetic_bar=unknown`（C1c 复核，禁止猜测）。
+- **C1b 完成（Gate1C-B = PASS 6/6）**：`gate1c/gate1c_minute_io.py` 单一入口 `load_minute(code,date,mode="raw"|"adj",ref_date)` + `gate1c/c1b_validate.py`。落地的四个用户验收点：(1) raw=数据源事实 / adj=确定性转换（analytic-at-ref + `adjustment_chain`，记录 `adjustment_contract_version`，adj 不落缓存）；(2) 每 fetch 产 manifest（`content_hash` sha256 + `minute_source_snapshot_id`，可回答"当时读的是哪一版数据"）；(3) 原子缓存幂等（temp→replace；同 key 并发 ×8 单一 hash；0 tmp 残留）；(4) `fetch_status` 六值枚举（OK / NO_DATA / SUSPENDED_OR_NO_TRADE / SOURCE_ERROR / RETRY_EXHAUSTED / INVALID_SYMBOL，**禁止把网络故障当"当天无数据"**）。
+- **压力测试实测**：100 codes × 3 dates × 8 workers = 300 tasks 全 OK；**0 silent failure / 0 inconsistent duplicate / 0 race corruption**（缓存 300 单元全 hash 校验通过）；adj 实测 `adj_scale(20260904→ref 20250102)=1.0457`（真实复权事件）、自指=1.0。
+- **下一步 = C1c `BAR_SEMANTICS_AUDIT`**（C1b 后、C2 前必做）：抽停牌前后 / 极低成交 / 涨跌停 / 午间 / 开盘 / 尾盘，判定 stockdb 241 bars/日是真实 bar 还是 synthetic → 写 `MINUTE_SOURCE_V1.synthetic_bar` + 明确 `no_trade_flag` 语义。**C1c 未过不开 C2 全量聚合**（避免 3 亿 bar 产物因 no-trade 语义错误全部重算）。C2/C3 代码骨架可先写，正式全量生成等 C1c。
+
+### C1c BAR_SEMANTICS_AUDIT 完成（2026-09-23，Gate1C-B' = PASS 6/6）
+
+- **语义拆分先落地**（C1b 保持 PASS，用户修正）：fetch_status 扩成**八值**——新增 `OUT_OF_SOURCE_COVERAGE`（date < 纪元 20250102，纪元前无 bar ≠ 股票无交易）与 `MINUTE_SOURCE_HOLE`（**C1c 新发现**：daily volume>0 但分钟 0 bar = 源 per-symbol 覆盖洞，不是停牌；实测 27/130，超低流动性基金 16xxxx 为主）。`SUSPENDED_OR_NO_TRADE` 现在严格要求：纪元内 ∧ 交易日 ∧ 已上市 ∧ daily 无成交 ∧ 0 bar。**MINUTE_SOURCE_HOLE 为用户 7 值枚举之外的第 8 值，待用户追认。**
+- **C1c 实测**（`c1c_bar_semantics_audit.py`，5 场景 × 130 symbol-days，SEED=42）：
+  - **`synthetic_bar = TRUE`**：源系统性产出无成交 synthetic bar；签名（volume=0 ∧ amount=0 ∧ OHLC 全等 ∧ ==prev close）覆盖率 **97.4%**（5240/5380 零量 bar）。
+  - **但填充不完备**：停牌日（daily-gap 推断）12/15 被 synthetic 全日填充（例 000524@20260624：241 bars 全零量、OHLC=停牌前最后价），**3/15 完全无 bar** → 同一"无交易"状态两种表现并存 → **三值语义（TRADED_BAR / NO_TRADE_SYNTHETIC_BAR / MISSING_BAR）全部必要**。
+  - **grid = 241**（0930..1130 + 1301..1500）；`1300` 非标准成员（仅 ~12% 天存在，存在时多为真实成交）；0930=开盘竞价 bar（真实交易日 volume>0）；1130 出现率 ~93%；1500 100%。
+  - 一字板日：全日平价但 mean_zero_vol 仅 17~32 → 封板分钟 = synthetic 夹杂真实成交。
+  - C1c-6 determinism：10 OK 日重取 content_hash 全等。
+- **冻结规则**（GATE1C_CONTRACT §2.2c）：`price_asof_S` = 最后一条 ts<=S 的 bar close（synthetic close 构造上 == 前一真实价）+ `price_asof_ts` 审计列；无成交分钟 `no_trade_flag=1`（volume=amount=0）；缺失分钟 `missing_bar_flag=1`（volume/amount 保持 NaN 禁止补 0）；no_trade → return=0（明确语义）、missing → return=NaN（禁止补 0）；MINUTE_SOURCE_HOLE/SUSPENDED 票不计入 observed_member_count。
+- **C2/C3 全量聚合自本日起解锁**；下一步 = C2 Same-Time Market Aggregation（float_mv 加权、P 日冻结权重、§2.2b 覆盖合同、LOO 结构），随后 C3 Sector LOO（复用 `o5_1b_parity_gate` 范式）。
+
+### C2 Same-Time Market 完成（2026-09-23，Gate1C-C 市场 = PASS）
+
+- **开工前契约冻结（用户签字 5 点 + §2.2d 新增）**：(1) `MINUTE_SOURCE_HOLE` 正式追认为第 8 fetch_status（定义+处置全落 §1.3/§2.2c）；(2) 主字段 `stock_intraday_return_to_S = price_asof(S)/price_anchor_0930 - 1`（**累计盘中，非 1m/3m/5m 冲击**，冲击另建字段）；(3) 权重 `float_mv_i,P` P 日冻结全天不滚 + artifact 强制记录 `weight_date`；(4) 三计数 `eligible/observed/active_tradable` + 双 coverage（member≥0.80 主、float_mv 辅警告）+ SUSPENDED/HOLE 不进 denominator + synthetic-only 不进 active_tradable；(5) LOO 中间量 `market_weighted_return_sum`/`market_valid_weight_sum` 落盘 + 1300 bar `canonical_same_time_grid_member=0` 跳过。
+- **实现**：`c2_market_sametime.py`（builder + `materialize_ex_stock`）+ `c2_qa_parity.py`；canonical grid 241 点手工枚举（**HHMM 是 packed 整数，`range(930,1131)` 会引入 961/1061 无效分钟——踩坑已修**）。
+- **QA（SEED=42 随机 5 日 × full universe = 27,094 symbol-date）全 PASS**：数学层 vectorized vs naive loop **max_abs_diff=0.0**；LOO 代数 vs naive exclude ≤1.6e-17；parquet round-trip；`feature_asof_ts==minute_ts`；覆盖退化实测捕获 HOLE 357/323、SUSPENDED、synthetic-only 42。
+- **关键 bug 修复（已回写契约 §2.2d）**：朴素 LOO 代数 `(sum_wr−w_i·r_i)/(sum_w−w_i)` 在 target 有 MISSING_BAR 分钟时多减 w_i（实测 300750@20260211 10:39 单分钟缺 bar → 误差 5e-5）；修正为 **per-minute contributed 指示符** `c_i(S)`；`materialize_ex_stock` 端到端验证 1.1e-17。
+- **状态**：C2 QA 样本 PASS；**全 epoch（~409 日）全量生成待跑（~3.5h 含缓存）**，建议与 C3 sector 面板同批。下一步 = C3 Sector LOO（PIT SW-L1 membership + `materialize` 范式 + `MIN_SECTOR_COVERAGE=0.60`/`MIN_VALID_MEMBERS_EX_STOCK=5`）。

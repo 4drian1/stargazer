@@ -82,6 +82,8 @@
 !/stargazer_ml/v5_hybrid/*/*.yaml
 !/stargazer_ml/v5_hybrid/*/*.txt
 !/stargazer_ml/v5_hybrid/*/*.json
+/stargazer_ml/v5_hybrid/green_v2/daily_dual_list_*.md
+/stargazer_ml/v5_hybrid/green_v2/holdings_watch_*.md
 /stargazer_ml/v5_hybrid/*/_*/
 /stargazer_ml/v5_hybrid/*/_*.parquet
 /stargazer_ml/v5_hybrid/*/__pycache__/
