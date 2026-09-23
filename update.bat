@@ -17,7 +17,7 @@ for /l %%i in (1,1,3) do (
 goto syncfail
 :synced
 git branch -M main
-git reset origin/main
+git reset --hard origin/main
 if errorlevel 1 goto syncfail
 echo [1/2] git sync done
 goto step2
