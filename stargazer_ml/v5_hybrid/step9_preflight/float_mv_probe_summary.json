@@ -1,0 +1,160 @@
+{
+  "regime_date": 20260701,
+  "overall": {
+    "n_rows": 11539583,
+    "float_mv_cov": 0.828363,
+    "float_share_cov": 0.828373,
+    "reconstructable_share": 1e-05,
+    "cov_after_reconstruct": 0.828373,
+    "ratio_median": 1.0,
+    "resid_p95": 0.043297,
+    "n_still_missing_after_reconstruct": 1980506
+  },
+  "by_segment": {
+    "post_20260701": {
+      "n_rows": 428331,
+      "float_mv_cov": 0.999736,
+      "float_share_cov": 1.0,
+      "reconstructable_share": 0.000264,
+      "cov_after_reconstruct": 1.0,
+      "ratio_median": 1.0,
+      "resid_p95": 0.005554,
+      "n_still_missing_after_reconstruct": 0
+    },
+    "pre_20260701": {
+      "n_rows": 11111252,
+      "float_mv_cov": 0.821757,
+      "float_share_cov": 0.821757,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.821757,
+      "ratio_median": 1.0,
+      "resid_p95": 0.045341,
+      "n_still_missing_after_reconstruct": 1980506
+    }
+  },
+  "by_year": {
+    "2018": {
+      "n_rows": 853517,
+      "float_mv_cov": 0.902794,
+      "float_share_cov": 0.902794,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.902794,
+      "ratio_median": 1.0,
+      "resid_p95": 0.034488,
+      "n_still_missing_after_reconstruct": 82967
+    },
+    "2019": {
+      "n_rows": 932531,
+      "float_mv_cov": 0.895198,
+      "float_share_cov": 0.895198,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.895198,
+      "ratio_median": 1.0,
+      "resid_p95": 0.034488,
+      "n_still_missing_after_reconstruct": 97731
+    },
+    "2020": {
+      "n_rows": 1035098,
+      "float_mv_cov": 0.87202,
+      "float_share_cov": 0.87202,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.87202,
+      "ratio_median": 1.0,
+      "resid_p95": 0.036071,
+      "n_still_missing_after_reconstruct": 132472
+    },
+    "2021": {
+      "n_rows": 1224479,
+      "float_mv_cov": 0.840906,
+      "float_share_cov": 0.840906,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.840906,
+      "ratio_median": 1.0,
+      "resid_p95": 0.04,
+      "n_still_missing_after_reconstruct": 194807
+    },
+    "2022": {
+      "n_rows": 1382218,
+      "float_mv_cov": 0.821472,
+      "float_share_cov": 0.821472,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.821472,
+      "ratio_median": 1.0,
+      "resid_p95": 0.047319,
+      "n_still_missing_after_reconstruct": 246765
+    },
+    "2023": {
+      "n_rows": 1511597,
+      "float_mv_cov": 0.815828,
+      "float_share_cov": 0.815828,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.815828,
+      "ratio_median": 1.0,
+      "resid_p95": 0.061804,
+      "n_still_missing_after_reconstruct": 278394
+    },
+    "2024": {
+      "n_rows": 1602797,
+      "float_mv_cov": 0.798614,
+      "float_share_cov": 0.798614,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.798614,
+      "ratio_median": 1.0,
+      "resid_p95": 0.131421,
+      "n_still_missing_after_reconstruct": 322781
+    },
+    "2025": {
+      "n_rows": 1708802,
+      "float_mv_cov": 0.766145,
+      "float_share_cov": 0.766145,
+      "reconstructable_share": 0.0,
+      "cov_after_reconstruct": 0.766145,
+      "ratio_median": 1.0,
+      "resid_p95": 0.206091,
+      "n_still_missing_after_reconstruct": 399612
+    },
+    "2026": {
+      "n_rows": 1288544,
+      "float_mv_cov": 0.825314,
+      "float_share_cov": 0.825402,
+      "reconstructable_share": 8.8e-05,
+      "cov_after_reconstruct": 0.825402,
+      "ratio_median": 1.0,
+      "resid_p95": 0.027886,
+      "n_still_missing_after_reconstruct": 224977
+    }
+  },
+  "load_bearing_question": "pre-2026-07-01 缺失 float_mv 的股票, PIT float_share 是否可得?",
+  "missing_instrument_analysis": {
+    "n_never_fmv_codes_pre_regime": 2035,
+    "n_of_those_in_get_universe": 2035,
+    "n_name_looks_like_etf_or_fund": 1587,
+    "sample_names": [
+      "货币ETF易方达",
+      "招商快线ETF",
+      "快钱ETF汇添富",
+      "养殖ETF华泰柏瑞",
+      "证券ETF景顺",
+      "创业板新能源ETF易方达",
+      "港股通科技ETF博时",
+      "养殖ETF华安",
+      "科创创业50ETF鹏华",
+      "工业互联网ETF大成",
+      "恒生港股通科技ETF国联",
+      "证券ETF广发"
+    ],
+    "market_proxy_weight_composition": {
+      "20260630": {
+        "n_fmv": 5481,
+        "n_never_fmv": 0,
+        "weight_share": 0.0
+      },
+      "20260701": {
+        "n_fmv": 7517,
+        "n_never_fmv": 2020,
+        "weight_share": 0.045361
+      }
+    },
+    "conclusion": "regime 前缺失 float_mv 的主体是 ETF/基金等非股票工具 (name 含 ETF/基金); GREEN-WATCH 候选池用 total_mv 25-100亿 过滤股票, 母池规模在 2026-06-30→07-01 无台阶; 但 Market Proxy 的 universe 谓词是 float_mv>0 (规格写的是 eligible 股票), regime 后把 ~2,020 只 ETF 计入代理权重 -> 见 weight_share"
+  }
+}

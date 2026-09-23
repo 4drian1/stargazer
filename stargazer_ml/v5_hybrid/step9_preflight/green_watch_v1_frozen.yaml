@@ -1,0 +1,19 @@
+name: GREEN-WATCH-v1-FROZEN
+frozen_at: '2026-09-18T11:23:53+00:00'
+source: D:\stargazer\stargazer_ml\v5_hybrid\green_watch_v0
+rule: A0-A8 期间禁止修改母池定义; 调阈值须另开 GREEN-WATCH-v1.1 实验。
+source_hashes:
+  build_pool.py: 92a8a0d7cabdeab8140df4af37f245342efca61db5fbb5c6a36e52edfd3a228c
+  label_engine_pool.py: 5a8cf442fdae89156c28284e6019af6d6d2abd9a1bc8d8c3a839b6d94a5bfdb9
+  standard_alignment_v1_20260917.md: eeead75dca6d7a4a660ccdde26ef475b7f0e74482080cb2f68d26f01a6412839
+frozen_definition:
+  universe_eligibility: 市值25-100亿 / ST-VOL>0 / 价域 / Low60-notna (N8 代理)
+  setup_definitions: BOTTOM_SETUP / INTRADAY_DIP_SETUP (standard_alignment 记录)
+  bottom_score_formula: build_pool.py 现有评分逻辑 (含 N1-N9 偏离, 冻结不动)
+  intraday_dip_score_formula: build_pool.py 现有评分逻辑
+  subtype_definition: build_pool.py subtype 分支
+  zone_generation_rule: LATR_ZONE 未开工, v1 由 draft 生成器用冻结公式 (T1/T2)
+  candidate_status_rule: 'PASS / NEAR_MISS / CONTROL / INVALIDATED (N9: CONTROL 待补)'
+  primary_setup_rule: 双分数取大者, 平票归 BOTTOM (口径 A)
+  leader_definition_version: 板块等权指数代理 (N7 缺口, 真实映射接入前保持)
+  rule_version: 'GREEN-WATCH-v0-backfill (T4: 通过复验后才升 v1 命名)'

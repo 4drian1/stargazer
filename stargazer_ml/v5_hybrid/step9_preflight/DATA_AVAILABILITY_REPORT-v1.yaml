@@ -1,0 +1,142 @@
+report_name: DATA_AVAILABILITY_REPORT-v1
+generated_at: '2026-09-17T07:54:05+00:00'
+generated_by: step9_preflight/data_availability_audit.py
+gate1_pass: false
+hard_fail:
+- pit_sector_constituents
+- sector_mapping_version
+datasets:
+- dataset_name: stock_minute_history
+  path: stockdb://stock_minute_history
+  required: true
+  conditional: false
+  status: PASS
+  date_start: 20250102093000
+  date_end: 20260916150000
+  sample_rows: 99995
+  coverage_ratio: 1.0
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: 按 date(14位) 天然 point-in-time
+  source_version: 分钟k (stockdb)
+  known_issue: 分钟数据自 2025-01-02 起; 2025 前无分钟 (Timing/LATR 日内特征限定 2025+)
+  usable_for: Timing-v1 / LATR 日内特征
+- dataset_name: market_index_minute
+  path: stockdb://market_index_minute
+  required: false
+  conditional: true
+  status: FAIL
+  date_start: null
+  date_end: null
+  sample_rows: null
+  coverage_ratio: null
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: unknown
+  source_version: unknown
+  known_issue: 指数(日k:sh000001:*) 返回空, 无指数分钟/日线
+  usable_for: market/sector alpha 基准
+- dataset_name: pit_sector_constituents
+  path: stockdb://pit_sector_constituents
+  required: true
+  conditional: false
+  status: CONDITIONAL
+  date_start: null
+  date_end: null
+  sample_rows: 1
+  coverage_ratio: null
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: 仅当前成分, 严格 PIT 历史成分未验证
+  source_version: bk (申万 category=1)
+  known_issue: 板块映射可得(申万一级), 但是否支持 as-of 历史成分需进一步验证; 在验证前 F9 sector 特征按'当前映射'使用并标注偏差
+  usable_for: F9-S0 / s0_alpha / timing_alpha 板块基准
+- dataset_name: free_float_market_cap
+  path: stockdb://free_float_market_cap
+  required: false
+  conditional: true
+  status: PASS
+  date_start: 20000104
+  date_end: 20260916
+  sample_rows: 6349
+  coverage_ratio: 1.009
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: unknown
+  source_version: 日k.float_mv/float_share
+  known_issue: ''
+  usable_for: Leader tie-break / 自由流通市值
+- dataset_name: halt_trading_status
+  path: stockdb://halt_trading_status
+  required: true
+  conditional: false
+  status: PASS
+  date_start: null
+  date_end: null
+  sample_rows: 1080
+  coverage_ratio: null
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: 退市清单 + 日线缺失日=停牌/未上市
+  source_version: 退市* + 日k
+  known_issue: 无独立'停牌'标志; 交易状态由日线存在性 + 退市清单推断
+  usable_for: Label/execution next-legal-fill 门控
+- dataset_name: adjustment_factors
+  path: stockdb://adjustment_factors
+  required: true
+  conditional: false
+  status: PASS
+  date_start: null
+  date_end: null
+  sample_rows: 27
+  coverage_ratio: null
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: 复权因子按生效日, point-in-time
+  source_version: 复权 (div/give/trans/mult/cum)
+  known_issue: ''
+  usable_for: Return/Swing/Leader 尺度对齐
+- dataset_name: sector_mapping_version
+  path: stockdb://pit_sector_constituents
+  required: true
+  conditional: false
+  status: CONDITIONAL
+  date_start: null
+  date_end: null
+  sample_rows: 1
+  coverage_ratio: null
+  missing_ratio: null
+  duplicate_ratio: null
+  timestamp_timezone: Asia/Shanghai
+  adjustment_status: qfq/hfq via 复权
+  point_in_time_safe: 仅当前成分, 严格 PIT 历史成分未验证
+  source_version: bk (申万 category=1)
+  known_issue: 申万映射版本/as-of 未显式暴露; 当前视作单一快照
+  usable_for: F9-S0 / s0_alpha / timing_alpha 板块基准
+STEP9_ENABLED_FEATURES:
+- Timing minute features
+- LATR OpenDipATR/GapATR/PenetrationATR
+- cum_turnover/volume_vs_hist_same_time
+- leader tie-break = free-float mcap
+- Return/Swing/Leader 复权对齐
+STEP9_DISABLED_FEATURES:
+- F9 sector/market alpha
+- s0_alpha_h3
+- timing_alpha_h1
+- VP_POC/VAL (真实 Volume Profile) 待质量确认
+STEP9_FALLBACK_FEATURES:
+- sector alpha -> 板块代理口径 (CONDITIONAL, 须记录)
+- F9 sector features 用当前映射 (标注偏差, 待验证 as-of)
+- 严禁日线 proxy 冒充 POC; 如需占位用 price_volume_proxy_* 且标记 PROXY

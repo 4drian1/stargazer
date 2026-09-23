@@ -1,0 +1,254 @@
+# OPPORTUNITY-HYPOTHESIS-REGISTRY-v1.1
+# 阶段: OPPORTUNITY-DISCOVERY-V2 (2026-09-23 启动; 2026-09-23 定义评审 v1.1 用户裁定)
+# 纪律: 每条假设先注册再实现; 未注册特征/假设禁止进 harness;
+#       Discovery(2021-2024 可观察) → Development/OOF 固定定义 → Confirmation(2025+ 及未来 shadow) 三态隔离;
+#       看过的时间段(2025/2026 observed)不得包装成 untouched OOS。
+#
+# 冻结基建 (frozen infra, 各 HYP 共享, 不许改):
+#   - label: s0_return_h3 primary / H5+MFE/MAE secondary (label_contract_v1.yaml)
+#   - market alpha: MarketProxyV1 leave-one-out float-weighted (step9_preflight/market_proxy_v1.py)
+#   - execution/QA: execution_engine next-legal-fill / INFERRED_HALT / Gate1A 数据契约
+#   - PIT sector: 申万官方变动历史 (akshare stock_industry_clf_hist_sw, 快照固版)
+#   - split: Purged Walk-Forward + event-date fold + label-interval purge + 5 日 embargo
+# 母池政策: eligibility 只留 可交易性+数据有效性 (非ST/有量/上市>60日/数据齐);
+#   市值/换手/波动带子一律作为 HYP 内分层变量, 不得固化为全局过滤。
+
+registry_version: "od_v1.1"
+frozen_at: "2026-09-23"
+approved_at: "2026-09-23 (用户定义评审: 分箱梯度/02拆分/PIT钉死/不强制互斥/O0-O8顺序)"
+
+# ── 2026-09-23 战略切换 (用户三条裁决; 见 开发路线 '路线变更记录 #6') ──
+track_pivot_2026_09_23:
+  decision: "暂停新增 P_CLOSE 静态 hypothesis; 研发预算转向『盘中形成的事件 + 跨实体信息传播』"
+  framing: >
+    不是 OD-V2 框架失败; 而是『P_CLOSE 静态 + 单票中周期价量 + 日频跨实体 lag』这批假设没有 edge
+    (O1 反转 / O2A 分母伪影 / O3 CI 含 0 / O5 A≈C≈D>B 且 lag_gap 无剂量梯度), 框架健康
+    → 改变信息时间尺度与机制维度, 不再调日频阈值。
+  daily_track_status: "O1/O2/O3/O5 全部 ARCHIVED_FAIL; 暂停新增 P_CLOSE price/volume hypothesis"
+  priority_order:
+    - "Gate1C 分钟级 same-time 基建 (最高优先级; 可复用基础设施, 不为单一实验定制)"
+    - "INTRADAY_SECTOR_DIFFUSION_V1 (第一个正式盘中实验; 先于 Shock, 因其测试新的信息维度)"
+    - "HYP-07 INTRADAY_SHOCK_OVERREACTION (单票分钟价格事件; 编号不复用已归档的 O3)"
+    - "O6 LIQUIDITY_IMBALANCE (随 Gate1C 解锁后排队)"
+  dormant:
+    - "O5b-RELATIVE-STRENGTH-DIVERGENCE = DO_NOT_START (本质回到单票自身相对强弱形态, 处均值回复逆风; 须新独立机制证据方可重启)"
+  gate1c_unlocks:
+    ["INTRADAY_SECTOR_DIFFUSION", "LIQUIDITY_IMBALANCE(O6)", "INTRADAY_SHOCK/WASHOUT",
+     "GREEN-v2.2 Source B", "same-time volume/turnover controls"]
+  promoted_assets:
+    - "opportunity_v2/o5_sector_lag/pit_membership.parquet (PIT 申万 membership, PASS_FOR_RESEARCH)"
+    - "opportunity_v2/o5_sector_lag/o5_1a_sector_proxy.parquet (exclude-target sector/market 5d/10d proxy)"
+    - "opportunity_v2/o5_sector_lag/o5_1b_parity_gate.py (两层对拍范式; 今后所有 leave-one-out market/sector 与 exclude-symbol 聚合必过同类 Gate)"
+  not_reusable:
+    - "opportunity_v2/o5_sector_lag/sector_lag_v0.py (阈值硬编码, 禁换参重跑)"
+
+# ── 研发顺序 (用户裁定 O0-O8, 不得跳步) ──
+dev_sequence:
+  O0: "冻结 Registry/label/PIT contract — 不训练"
+  O1: "HYP-01 event/pool evidence — 不调模型"
+  O2A: "Compression 是否预测 Expansion — 不预测方向"
+  O2B: "仅 O2A 通过才研究方向 — 不提前开"
+  O3: "HYP-03 Breakout Retest evidence — 不训练"
+  O4: "多年/fold/matched random — 不挑最好年份"
+  O5: "仅弱而稳定的 edge 才进入 ML — 无 edge 不救"
+  O6: "ML ranking — 固定 split/seed/label"
+  O7: "Timing/execution — 不反向修改 Selection"
+  O8: "Shadow forward — 真前瞻"
+  # ── 2026-09-23 战略切换后新增 (盘中轨道) ──
+  Gate1C: >
+    分钟级 same-time 基建 (ONE-TIME REUSABLE): same-minute market/sector snapshot (exclude-target)
+    + same-time volume/turnover baseline + liquidity/tradability state + execution-safe timestamps
+    + event risk-set construction + replay/observability contract。不为单一实验定制。
+  INTRADAY_SD: "INTRADAY_SECTOR_DIFFUSION_V1 — Gate1C 后第一个盘中实验 (全新 intraday hypothesis, 非 O5 换时间窗)"
+  HYP07: "INTRADAY_SHOCK_OVERREACTION — 单票分钟价格事件 (Diffusion FAIL 后)"
+  O6_LIQ: "LIQUIDITY_IMBALANCE — 随 Gate1C 解锁排队"
+
+# ── 重叠政策 (用户裁定: 不强制互斥) ──
+overlap_policy:
+  flags: ["hyp01_flag", "hyp02_flag", "hyp03_flag"]
+  mask: "overlap_mask 按日入档"
+  report_cells: ["HYP01_ONLY", "HYP02_ONLY", "HYP03_ONLY", "HYP01x02", "HYP01x03", "HYP02x03", "ALL"]
+  rule: "各 HYP 主实验独立在自身 flag 全集上跑; 重叠格仅描述报告; 禁止为划地盘改候选分布"
+
+meta_requirements:
+  no_forward_until_confirmed: "未过 Confirmation 的 HYP 不接监控机/推送/计划库, 只跑历史 replay"
+  anti_green_mirror: "mechanism 写明是 延续/释放/回踩 机制, 不得写成 GREEN 低吸镜像"
+  family_comparison: "跨 HYP 比较只在 同 label/同 split/同 seed/同 harness"
+  bins_not_pick: "预注册分箱只看梯度与单调, 禁止从中挑最好一桶作为结论"
+
+hypotheses:
+  # ───────────────────────── HYP-01 已批准开工 (O1) ─────────────────────────
+  - hypothesis_id: "HYP-01-STRENGTH-CONTINUATION-v1"
+    family: "O1 Strength Continuation"
+    status: "ARCHIVED_FAIL (2026-09-23 用户裁定；LOO 修复重跑后四行全 FAIL，理由强化)"
+    evidence_version: "evidence_v1.md (LOO 修复版); evidence_v0.md = SUPERSEDED_BY_LOO_FIX 存根"
+    archived_reason: >
+      修复后证伪四行全 FAIL: (a) 分箱梯度 spearman −0.943 倒挂(99-100 桶 −7.6bp);
+      (b) 日 IC mean −0.0306 (t=−5.6); (c) 2021-2024 四年 IC 全负(每年 t≤−3.1), folds 0/7 正;
+      (d) Top95 alpha −31.7bp 劣于 pool(+13.3) 与 random P95(+15.0)。
+      机制判读: A 股该 universe 短期呈反转而非动量延续。confirmation 段同向(2025 IC t=−5.0)旁证。
+    pollution_postmortem: >
+      v0 的 (a)(d) PASS 系 LOO bug 假象: raw float_mv 权重下 (px−w·r)/(1−w) 退化 loo≈r_i,
+      权重集内 89% 事件 rs/alpha 双零, 梯度由零填充中段 vs fmv 缺失子集(基金/ETF)假信号构成。
+      教训入档: 任何 LOO/剔除类实现必须与 reference 实现 exclude_symbol 对拍后才可信。
+    hypothesis_log_only: >
+      "99-100 极端强度尾部 2021-2024 四年 alpha 全正" 系 v0 bug 假象，随 v0 一并作废;
+      禁止开 HYP-01b / 重挑桶 / 换阈值。
+    evidence_artifacts: ["opportunity_v2/hyp01_strength_continuation/evidence_v1.md", "hyp01_daily_ic_v1.parquet"]
+    mechanism: >
+      相对强度高的股票在未破坏前有惯性延续 (机构粘性/动量资金)。赚"强继续强"。
+    definitions:
+      relative_strength_20d: "stock_20d_return - MarketProxy_20d_return (LOO)"
+      rs_pct_rank: "当日全 universe 横截面 percentile"
+      research_band: "85% <= rs_pct_rank < 99%  (研究阈值, 非经济定律)"
+      preregistered_bins: ["<80", "80-85", "85-90", "90-95", "95-99", "99-100"]
+      gradient_check: "按 bin 报告 alpha, 看梯度/单调, 不挑最优桶"
+      close_gt_ma20: "仅作特征/描述统计, 不做 hard gate (rs 已含趋势信息)"
+      hot_cap: "ret_20d < +60% 为研究阈值, 报告敏感性 (不 gate 进主定义)"
+    primary_target: "s0_return_h3 (market alpha, 冻结)"
+    secondary_targets: ["h5_alpha", "mfe_h3", "mae_h3"]
+    evidence_outputs: ["bin 梯度表", "日 IC 序列+mean+t", "逐年 2021-2024", "purged folds", "Top vs Pool", "Top vs Random P95"]
+    falsify_condition: >
+      (a) bin 梯度乱序且无单调; (b) 日 IC mean≈0 或 |t|<2; (c) 2021-2024 内 >=2 独立年份方向相反;
+      (d) Top 层不优于 pool 且不优于 random P95。任一成立 → 归档 STOP, 不上 ML。
+    development_period: "dev=2021-2024, confirmation=2025+ + 未来 shadow"
+    forbidden_future_info: "rs 用冻结 proxy LOO; 全部 P_CLOSE 可算"
+
+  # ───────────────────────── HYP-02 两阶段 (用户拆分裁定) ─────────────────────────
+  - hypothesis_id: "HYP-02A-COMPRESSION-STATE-v1"
+    family: "O2 Compression → Expansion (阶段A)"
+    status: "ARCHIVED_FAIL (2026-09-23, 五行全 FAIL + DENOMINATOR_ARTIFACT_SUSPECTED)"
+    mechanism: "压缩积蓄能量 → 未来波动/振幅扩张。只检验'压缩是否预测扩张', 不判断方向。"
+    definitions:
+      compression_state: "20日 realized range/ATR14 处自身250日分位<0.20; 20日量中位处自身250日分位<0.30"
+      preregistered_bins: ["<10", "10-20", "20-30", "30-40", "40-50", ">=50 (对照带)"]
+      gradient_check: "压缩分位 vs 未来扩张幅度 的单调性(spearman)，不挑最优桶"
+      expansion_targets: ["future_raw_range_h3", "future_raw_range_h5", "future_atr_norm_range_h3/h5",
+                          "future_over_current_vol_ratio", "abs_return_h3/h5", "mfe_h3_magnitude", "mae_h3_magnitude"]
+      denominator_sanity: >
+        必报 raw 与 ATR-normalized 双口径。仅 /ATR 漂亮而 raw range 不扩张
+        = DENOMINATOR_ARTIFACT_SUSPECTED → 不得 PASS。
+    primary_target: "未来波动扩张 (raw range 为主，normalized 为辅)，非收益 alpha"
+    evidence_outputs: ["压缩分位分箱×未来扩张梯度表", "日 IC(压缩分位 vs raw expansion)+t", "逐年 2021-2024", "purged folds", "压缩组 vs 池 vs matched random P95"]
+    falsify_condition: "压缩组未来 raw expansion ≈ 全池 (无预测力, 或仅 normalized 口径成立=分母伪影) → 02A 归档, 02B 不开。"
+    note: "不排除前期涨幅>30%的票; HYP02_ONLY 与 HYP01x02 重叠格分别报告(注册表 overlap_policy)"
+
+  - hypothesis_id: "HYP-02B-COMPRESSION-DIRECTION-v1"
+    family: "O2 Compression → Expansion (阶段B)"
+    status: "LOCKED_UNTIL_02A_PASSES"
+    mechanism: "哪些压缩最终向上扩张"
+    primary_target: "h3/h5 market alpha"
+    start_condition: "仅当 02A 证伪条件不成立 (压缩确有扩张预测力) 才注册开工"
+
+  # ───────────────────────── HYP-03 已批准 (O3, PIT 钉死版) ─────────────────────────
+  - hypothesis_id: "HYP-03-BREAKOUT-RETEST-v1"
+    family: "O4 Breakout / Retest"
+    status: "ARCHIVED_FAIL (2026-09-23, A vs B CI 含 0 + 年份 2/4 + 梯度倒挂)"
+    mechanism: >
+      已确认突破平台/前高后, 第一次缩量回踩不破突破位 (供应被吸收)。
+      突破是已发生事实, 回踩是 P 日状态 — 非"接近底部"。
+    definitions:
+      breakout_day_B: "close[B] > max(high[B-60:B-1])  (B 不含在60日高内; 本口径唯一冻结)"
+      pit_constraint: "B <= P-1 (先突破, 后谈回踩)"
+      breakout_level: "B 日冻结, 不回溯修改"
+      first_retest: "B 后第一次进入 breakout_level ± 1 ATR_ref; 必须由历史状态逐日追加判定, 禁止 P 日回头挑选"
+      pullback_volume: "回踩段量 < 突破日量*0.6 (RESEARCH_THRESHOLD, 非机制真理)"
+    primary_target: "s0_return_h3 (market alpha, 冻结)"
+    secondary_targets: ["h5_alpha", "mfe_h3", "mae_h3"]
+    falsify_condition: "retest 组 vs 同突破无回踩组 vs 全池 三者 H3 alpha 无差异; 或 fold 方向不稳"
+    forbidden_future_info: "突破确认只用 <=B 日 close; '第一次'时间序判定, 零未来函数"
+
+  # ───────────────────────── 已登记未启动 ─────────────────────────
+  - hypothesis_id: "O3-SHOCK-OVERREACTION"
+    family: "O3 Shock / Overreaction (编号已停用)"
+    status: "SUPERSEDED_BY_HYP-07 (2026-09-23 用户裁决: 不复用 O3 编号, 避免与已归档的 O3 Breakout Retest 混淆)"
+    note: "原日频版本未启动; 其机制 (异常下跌/跳空后的短期反应) 已由 HYP-07 以盘中/分钟尺度重新登记"
+  # ───────────────────────── HYP-05 已执行并归档 (O5, 2026-09-23) ─────────────────────────
+  - hypothesis_id: "HYP-05-SECTOR-STRENGTH-STOCK-LAG-v1"
+    family: "O5 Sector Strength → Stock Lag (跨实体信息扩散)"
+    status: "ARCHIVED_FAIL (2026-09-23, A−B 有但 A−D≈0 + lag_gap 无剂量梯度 + 幅度<0.30pp)"
+    registration: "用户预注册 2026-09-23 (开发路线 'O5 预注册冻结' + O5_STATUS_AND_NEXT.md §4); 本条为实际执行定义"
+    supersedes: "O5-RELATIVE-STRENGTH-DIVERGENCE (原占位符, 未实现; 见下方 O5b)"
+    mechanism: >
+      板块已出现冲击(强行业) → 该行业内个股有真实 PIT exposure 但尚未同步 → 未来 H3/H5 是否存在独立 catch-up。
+      禁止把"板块涨了没涨的就会补涨"直接当作定义。
+    frozen_definitions:
+      sector_key: "index_code_l1 (PIT membership 半开区间; 缺失→l1 名称反查众数码→'N:<名称>')"
+      strong_sector: "sec_str_5 = sec_ret_ex_5d − mkt_ex_5d ≥ +2.0pp (预注册)"
+      treatment_A: "强行业 且 lag_gap_5d = sec_ret_ex_5d − ret_5d ≥ +2.0pp"
+      control_B: "强行业 且 lag_gap_5d ≤ 0 (核心对照 A−B)"
+      control_C: "同日 MATCH_V1 (qcut5 float_mv × qcut5 amount)"
+      control_D: "非强行业 + 同日 stock_ex_5d 五分位桶内配对 (generic reversal control)"
+      lag_gap_rule: "禁止单独使用; 必须 A>B 且 A>D 才支持信息扩散 (A≈D>B = 只是弱股反转)"
+      window: "h=5 主 / h=10 仅报告; entry=D legal open; label=s0_return_h3 (market alpha, 冻结)"
+    pass_criteria_frozen: >
+      P1 A−B>0 且日聚类 bootstrap CI 下界>0 (pooled 与 paired 两口径都正) / P2 年份≥3/4 与 fold≥3/4 同向 /
+      P3 lag_gap 剂量梯度 spearman≥0.6 且去最强桶仍>0 / P4 A−D>0 且 CI 下界>0 / P5 |A−B|≥+0.30pp /
+      P6 集中度 (去最佳/最大行业后仍>0 且 top-10 票贡献<50%)。任一不满足 → FAIL → ARCHIVED_FAIL(no_edge), 不调阈值重跑。
+    result: >
+      dev(2021-2024) 母池 4,486,489 行/969 日: paired A−B=+0.261pp [+0.145,+0.364] p<0.001, pooled A−B=+0.125pp;
+      A−C=+0.041pp [−0.030,+0.116] p=0.132; A−D=+0.015pp [−0.072,+0.101] p=0.370; P3 强行业内 lag_gap 单调 spearman=0.20;
+      P1/P1b/P2/P2b/P6 达标, P3/P4/P5 不达标 → FAIL。
+      机制判读: A−B 的 0.26pp 全部来自 B 组(强行业内 5 日已跑赢行业的票)未来更差(−0.14% vs +0.28%)= 短期 winner 反转,
+      非 laggard 补涨; 强行业内 lag_gap 10 分位为"是否跑赢行业"的单步台阶(bin0 −0.139% vs bin1-8 恒定 +0.26~+0.32%),
+      无剂量梯度; A 相对 matched(C) 与非强行业弱势匹配(D) 均无增量 → 无跨实体信息增量。
+    evidence_artifacts: ["opportunity_v2/o5_sector_lag/sector_lag_v0.md",
+                         "opportunity_v2/o5_sector_lag/sector_lag_v0_report.json",
+                         "opportunity_v2/o5_sector_lag/O5_1A_REPORT.md",
+                         "opportunity_v2/o5_sector_lag/O5_1B_PARITY_REPORT.md"]
+    gate_records:
+      O5_0_ETL: "GATE_1B = PASS_FOR_RESEARCH (pit_membership.parquet, 12920 行 × 5929 票)"
+      O5_1A: "SectorProxy DONE (32 键 = 31 index_code_l1 + 1 名称回退; 7,749,477 行 × 1386 日)"
+      O5_1B_LOO_PARITY: "PASS 2026-09-23 (1048 条 meta/math/store 全 0 不一致 + 10 项合成结构用例全过)"
+    no_rescue: "禁止改阈值/换窗口/换匹配口径重跑; 不开 HYP-05b; 不上 ML/Timing/Risk 救。"
+
+  - hypothesis_id: "O5b-RELATIVE-STRENGTH-DIVERGENCE"
+    family: "O5b Relative Strength Divergence (占位符, 未执行)"
+    status: "REGISTERED_DORMANT_DO_NOT_START (2026-09-23 用户裁决)"
+    note: >
+      原 O5 槽位占位符; 机制与 HYP-05 不同 (纯个股自身相对强度形态, 无跨实体 sector 暴露)。
+      用户裁决: 不立项 —— 该机制本质仍是『单票自身相对强弱形态 → 未来收益』, 处 Route Review 已证实的
+      中周期均值回复逆风; 现在开它等于连续失败后换一个相近构造。
+      重启条件: 出现**新的独立机制证据**, 而不是"当前结果里看到某个漂亮切片"; 重启须独立预注册。
+  # ───────────────────────── 盘中轨道 (2026-09-23 战略切换后登记) ─────────────────────────
+  - hypothesis_id: "INTRADAY_SECTOR_DIFFUSION_V1"
+    family: "Intraday Cross-Entity Information Diffusion"
+    status: "REGISTERED_QUEUED_AFTER_GATE1C (第一个正式盘中实验)"
+    is_not: "不是 'O5 换个时间窗重跑'; 是全新 intraday hypothesis (信息在分钟/小时尺度传播)"
+    mechanism: >
+      当行业在盘中出现可观测、且排除目标股自身贡献的异常冲击时, 尚未同步反应但仍具备可交易条件的同行股票,
+      随后短窗口是否出现增量响应?
+    reuses: ["PIT 申万 membership (pit_membership.parquet)",
+             "Sector exclude-target 加权口径 (o5_1a_sector_proxy.parquet)",
+             "O5 的 A/B/C/D 对照骨架", "o5_1b_parity_gate.py 两层对拍范式"]
+    groups_skeleton:
+      A: "sector impulse + lagging stock (treatment)"
+      B: "same sector + already synchronized stock (核心对照)"
+      C: "same-minute matched eligible"
+      D: "generic weak-stock / reversal control"
+    label_contract: "signal_ts → first legal fill > signal_ts → H1/H3 或固定盘中 horizon (data_resolution=MINUTE_EXACT)"
+    hard_constraints:
+      ["signal_ts < actual_fill_ts",
+       "同一分钟 risk-set 对照; 禁止事后 never-trigger 筛除",
+       "禁止与 P_CLOSE 的 H3/H5 表混表/混成同一 OOF",
+       "分钟级 LOO / exclude-symbol 聚合必须先过同类 parity Gate",
+       "415 天分钟样本纪律: event count / effective independent days / events per day / trade_date clustering / MDE"]
+    frozen_definitions: "PENDING — Gate1C 后按预注册冻结 (sector same-time 冲击阈值 / lag 判定 / A-B-C-D 构造 / 短窗口 label)"
+    prereq: "Gate1C 完成 + 分钟级 same-time parity Gate PASS"
+    no_rescue: "若 FAIL → 不调阈值/不换 horizon 重跑; 按顺序转 HYP-07"
+
+  - hypothesis_id: "HYP-07-INTRADAY-SHOCK-OVERREACTION-v1"
+    family: "Intraday Shock / Overreaction"
+    status: "REGISTERED_QUEUED (INTRADAY_SECTOR_DIFFUSION 之后)"
+    naming: "用户裁决: 不复用已归档的 O3 编号, 避免历史证据链混乱"
+    mechanism: "单票盘中异常下跌/跳空冲击后的短窗口反应 (分钟尺度; 与 GREEN 下杀叙事最近, 启动前需证明构造差异)"
+    prereq: "Gate1C; 且 INTRADAY_SECTOR_DIFFUSION_V1 已有结论"
+
+  - hypothesis_id: "O6-LIQUIDITY-IMBALANCE"
+    family: "O6 Liquidity / Volume Imbalance"
+    status: "REGISTERED_QUEUED_AFTER_GATE1C (最后一个)"
+    note: "成交结构变化领先收益; 随 Gate1C 分钟级 same-time 量基建解锁后排队, 不提前开"
+  - hypothesis_id: "GREEN-POOL-SUPPORT-CROSS-v0"
+    family: "(HYPOTHESIS_LOG_ONLY)"
+    status: "SEALED_DO_NOT_CHASE"
+    note: "v0 误用池支撑位线得 +1.24% 的未预注册事件; 封存不追"

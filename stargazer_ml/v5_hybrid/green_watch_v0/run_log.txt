@@ -1,0 +1,26 @@
+GREEN-WATCH-v0 回填回测运行日志
+工作目录：d:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0
+Python：d:/stargazer/.venv/Scripts/python.exe（PYTHONIOENCODING=utf-8）
+
+# 第一轮（池宇宙扩标签前，旧 184 票标签宇宙）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe build_pool.py --force
+  → pool_daily.parquet（3,508,443 行，20210104..20260916，4717 票）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe match_labels.py
+  → pool_events.parquet（匹配 X0_CONTROL 4444 行，匹配率 0.13%）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe pool_backtest.py
+  → ledgers/ledger_*.parquet + backtest_summary.json（池 top20 -1.33%/年 vs F1 -19.34%）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe dip_bucket_analysis.py
+  → dip_buckets.parquet（H-LATR-01 不成立）
+
+# 第二轮（EXIT-GREEN-v2 ① 池宇宙标签扩算 + ② E0-E5 消融）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe validate_labels_pool.py --n-codes 100 --per-code 4
+  → 验证 A：1831/1831 bit 级一致（X0/X1/X1_RF/X2 + E0≡X0 日线）；验证 B：F1 重叠 X1 11008 条全同、X0 1 条源差异
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe label_engine_pool.py --variants X0_CONTROL,X1,X1_RF,X2_STAGED --outdir labels_pool --workers 10
+  → labels_pool/（4 变体 × 1,026,796 事件 = 4,107,184 行；DAILY 3,064,988 + MINUTE 1,042,196），572s
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe label_engine_pool.py --variants E0,E1,E2,E3,E4,E5 --outdir labels_pool_e --workers 10
+  → labels_pool_e/（6 变体 × 1,026,796 = 6,160,776 行，全 DAILY_APPROX），513s
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe audit_pool_labels.py --n 50
+  → audit_pool_labels_50.txt（X0 日线 7/7 朴素重放一致；trail/RF/分钟 VWAP 行与 X0-only 朴素重放不同属预期，
+    语义保证以 validate_labels_pool.py 的 1831/1831 引擎级对账为准）
+PYTHONIOENCODING=utf-8 d:/stargazer/.venv/Scripts/python.exe pool_backtest_e.py
+  → ledgers_e/ + ablation_summary.json（E0-E5 × ALL/BOTTOM/DIP 18 组账本）

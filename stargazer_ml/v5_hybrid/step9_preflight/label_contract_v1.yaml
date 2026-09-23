@@ -1,0 +1,89 @@
+# Step 9 Label Contract v1 (Gate 0 canonical freeze)
+# 本文件是 Step 9 A0-A8 唯一合法标签契约。任何修改 = Target Contract Change，必须记录路线变更。
+contract_version: "label_contract_v1"
+frozen_at: "2026-09-17"
+owner: "Step 9 Preflight Gate 0"
+
+models:
+  S0-v1:
+    role: "Selection / 盘后候选价值"
+    primary_label: "s0_return_h3"
+    primary_horizon: "H3"          # D日Open -> 第3个合法未来交易日Close
+    secondary_label: "s0_alpha_h3"  # sector-neutral diagnostic, 同起止时刻
+    market_proxy_alpha: "s0_market_alpha_h3"  # 缺失指数/缺失 Sector 时的 beta diagnostic (非 sector alpha)
+    robustness_only: ["H1", "H5"]   # 仅 robustness，禁止替换 primary
+    point_in_time: "P日收盘冻结，不得看D日盘中信息"
+  Timing-v1:
+    role: "Entry timing / 盘中介入时点"
+    primary_label: "timing_return_h1"
+    primary_horizon: "H1"          # actual_fill -> 第一个合法卖出交易日Close (T+1约束)
+    secondary_label: "timing_alpha_h1"
+    market_proxy_alpha: "timing_market_alpha_h1"
+    auxiliary: ["MFE_30m", "MAE_30m", "MFE_H1", "MAE_H1"]
+    robustness_only: ["H3"]
+    point_in_time: "snapshot_time 起算，label区间 [actual_fill_time, H1_legal_exit]"
+  R0-v1:
+    role: "Individual stock risk / 左尾"
+    heads: ["p_loss5", "mae_q80", "mae_q90", "failed_rebound"]
+    deprecated_heads: ["p_hard_stop"]   # 作废，不因换特征恢复
+  Portfolio-Gate:
+    primary_exit: "X0"
+    gate_metric: "net_return_x0"
+    exit_sensitivity_only: ["X1", "X1_RF", "X2_STAGED"]  # 仅诊断，不判Entry优劣
+
+all_sample_fields:
+  returns: ["return_h1", "return_h3", "return_h5"]
+  exits: ["net_return_x0", "net_return_x1", "net_return_x1_rf", "net_return_x2_staged"]
+  note: "每个训练样本同时保留上述字段；模型选择与晋级只看预注册 primary。"
+
+alpha_definition:
+  s0_alpha_h3: "s0_return_h3 - sector_return_h3"
+  timing_alpha_h1: "timing_return_h1 - sector_return_h1"
+  rule: "股票与 Sector 必须完全相同的起止时刻；Sector 起点用 actual_fill_time 而非 D日Open。"
+  # ---- MARKET_PROXY-V1 alpha (缺失指数/缺失 Sector 时的 beta diagnostic) ----
+  s0_market_alpha_h3: "s0_return_h3 - market_proxy_return_h3"
+  timing_market_alpha_h1: "timing_return_h1 - market_proxy_return_h1"
+  market_proxy_note: >
+    使用 MARKET_PROXY-V1 (见 market_proxy_v1.py): P日冻结可交易 Universe,
+    equal 或 float 加权, leave-one-out (目标股从代理中剔除)。
+    仅回答 'raw return 是否仅仅来自全市场上涨', 不能替代 Sector Alpha。
+
+# ---- Gate 1B: 需 PIT Sector, 解决前硬阻塞 ----
+blocked_until_pit_sector:
+  description: >
+    Sector / Leader 相关标签与收益源在 PIT Sector 成分解决前一律禁止进入训练/模型选择/A5/Green V1 Gate。
+    严禁用 '当前板块成分' 回填历史 (membership look-ahead): 某公司 2025 属 A 行业、2026 重分类到 B,
+    用 2026 当前成分回填 2025 等于把未来分类信息泄露给模型。
+  blocked_labels:
+    - s0_alpha_h3            # 依赖 sector_return_h3
+    - timing_alpha_h1        # 依赖 sector_return_h1
+    - sector_return_h3
+    - sector_return_h1
+    - leader_return_h3
+    - leader_return_h1
+  blocked_feature_groups:
+    - F9_SECTOR              # sector_ret_5d / sector_vs_market_5d / sector_breadth_20d / sector_ret_intraday
+    - F9_LEADER              # leader_return_5d / leader_return_intraday / leader_weakening_flag
+    - SECTOR_ALPHA_LABELS    # s0_alpha_h3 / timing_alpha_h1
+    - SECTOR_x_STOCK         # sector_strength_x_stock_lag
+    - sector_synchronous_weakening
+  sanction:
+    - 禁止进入训练
+    - 禁止进入模型选择
+    - 禁止进入 A5
+    - 禁止进入 Green V1 Gate
+    - 仅允许 SANITY_CHECK / EXPLORATORY_ONLY (标注 NO_PIT_SECTOR)
+
+target_contract_change:
+  description: "Primary Label / Horizon 的任何后续变化视为 Target Contract Change。"
+  examples_forbidden:
+    - "H3 不好但 H5 好 -> 改成 H5"
+    - "raw 不好但 alpha 好 -> 改 alpha 当 primary"
+    - "无 Sector -> 用当前成分回填 sector alpha 当 secondary"
+  action: "必须写入 开发路线.txt 路线变更记录，不得静默修改。"
+
+raw_vs_alpha_interpretation:
+  - {raw: "强", alpha: "强", meaning: "最理想：市场方向收益 + 板块内增量"}
+  - {raw: "强", alpha: "弱", meaning: "主要依赖板块暴露 (Sector Exposure 主导)"}
+  - {raw: "弱", alpha: "强", meaning: "个股相对选择有效，但整体环境拖累"}
+  - {raw: "弱", alpha: "弱", meaning: "Entry / Selection 均缺乏证据"}

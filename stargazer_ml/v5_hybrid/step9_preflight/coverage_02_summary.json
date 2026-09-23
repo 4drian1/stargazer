@@ -1,0 +1,51 @@
+{
+  "overall": {
+    "n_plan_dates": 416,
+    "date_range": [
+      20241231,
+      20260916
+    ],
+    "total_sampled": 12480,
+    "total_built": 12157,
+    "s0_return_h3_cov_mean": 0.9927,
+    "s0_return_h3_cov_min": 0.0,
+    "s0_market_alpha_h3_cov_mean": 0.9927,
+    "s0_market_alpha_h3_cov_min": 0.0,
+    "timing_return_h1_cov_mean": 0.9975,
+    "timing_return_h1_cov_min": 0.0,
+    "timing_market_alpha_h1_cov_mean": 0.9975,
+    "timing_market_alpha_h1_cov_min": 0.0,
+    "alpha_label_available_cov_mean": 0.9927,
+    "alpha_label_available_cov_min": 0.0,
+    "proxy_weight_coverage_mean": 0.7535,
+    "proxy_weight_coverage_min": 0.705,
+    "proxy_constituent_count_mean": 5698,
+    "proxy_constituent_count_min": 5331,
+    "proxy_constituent_count_max": 7528
+  },
+  "alerts": [
+    {
+      "plan_date": 20260914,
+      "reasons": [
+        "s0_return_h3_cov=0.0 < 0.9",
+        "alpha_label_available_cov=0.0 < 0.9"
+      ]
+    },
+    {
+      "plan_date": 20260915,
+      "reasons": [
+        "s0_return_h3_cov=0.0 < 0.9",
+        "alpha_label_available_cov=0.0 < 0.9"
+      ]
+    },
+    {
+      "plan_date": 20260916,
+      "reasons": [
+        "s0_return_h3_cov=0.0 < 0.9",
+        "timing_return_h1_cov=0.0 < 0.9",
+        "alpha_label_available_cov=0.0 < 0.9"
+      ]
+    }
+  ],
+  "n_alerts": 3
+}
