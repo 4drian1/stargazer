@@ -23,7 +23,7 @@ for /f "tokens=2" %%r in ('git ls-remote --tags --refs --sort=-v:refname origin 
 )
 if not defined TAG (echo [ERROR] no release tag found on remote & pause & exit /b 1)
 echo latest tag: %TAG%
-powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'https://github.com/1075751936a-netizen/stargazer/releases/download/%TAG%/Stargazer.exe' -OutFile $env:DIST_DIR'\Stargazer.exe' } catch { Write-Host $_; exit 2 }"
+powershell -NoProfile -Command "$urls = @('%TAG%/Stargazer.exe', '%TAG%/stargazer_test', '%TAG%/stargazer_test.exe'); $ok = $false; foreach ($u in $urls) { try { Invoke-WebRequest -Uri ('https://github.com/1075751936a-netizen/stargazer/releases/download/' + $u) -OutFile $env:DIST_DIR'\Stargazer.exe'; Write-Host ('downloaded ' + $u); $ok = $true; break } catch { Write-Host ('miss: ' + $u) } }; if (-not $ok) { exit 2 }"
 if errorlevel 1 (echo [ERROR] exe download failed & pause & exit /b 1)
 echo === done. config and data are NOT touched. ===
 pause
