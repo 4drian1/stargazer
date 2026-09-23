@@ -20,6 +20,12 @@
     未做按档位/按成交量的真实冲击模型。
   - 分红/拆股在 horizon 内会造成 raw 价跳变; 此处按用户裁决用 raw 价计算 PnL,
     不排除未来在 ② 阶段引入拆股 ratio 调整。
+
+永久合同 (EXECUTION_CONTRACT_V1, v1, 2026-09-23 冻结):
+  - price_anchor_bar_ts = 09:30 (开盘 bar; **仅作定价锚, 不可作为 signal_ts 的成交分钟**)
+  - legal_fill_minutes  = [09:31, 11:30] ∪ [13:01, 15:00]  (与下方 _AM / _PM 同义)
+  - 永远: signal_ts ∈ legal_fill_minutes 且 signal_ts < actual_fill_ts (严格 <; 触发同分钟不可成交)
+  - 详见 opportunity_v2/contracts/execution_contract_v1.md
 """
 from __future__ import annotations
 
@@ -35,6 +41,12 @@ DEFAULT_FEE_BPS = 2.1        # 印花(卖出)+佣金的双向均摊近似
 # 涨跌停近似 (主板 ±10%)
 LIMIT_UP_FACTOR = 1.10
 LIMIT_DN_FACTOR = 0.90
+
+# === EXECUTION_CONTRACT_V1 冻结常量 (do not change without v2) ===
+EXECUTION_CONTRACT_VERSION = "v1"
+PRICE_ANCHOR_BAR_HHMM = 930              # 09:30 开盘 bar; 仅作定价锚, 不可成交
+LEGAL_FILL_AM = _AM                     # [09:31, 11:30] 连续竞价 (与 _AM 同义, 公开名)
+LEGAL_FILL_PM = _PM                     # [13:01, 15:00] 连续竞价 (与 _PM 同义, 公开名)
 
 
 def _hhmm(ts14: int) -> int:
