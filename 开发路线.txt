@@ -1759,3 +1759,9 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - 注记入档：① epoch 止 0908 而 stockdb 分钟至 0916，余 6 交易日走日频 append 通道，C6 replay 必须覆盖 append 路径；② C3 板块归属 join 键=申万 PIT as-of membership（pit_membership_artifact_ref 已冻结），manifest 须显式写明。
 - **C4 预注册（同日落定，含三补丁）**：same-time 量能基线——cum volume/amount/turnover(≤S) ÷ 历史同时刻基线（lookback_end≤P，**窗口类型预注册二选一冻结**：expanding 或 rolling-60，事后不得挑）；**min_lookback_days 现在就冻结（建议 40-60）+ 启动期策略（不足则 baseline_valid=0，不硬算薄窗）**= C4 版分母伪影防线；raw 累积量与 ratio 双留（不留单 ratio）；hole→NaN/真实无交易→0 延续；denominator guard=baseline_valid 阈值预注册；QA 五条照批（causal parity/same-time clock/**U 型结构校验加断言：开盘 30 分钟与午盘低迷段 baseline 中位数须显著不同，验证 U 型被 same-time 口径真实吸收**/cumulative 单调/replay hash）。
 - **OPEN_ITEM（路线级）**：O5 主实验（P_CLOSE 日频 A/B/C/D）裁决状态待确认——按锁定顺序它应先于 INTRADAY_SECTOR_DIFFUSION；若已跑完须登记裁决，若未跑须先回主线。确认前 Gate1C 继续但不宣布主线推进。
+
+### P_CLOSE 静态机会线正式封盘 + C4 启动（2026-09-23 用户终审）
+- **P_CLOSE Opportunity track = CLOSED**：O1/O2/O3/O5 四连 FAIL 全部带证据链归档；hyp05_sector_lag/ 的 1A/1B 重复实现=数据层复验（695 样本四项对拍 max_err~1e-15 PASS），**不构成重开依据**；禁止：相邻假设填坑/事后换阈值/HYP-05b。
+- **C4 定位钉死（防误读）**：不是"O5 日频失败换分钟继续试"；日频 sector-lag 假设已死，C4 建设的是**独立预注册的盘中信息形成假设**的研究时间尺度（intraday event formation × same-time context × liquidity state）。三个硬约束：①只看基础设施指标（coverage/missing/baseline validity），**不看未来收益/不挑 threshold**；②baseline 严格 causal（当前≤S，历史≤P，禁全 epoch 回填）；③MINUTE_SOURCE_HOLE→NaN ≠ 真实无交易→0（7% 洞不得变成缩量信号）。
+- **C4 预注册补钉（本日落定）**：min_lookback_days=50（启动期不足→baseline_valid=0）；baseline 窗口=**expanding**（冻结，不挑）；QA 五条 + U 型结构断言（开盘 30 分钟 vs 午盘低迷段 baseline 中位数须显著不同）。
+- **更大反思的触发线**：INTRADAY_SECTOR_DIFFUSION / HYP-07 SHOCK / O6 也连续失败 → 才做 Opportunity Track Review 考虑主资源转 Information/Risk/Policy。现在未到节点。
