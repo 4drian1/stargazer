@@ -1839,3 +1839,10 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - **面板落盘**：5.07 亿行 × 23.4GB（`gate1c_c4/c4_panel.parquet`，sha256=6c95ce90… 冻结），20/20 chunk 全绿，day_status：OK 2,101,927 / HOLE 5,137 / 停牌 566 / 上市前 17,688；中间件（parts 21GB/缓存）已清。
 - **QA 首轮 4/6 过**：same-time 时钟/全量单调性/replay hash 全 PASS；qa1 causal 对拍大面积不一致（疑为分钟缓存 volume_scale_factor 修复口径 vs QA 原始分钟口径之争，待定性）、qa4 hole/zero 20 条失败全集中 603126 单票（待归因）、qa3 U 型断言采样落在 baseline 启动期致无效（改期重测）。
 - 诊断中（面板 bug or QA 标尺 bug 二一定性；修复后重跑受影响项，原结果留审计存根）。
+
+### C4 收官登记（2026-09-26，诊断后 ALL_PASS）
+- **C4_SAMETIME_BASELINE_V1 = FROZEN**：c4_panel.parquet 5.07 亿行/23.4GB（sha256 6c95ce90… 不变），六项 QA 全 PASS（qa1/qa4 首轮 FAIL 系 QA 读取 bug：rg 偏移+int32 溢出，已修；失败存根 C4_QA_RESULTS.failed_stub.json 留审计）。
+- **U 型断言实测成立**：开盘 30 分钟 baseline 中位 71,400 股 vs 午盘 19,800 股（3.61x，p≈0）——same-time 口径真实吸收日内结构。
+- 覆盖：分钟级 valid 99.88%、MINUTE_SOURCE_HOLE 0.12%（NaN 语义）、真实无交易 12.28M（0 量=真实信息）、baseline_valid 87.59%（min_lookback=50 启动期置 0）。
+- 坑入档：QA 对拍 harness 自身是 bug 高发区（读 rg 必须绝对行号；int 日期用 int64）；分钟镜像缓存 volume_scale_factor 本次证实无关（构建全程 stockdb 直连）。
+- NEXT：C5（liquidity/tradability 状态合同，轻量）→ C6（replay 审计）→ Gate1C FINAL → INTRADAY_SECTOR_DIFFUSION_V1。
