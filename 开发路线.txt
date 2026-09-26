@@ -1,5 +1,13 @@
 
 
+## 当前执行索引（2026-09-26 本地实物审计；详细依据见文末变更记录 #8）
+
+- **当前不是换模型/大规模调参阶段**：C2/C3 全 epoch 文件已生成，但 C3 发现行业名称拆组缺陷，须完成代码键语义复验；C4 已有分块产物，尚无全量验收通过证据。先补这些质量门，再进入 C5/C6 和预注册盘中机会实验。
+- **现有模型边界不变**：GREEN 继续冻结影子观察，P_CLOSE O1/O2/O3/O5 保持关闭；不因本次文档修订重开失败假设或升级为正式买入建议。
+- **模型优化顺序**：新实验预注册常量/简单规则/正则化逻辑回归基线；有可复核条件增量后，才允许有限预算贝叶斯调参。既有失败实验不得事后追加模型搜索救结果。
+- **资源与交接**：重任务串行；首个正式盘中假设裁决后即做预算复盘，可结束本轮并转 Corvus，不要求先把三个盘中方向全部做失败。Corvus 自动采集、健康检查与 GREEN 影子记录继续轻量运行。
+- 本索引及记录 #8 修订冲突处；历史记录保留，不把“规范已修改”写成“代码/产物已修复”。本次只维护路线文档，未修改模型、未启动或停止训练/构建。
+
 - 近期主线：把新绿盘低吸做成一个可回测、可解释、可影子运行的模型。
 - 中期主线：完成 Corvus → Pyxis → Astrolabe，使环境风险能够调节买入和退出。
 - 两条线最终在 Stargazer Agent 汇合，但现在不让未验证的环境判断污染绿盘训练。
@@ -1614,7 +1622,7 @@ STEP1（诊断，进行中）→ O2A → O3 → 至少一个 Opportunity Source 
 - **梯度（关键机制证据，带方向标注）**：强行业内 `lag_gap_5d` 10 分位 —— bin0（已跑赢行业，lag_gap≤−0.067）均值 **−0.139%**，bin1-8 几乎恒定 **+0.26~+0.32%**，bin9 +0.443%；单调 spearman **0.20**。**判定：是"是否已跑赢行业"的单步台阶，不是"越落后 → 未来越强"的剂量关系（期望剂量为正）→ P3 FAIL**。对照：全母池 `stock_ex_5d` 梯度 spearman −0.04（hi−lo −0.055pp，弱反转）；全母池 `sec_str_ex_5d` 梯度 spearman 0.76（hi−lo +0.144pp）。
 - **集中度**：base paired 0.212%；去最佳行业 0.211%；去最大行业 0.251%；top-10 票贡献 10.4% → 非集中驱动（P6 YES，排除"最佳行业/龙头票撑起"）。
 - **三点判读**：① A−B 的 0.26pp **全部来自 B 组（强行业内 5 日已跑赢行业的票）未来更差**（−0.14% vs +0.28%）= **短期 winner 反转**，不是 laggard 补涨；与 O1 `EXTREME_STRENGTH_SHORT_TERM_REVERSAL`(HYPOTHESIS_LOG_ONLY) 及 Route Review Q2（k≥5 日自相关全负）一致。② **A≈D 且 A≈C**（两者 CI 均含 0）→ A 的收益可被"同档弱势、非强行业票"或"同日 matched eligible"完全解释 = **无 sector 信息增量**。③ lag_gap 无剂量梯度 → 处理组不是"行业已动、个股未吸收"的连续强度。
-- **O5 故事的结论**：跨实体信息扩散（板块冲击→个股未同步→补涨）**不成立**。OD-V2 四连 FAIL（O1 反转 / O2A 分母伪影 / O3 CI 含 0 / O5 A−D≈0 且无剂量梯度），且**"跨实体信息关系"这一唯一机制差异维度也已被证伪**。
+- **O5 结论边界（2026-09-26 澄清，不重开实验）**：当前冻结的 P_CLOSE 板块冲击→个股滞后定义，未证明独立增量，按预定规则 FAIL 并关闭。OD-V2 四连 FAIL（O1 反转 / O2A 分母伪影 / O3 CI 含 0 / O5 A−D≈0 且无剂量梯度）不等于证明“一切跨实体信息关系均无效”；区间含 0 也不是效应严格为 0 的证明。盘中形成/信息事件是不同的预注册问题，不能拿来事后翻案 O5。
 - **纪律执行**：O5 线关闭；**不开第五个 P_CLOSE 静态状态假设填坑**、不调阈值/不换窗/不换匹配口径/不上 ML 救；不设 HYP-05b。
 - **可复用资产（与结论无关，保留）**：`pit_membership.parquet`（PIT 申万 membership，PASS_FOR_RESEARCH）+ `o5_1a_sector_proxy.parquet`（exclude-target float_mv 加权 sector/market 5d/10d proxy，已过 LOO parity；键 = `index_code_l1`）+ `o5_1b_parity_gate.py`（两层对拍范式，可作后续 LOO 类实现的 Gate 模板）。**不入档**：`sector_lag_v0.py`（O5 专用、阈值硬编码，禁换参重跑）。
 - **登记同步**：`hypothesis_registry_v1.yaml` 已把 O5 槽位更新为 `HYP-05-SECTOR-STRENGTH-STOCK-LAG-v1 = ARCHIVED_FAIL`；原占位符保留为 `O5b-RELATIVE-STRENGTH-DIVERGENCE`（REGISTERED_NOT_STARTED，默认不启动）。
@@ -1725,7 +1733,7 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - **实现**：`c2_market_sametime.py`（builder + `materialize_ex_stock`）+ `c2_qa_parity.py`；canonical grid 241 点手工枚举（**HHMM 是 packed 整数，`range(930,1131)` 会引入 961/1061 无效分钟——踩坑已修**）。
 - **QA（SEED=42 随机 5 日 × full universe = 27,094 symbol-date）全 PASS**：数学层 vectorized vs naive loop **max_abs_diff=0.0**；LOO 代数 vs naive exclude ≤1.6e-17；parquet round-trip；`feature_asof_ts==minute_ts`；覆盖退化实测捕获 HOLE 357/323、SUSPENDED、synthetic-only 42。
 - **关键 bug 修复（已回写契约 §2.2d）**：朴素 LOO 代数 `(sum_wr−w_i·r_i)/(sum_w−w_i)` 在 target 有 MISSING_BAR 分钟时多减 w_i（实测 300750@20260211 10:39 单分钟缺 bar → 误差 5e-5）；修正为 **per-minute contributed 指示符** `c_i(S)`；`materialize_ex_stock` 端到端验证 1.1e-17。
-- **状态**：C2 QA 样本 PASS；**全 epoch（~409 日）全量生成待跑（~3.5h 含缓存）**，建议与 C3 sector 面板同批。下一步 = C3 Sector LOO（PIT SW-L1 membership + `materialize` 范式 + `MIN_SECTOR_COVERAGE=0.60`/`MIN_VALID_MEMBERS_EX_STOCK=5`）。
+- **历史状态（已被后续登记替代）**：当时 C2 QA 样本 PASS、全 epoch 待跑；现已生成 409 日 C2/C3 文件，实物 manifest 时间为 2026-09-25。C3 新发现的行业键复验和 C4 当前状态以记录 #8 为准，不再按“全量待跑”重复启动。
 
 ---
 
@@ -1741,8 +1749,8 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 
 - 将 `strategy_eligible_scope`、`research_data_scope`、`inference_scope`、`benchmark_scope` 分开。当前 `CORE_A_SHARE_RESEARCH_SCOPE_V1` 暂含沪深主板、创业板、科创板股票；这是 **当前分钟研究域**，不是 GREEN 永久可交易域。ETF/FUND 不混入股票 Opportunity 池；北交所股票登记为当前研究不支持，不推断永久无效。资产类型以 `instrument_type` 等可审计字段确认，不靠股票代码前缀单独判定。
 - 镜像版每个产物记录 `data_scope_id`、源/清洗版本及哈希、snapshot id、研究/推理/基准域、覆盖日期和排除原因。`candidate`、市场/行业 proxy、同分钟 matched control、label 必须在同一域；原始候选母表保留被排除记录及 `scope_exclusion_reason`，禁止 `dropna()` 静默丢样本。镜像聚合字段必须使用 `_proxy` 或同等显式 scope 命名，不能与 `FULL_AVAILABLE_STOCK_UNIVERSE` 同名混拼。
-- 附件所报“全候选约 95% 覆盖、核心板块约 97%—99.8%”仅是**待复算的候选覆盖描述**，不是 Gate1C-C2/C3 的通过证明。正式验收须补 `coverage_by_trade_date / symbol / setup / sector`，每日、每行业检查成员数、流通市值覆盖和 ex-stock 有效成员数；沿用冻结的 `MIN_SECTOR_COVERAGE=0.60 / MIN_MARKET_COVERAGE=0.80 / MIN_VALID_MEMBERS_EX_STOCK=5`，不达标则 `aggregate_valid=0`。特别审计镜像股票集合是否由历史候选选择造成基准/对照组偏差；不得仅因候选行覆盖高就声称板块或大盘 proxy 有代表性。
-- 镜像版按 C2 市场 → C3 行业 LOO → C4 量额基准 → C5 状态 → C6 回放与可观测**逐阶段串行**，每段通过 PIT/LOO parity、时间戳、缺失与 synthetic bar、可复现验收后才进入下一段。原冻结 `signal_ts < actual_fill_ts`、同分钟 risk-set、分钟与日频标签隔离不变。stockdb 恢复后做 `FULL_SOURCE_RECONCILIATION_GATE`；扩大推理域或用于正式建议前，必须在目标域重新验证来源一致性和模型表现。
+- 附件所报“全候选约 95% 覆盖、核心板块约 97%—99.8%”不是 Gate1C-C2/C3 的通过证明。正式验收须补 `coverage_by_trade_date / symbol / setup / sector`，分别记录镜像域内成员可用率、相对全 CORE 的成员/流通市值代表性和 ex-stock 有效成员数；沿用冻结的 `MIN_SECTOR_COVERAGE=0.60 / MIN_MARKET_COVERAGE=0.80 / MIN_VALID_MEMBERS_EX_STOCK=5`。市场 0.80 按已签字的 **member_coverage 主门**执行，float_mv 为另列指标；每项显式记录 numerator/denominator/scope，禁止把镜像内部 80% 当全 CORE 80%。相对全 CORE 的镜像流通市值覆盖实测约 39.51%，仅可降级研究；行业有效名单须在记录 #8 的代码键修复后重新验收。
+- 镜像版按 C2 市场 → C3 行业 LOO → C4 量额基准 → C5 状态 → C6 回放与可观测**逐阶段串行**，每段通过 PIT/LOO parity、时间戳、缺失与 synthetic bar、可复现验收后才进入下一段。原冻结 `signal_ts < actual_fill_ts`、同分钟 risk-set、分钟与日频标签隔离不变。`FULL_SOURCE_RECONCILIATION_GATE` 与契约 §8.6 一致：**发现正的盘中 edge、拟启用当前无效行业、扩大到全 CORE 结论/推理域或用于正式建议**，任一即触发全源复核；不是仅上线前才做。stockdb 恢复可先做轻量同票同日对拍，不据此自动启动全量重建。
 
 ### Opportunity → Corvus 的串行交接
 
@@ -1752,16 +1760,82 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 
 **资源纪律**：一个时段只跑一项全量聚合、历史回填或长训练；常驻定时采集、健康报告和 GREEN 影子日志可继续，但若与全量任务争抢内存/磁盘 IO，应错峰。切换主任务前保存阶段产物、数据快照、失败记录和恢复入口。本记录为排程与研究域修订，不追认尚未完成的 Gate1C-C3～C6 或 Corvus-C2/C3 为 PASS。
 
-### Gate1C C2/C3 全量 epoch 冻结登记（2026-09-23，O5 并行线，主代理评审通过）
-- **合同 C2_C3_FULL_EPOCH_BUILD_V1 收口**：chunked deterministic（calendar_month），epoch 20250102~20260908（409 交易日，对齐 Gate1A 冻结 MINUTE_START）；C2_FULL 98,569 行/C3_FULL 3,449,915 行，主键唯一、schema 无漂移、sector 27 有效+8 invalid 全齐；**全程零 alpha 计算**（数据血缘 QA only，预注册纪律）；artifact hash 冻结（C2=4c4db238…/C3=76d8a7e4…），C4/C5/C6 只许引用 frozen refs，不得临时重算。
+### Gate1C C2/C3 全量 epoch 冻结登记（原记 2026-09-23；实物 manifest 创建于 2026-09-25，审计补注 2026-09-26）
+- **合同 C2_C3_FULL_EPOCH_BUILD_V1 构建登记**：chunked deterministic（calendar_month），epoch 20250102~20260908（409 交易日，对齐 Gate1A 冻结 MINUTE_START）；C2_FULL 98,569 行/C3_FULL 3,449,915 行，主键唯一、schema 无漂移、旧名称分桶 27 有效+8 invalid 全齐；**全程零 alpha 计算**（数据血缘 QA only，预注册纪律）；manifest 声明 artifact hash（C2=4c4db238…/C3=76d8a7e4…）。数学/落盘 PASS 不覆盖行业键语义，C3 当前使用资格标为 `NEEDS_SECTOR_KEY_REVALIDATION`（路线裁决，见 #8）；旧产物保留，修复须新版本+新 hash，禁止原地改 frozen refs 后沿用旧 PASS。
 - 源成分可追溯：real 92.4% / hole 7.5%（MINUTE_SOURCE_HOLE→NaN 不置零）/ synthetic no-trade（0量=真实信息）/ suspended；synthetic≠hole 语义延续 C1c。
-- **METADATA_ONLY_FIX（同意）**：manifest.status_tally.OK=81 系 tally 漏计，权威 day-level bucket 自洽；只修 manifest/QA 报告 tally 生成逻辑，artifact/hash/数据不动。
+- **METADATA_ONLY_FIX（已同意、仍待落实）**：2026-09-26 实读 manifest.status_tally.OK 仍为 81；不可把“同意修复”记成已修。补计数核对及带 supersedes 的 metadata 修订版本，artifact 数据/hash 不动；行数/日期/状态分母需能对账。
 - 注记入档：① epoch 止 0908 而 stockdb 分钟至 0916，余 6 交易日走日频 append 通道，C6 replay 必须覆盖 append 路径；② C3 板块归属 join 键=申万 PIT as-of membership（pit_membership_artifact_ref 已冻结），manifest 须显式写明。
-- **C4 预注册（同日落定，含三补丁）**：same-time 量能基线——cum volume/amount/turnover(≤S) ÷ 历史同时刻基线（lookback_end≤P，**窗口类型预注册二选一冻结**：expanding 或 rolling-60，事后不得挑）；**min_lookback_days 现在就冻结（建议 40-60）+ 启动期策略（不足则 baseline_valid=0，不硬算薄窗）**= C4 版分母伪影防线；raw 累积量与 ratio 双留（不留单 ratio）；hole→NaN/真实无交易→0 延续；denominator guard=baseline_valid 阈值预注册；QA 五条照批（causal parity/same-time clock/**U 型结构校验加断言：开盘 30 分钟与午盘低迷段 baseline 中位数须显著不同，验证 U 型被 same-time 口径真实吸收**/cumulative 单调/replay hash）。
-- **OPEN_ITEM（路线级）**：O5 主实验（P_CLOSE 日频 A/B/C/D）裁决状态待确认——按锁定顺序它应先于 INTRADAY_SECTOR_DIFFUSION；若已跑完须登记裁决，若未跑须先回主线。确认前 Gate1C 继续但不宣布主线推进。
+- **C4 预注册（已收敛）**：same-time 量额基线 = 当前截至 S 的累计量/额 ÷ 历史同一 S 累计量/额中位数；历史日期严格早于决策日 D。窗口固定 expanding、min_lookback_days=50，不足则 baseline_valid=0；raw 与 ratio 双留。原“二选一/建议 40—60”不再是开放选项。换手定义、缺失前缀和 QA 修正见 #8，须先同步契约再重建受影响产物。
+- **CLOSED_ITEM（2026-09-26 复核）**：O5 已完成且 FAIL，见 `opportunity_v2/o5_sector_lag/sector_lag_v0.md` 及下段封盘登记；原“待确认”状态关闭，不重跑、不阻塞独立盘中基建。
 
 ### P_CLOSE 静态机会线正式封盘 + C4 启动（2026-09-23 用户终审）
 - **P_CLOSE Opportunity track = CLOSED**：O1/O2/O3/O5 四连 FAIL 全部带证据链归档；hyp05_sector_lag/ 的 1A/1B 重复实现=数据层复验（695 样本四项对拍 max_err~1e-15 PASS），**不构成重开依据**；禁止：相邻假设填坑/事后换阈值/HYP-05b。
 - **C4 定位钉死（防误读）**：不是"O5 日频失败换分钟继续试"；日频 sector-lag 假设已死，C4 建设的是**独立预注册的盘中信息形成假设**的研究时间尺度（intraday event formation × same-time context × liquidity state）。三个硬约束：①只看基础设施指标（coverage/missing/baseline validity），**不看未来收益/不挑 threshold**；②baseline 严格 causal（当前≤S，历史≤P，禁全 epoch 回填）；③MINUTE_SOURCE_HOLE→NaN ≠ 真实无交易→0（7% 洞不得变成缩量信号）。
-- **C4 预注册补钉（本日落定）**：min_lookback_days=50（启动期不足→baseline_valid=0）；baseline 窗口=**expanding**（冻结，不挑）；QA 五条 + U 型结构断言（开盘 30 分钟 vs 午盘低迷段 baseline 中位数须显著不同）。
-- **更大反思的触发线**：INTRADAY_SECTOR_DIFFUSION / HYP-07 SHOCK / O6 也连续失败 → 才做 Opportunity Track Review 考虑主资源转 Information/Risk/Policy。现在未到节点。
+- **C4 预注册补钉（2026-09-26 修订 QA）**：min_lookback_days=50、expanding 不变；QA 检查历史截断、同分钟对齐、启动期与有效期、hole/真实零成交、累计单调、确定性重放。**取消累计量 U 型硬断言**：日内 U 型只能对等长时段的增量/强度作分层描述，不能要求开盘累计量高于午盘累计量，也不能要求每只股票必有 U 型。详见 #8。
+- **路线复盘出口（与记录 #7 统一）**：首个 INTRADAY_SECTOR_DIFFUSION 正式裁决后即复盘预算和证据，允许转 Corvus；只有另行决定继续才依原顺序做 HYP-07 SHOCK、O6。不要求三者全部失败后才转向，也不因已投入成本无限追加假设。
+
+---
+
+## 2026-09-26 路线变更记录 #8：实物审计、Gate1C 修正与有限模型优化
+
+### 8.1 审计范围与当前状态
+
+- 本次只读核对路线、C2/C3 epoch manifest、C3 源码与 PIT 表、镜像预检、C4 源码/试跑 QA/进度；另对 C4 累计纯函数作隔离小样本复现。**没有执行全量重建、alpha 重算、模型训练或修改运行进程**。以下 PASS 限于产物所报范围，不等于全面独立验收。
+- 相对路径以下均基于 `D:/stargazer/stargazer_ml/v5_hybrid/`。C2/C3：`opportunity_v2/gate1c/epoch_build_v1/EPOCH_MANIFEST.json`，21/21 月块 OK、409 日，数学/主键/版本检查已有产物；C3 行业键问题仍需补验收，不能直接衔接机会训练。
+- C4：`opportunity_v2/gate1c_c4/C4_PROGRESS.json` 读取时有 15 个 done 分块、覆盖 3,900/5,200 股票；目录仅有 DRYRUN manifest、进度与试跑 QA，未见全量 manifest/全量验收报告。**分块完成≠全量完成；文件进度不证明进程仍在运行**。本轮进程命令行查询被系统拒绝，未将任务定性为正常/崩溃，也未重复启动。
+- `C4_QA_RESULTS.json` 为 20 日试跑：baseline_valid 恒 0，QA3 未执行（null），ALL_PASS=false；QA4 的 hole 样本数为 0。其余 PASS 只覆盖被执行路径，不能据此宣称量比有效期/缺分钟处理已验证。
+
+### 8.2 先修的数据/验收问题（未修复前不得晋级）
+
+**Q1｜C3 行业键再次退回中文名称：已证实，阻塞行业聚合晋级。**
+
+- `gate1c/c3_sector_sametime.py:154-156` 用 `industry_name_l1` 建 membership 和分组，而原路线 O5-1A 已冻结 `index_code_l1` 及明确的缺码回退键。PIT 表在 2025-03-03 有 31 个非空一级代码、37 个名称；801030 被分成“化工”111 只与“基础化工”333 只，801200 为“商业贸易”51 与“商贸零售”61，801730 为“电力设备”367 与“电气设备”29。2025-09-25 同类拆分仍存在。这不是未来信息问题，而是同一行业被人为拆组；同样使用名称的 naive 对拍无法发现它。
+- 下步复用已审计代码键/回退映射，保留 PIT 生效区间与名称展示，验证每个 symbol-P 唯一归属、别名合并不改变真实历史行业切换；重跑小样本数学+落盘+语义三层 QA。**旧 27 valid/8 invalid 是名称桶结果，不能原样迁到代码桶**；在不看收益的前提下按同一冻结标准重做行业覆盖与 full/mirror 预检，再发新版 C3 与 scope/validity manifest。旧产物留档，不把其 35 桶数量作为新版本必须匹配的验收值。
+
+**Q2｜C4 U 型验收指标用错：已证实；20 日试跑未覆盖正路径。**
+
+- `gate1c_c4/c4_sametime_v1.py:856-892` 对 `expected_cum_volume_same_time` 要求开盘中位数大于午盘（单侧检验 greater）。相同股票/完整日的累计量不应因“午盘清淡”而减少；不同覆盖样本下的组间中位数差也不能证明 U 型。取消该硬门，不反向改阈值使其通过。
+- 同分钟正确性的硬验收改为独立手算与可控合成例；至少覆盖 50 个有效历史日后的非空分母/非空 ratio，另含不足 50 日和分母为零。验证第 D 日及 D 之后数据改变不影响历史分母，S 之后分钟改变不影响 S 的当前值。日内季节性用同票同日、等长交易分钟区间的**增量量/额**作描述，剔除竞价锚和午休的时长差，不强制所有股票符合某种形状。
+
+**Q3｜C4 缺分钟后累计值恢复但少计成交：已证实，阻塞量额有效性。**
+
+- `_cum_skip_nan` 对 `[10, 缺失, 30]` 返回 `[10, NaN, 40]`（本轮隔离复现）；40 只能叫“已观察累计”，不是已知完整累计。现实现随后可进入同刻历史基线，缺口可能被误学成缩量；累计单调测试不能发现此问题。
+- 增加截至 S 的量额前缀完整性/有效性：有未知分钟则当前累计/量比与该历史日同刻分母样本不得标完整有效；可保留 observed_cum 诊断列，但不能填缺口为零。只有权威累计字段可因果补齐时才恢复有效并留证据。真实存在且 volume/amount=0 的无交易 bar 仍有效。QA 必须包含真实或合成 hole，不能以 0 个 hole 样本判该分支 PASS；量额前缀无效不必抹掉仍可用的价格特征。
+
+**Q4｜契约、来源与股本时点待统一：已发现不一致，前视风险尚待证据，不冒称已证明泄漏。**
+
+- 路线/实现已选 expanding+50，`GATE1C_CONTRACT.md` 的 C4 仍有 rolling-60；市场覆盖也同时留有 float_mv 0.80 与 member 0.80 两种表述。先按最新签字口径同步契约、测试和 manifest，发布修订版，再继续计算。
+- C4 实现以 `D` 当日日线 `float_share` 算 `cum_volume/float_share`；原契约另写 `cum_amount/P日float_mv` 代理。两者不是可静默互换的同一字段。分别命名、记录单位/复权/股本来源；真实换手分母必须证明 `available_at≤S`，无该证据时使用上一已知股本并记录 as-of，不能把日线日期当作盘中可见证明。不能用改名掩盖标签/模型输入含义变化。
+- C4 DRYRUN 声明 STOCKDB_HTTP、is_proxy=false、5,200 股；C2/C3 冻结的是 MIRROR_CANONICAL proxy。更广的原始缓存可保留，但融合实验仍限制在冻结共同域。先做同票同日同分钟价格、量额单位、修复标记、缺口与股本时点对拍；不能因 HTTP 可用就继承镜像清洗 PASS，也不能用 C4 的全源标志把融合结果改称全市场。
+
+**Q5｜镜像代表性与研究有效性须分开：降级可研究，不是全市场 PASS。**
+
+- `gate1c/GATE1C_C3_PRECHECK_FULL_VS_MIRROR_SECTOR_V1.json` 为 `DEGRADED_BUT_RESEARCHABLE`：总流通市值覆盖 0.3951、有 6 个行业方向翻转。C3 代码键修复后须重做该预检，原数值仅描述旧版本；候选覆盖很高不能抵消基准的中小盘/创业科创偏置。
+- 保留 excluded/invalid 行和原因；明确行情可用、proxy有效、策略合格三个不同标志。任何正 edge 触发全源对账；若 full-source 不支持，就只保留镜像域假设，不推成 GREEN 全域建议。
+
+### 8.3 模型优化方式：先小基线，后有限搜索
+
+1. **职责不混**：Opportunity 研究“是否形成有增量的机会”；GREEN 研究符合战法后的时机/风险。现有 GREEN 冻结模型不因实验自动替换，Corvus/Pyxis 总架构不变。逻辑回归是可解释概率基线，贝叶斯优化是超参数搜索方法，不是额外的选股信号，也不替代数据/标签修复。
+2. **新增到尚未开跑的实验预注册，不追认历史**：Gate1C-C6 过门后，首个盘中假设在看结果前写明同一候选/同一分钟风险集上的常量概率、简单规则、L2 正则逻辑回归对照；可预注册极少量有依据的交互。只在开发段比较少量固定正则强度，缺失填充/标准化/特征筛选均在各训练折拟合。样本不足先描述，不承诺 LR 能创造盈利。
+3. **标签与收益一致**：机会分类目标由冻结可执行规则产生，例如固定 H3/H5 主次关系下的成本后收益正负，不能用事后最高价/最佳入场日；风险分类对应实际损失/尾部事件，两头独立评估。`p_up` 不等于净 EV，`1-p_stop` 不等于胜率；仍检查实际单笔净收益、同分钟增量、覆盖/容量和真钱账本。若构造三状态概率，采用同路径互斥标签和归一多分类，不拼三个未约束概率。
+4. **不再把裸池负均值当数学不可能**：裸池平均亏损不排除存在正的条件子集。新假设可事前注册一次有预算的简单条件学习检验，与机制/对照结果一起裁决；这不更改旧 O1/O2/O3/O5 FAIL，不允许看过失败结果再给旧实验临时加 LR、切片或搜参。正均值也不自动证明条件排序有效。
+5. **贝叶斯调参后置、串行**：仅在干净基线有跨时间开发折可复核增量、且未触发原硬否决后启用。每次预注册一个模型家族与固定搜索空间，默认最多 30 trials、n_jobs=1；不同时搜索候选定义、标签、退出规则、持有期或板块名单。LR 优先少量固定参数比较，树模型再考虑 TPE 等有限搜索；不得“失败就加预算”或挑最有利随机种子。
+6. **验证结构**：嵌套前向时间划分，内层选超参数/校准/阈值，外层只评估；按 `label_end` 清除跨界重叠，依冻结持有期设隔离间隔，同一事件各决策点/目标档不拆折。分类内层主目标事先选择 log loss 或 Brier，辅看 PR-AUC 与校准；最终仍以原冻结经济/风险门验收，不优化单一年化峰值。校准模型与阈值绑定同版本评分器，禁止 OOF 阈值直接套尺度已变的全量 refit。
+7. **样本与证据边界**：分钟行数不是独立样本数；同时报独立事件、股票、交易日与月份，区间按交易日/连续时间块估计，重叠持有窗口保留相关性。2025/2026 已被反复观察的区间只作开发/压力描述，不重新命名纯样本外；确认需冻结后的未见前瞻数据。只允许轻量基线的先验学习，不允许反向时间折参与部署模型选择。
+
+方法参考（采用原则，不照搬随机交叉验证示例）：[正则化逻辑回归](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html)、[嵌套选择与外层评估](https://scikit-learn.org/stable/auto_examples/model_selection/plot_nested_cross_validation_iris.html)、[Optuna 搜索与剪枝](https://optuna.readthedocs.io/en/stable/tutorial/10_key_features/003_efficient_optimization_algorithms.html)。
+
+### 8.4 从当前状态出发的执行清单（重任务仍全部串行）
+
+1. **先小修与小样本验收**：同步 C3 代码键/C4 契约，修累计缺口与 QA，补股本 PIT/跨源对拍；C2 metadata 单独修订。不重训、不看收益选修法。现存 C4 分块先保留；恢复/续跑前核对进程和版本 hash，不重复启动，不把旧逻辑分块混入修复版。
+2. **再重建必要产物**：新版本 C3 行业分组与 full/mirror 预检 → C4 受影响字段/分块 → 有效期+缺口 QA；用依赖/hash确定重算范围，不无差别重拉所有数据。完成后更新本索引与产物 manifest，不留“待跑/完成”两种当前状态。
+3. **完成 Gate1C-C5/C6**：共同域融合、状态/可见时间、append 回放、缺数据降级和幂等可观测；通过才允许正式盘中假设实验。数百万分钟行/数学 parity 不能替代语义与可成交验收。
+4. **首个盘中实验一次预注册、一次裁决**：`INTRADAY_SECTOR_DIFFUSION_V1` 的 A/B/C/D 与有限简单模型基线一起预注册；有增量须先 full-source 复核，再做与 GREEN 的影子增量/重叠去重比较。未过则归档，不解锁贝叶斯搜索去救结果。
+5. **立即做路线预算复盘并允许交接**：可结束 Opportunity 本轮转 Corvus-C2 数据验收→Corvus-C3 历史信息影响基线→Corvus-C4 影子；是否继续 HYP-07/O6 是另一次明确立项，不是强制耗尽队列。Corvus 闭环已经存在，但闭环可运行≠有足量成熟训练标签，仍按记录 #7/原 C2 标签门执行。
+
+本次修订的完成标准是“问题、证据、修法、影响阶段和停止条件已写清”，不是宣称这些代码问题已经修好。后续执行须逐项留下新版产物和验收；旧失败实验、旧 C3/C4 产物及本次审计证据继续保留。
+
+### C4 构建完成 + QA 首轮结果（2026-09-26）
+- **面板落盘**：5.07 亿行 × 23.4GB（`gate1c_c4/c4_panel.parquet`，sha256=6c95ce90… 冻结），20/20 chunk 全绿，day_status：OK 2,101,927 / HOLE 5,137 / 停牌 566 / 上市前 17,688；中间件（parts 21GB/缓存）已清。
+- **QA 首轮 4/6 过**：same-time 时钟/全量单调性/replay hash 全 PASS；qa1 causal 对拍大面积不一致（疑为分钟缓存 volume_scale_factor 修复口径 vs QA 原始分钟口径之争，待定性）、qa4 hole/zero 20 条失败全集中 603126 单票（待归因）、qa3 U 型断言采样落在 baseline 启动期致无效（改期重测）。
+- 诊断中（面板 bug or QA 标尺 bug 二一定性；修复后重跑受影响项，原结果留审计存根）。
