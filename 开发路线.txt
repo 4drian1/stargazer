@@ -1,57 +1,48 @@
 
 
-## 当前执行索引（2026-09-26 本地实物审计；详细依据见文末变更记录 #8）
+## 当前执行索引（2026-09-26；实物审计见记录 #8，C5 与架构衔接见记录 #9）
 
-- **当前不是换模型/大规模调参阶段**：C2/C3 全 epoch 文件已生成，但 C3 发现行业名称拆组缺陷，须完成代码键语义复验；C4 已有分块产物，尚无全量验收通过证据。先补这些质量门，再进入 C5/C6 和预注册盘中机会实验。
+- **当前不是换模型/大规模调参阶段**：C2/C3 全 epoch 文件已生成，但 C3 发现行业名称拆组缺陷，须完成代码键语义复验；C4 最新已生成约 5.07 亿行且现有六项 QA 报告 PASS，仍须补缺分钟后累计前缀完整性、股本时点与融合来源复核。先核销这些质量项，再解锁 C5/C6 正式融合与预注册盘中机会实验。
+- **C5 正在构建/复验，不追认通过**：状态分类不是 alpha 训练；须补真实分钟级 market/sector/ex-stock 有效性，区分“观察到成交”和“指定方向/规模可执行”。旧 QA 与当前重跑分开留档，以匹配最终 artifact/hash 的报告裁决，详见 #9.1。
 - **现有模型边界不变**：GREEN 继续冻结影子观察，P_CLOSE O1/O2/O3/O5 保持关闭；不因本次文档修订重开失败假设或升级为正式买入建议。
 - **模型优化顺序**：新实验预注册常量/简单规则/正则化逻辑回归基线；有可复核条件增量后，才允许有限预算贝叶斯调参。既有失败实验不得事后追加模型搜索救结果。
 - **资源与交接**：重任务串行；首个正式盘中假设裁决后即做预算复盘，可结束本轮并转 Corvus，不要求先把三个盘中方向全部做失败。Corvus 自动采集、健康检查与 GREEN 影子记录继续轻量运行。
-- 本索引及记录 #8 修订冲突处；历史记录保留，不把“规范已修改”写成“代码/产物已修复”。本次只维护路线文档，未修改模型、未启动或停止训练/构建。
+- **LangGraph 继续延期**：已存在框架无关 Snapshot/PolicyDecision 契约，不等于全部模块适配或运行时已完成。待稳定输出与跨模块/人工确认/恢复需求出现，再在 SHADOW_RUNTIME_V1 比较轻量 runner 与 LangGraph；不以“至少两个模型”为硬门槛，详见 #9.6。
+- 本索引及记录 #8/#9 修订冲突处；历史记录保留，不把“规范已修改”写成“代码/产物已修复”。本次只维护路线文档，未修改模型、未启动或停止训练/构建。
 
-- 近期主线：把新绿盘低吸做成一个可回测、可解释、可影子运行的模型。
-- 中期主线：完成 Corvus → Pyxis → Astrolabe，使环境风险能够调节买入和退出。
+- 近期主线：把新绿盘低吸做成一个可回测、可解释、可影子运行的模型。2026-09-28 用户调整研究优先级：以“共性日线形态选观察股 → 个股历史行为细化买入区域”为主，旧指标仅辅助与对照；具体边界、验收及顺序见新增记录 #10。此处不追认新假设已通过，也不替换当前冻结影子模型。
+- 中期主线：完成 Corvus/Pyxis/Astrolabe 信息风险服务，经版本化 Policy 与机会/持仓状态汇合；不是“风险放行后才能发现候选”的串行筛选链。
 - 两条线最终在 Stargazer Agent 汇合，但现在不让未验证的环境判断污染绿盘训练。
 
 ## 一、最终系统结构
 
+本图按记录 #3/#4/#9 统一；原线性“Corvus→Pyxis→Astrolabe→Tarot”图不再代表执行顺序。以下是目标功能边界，不代表各模块均已训练通过；不新增独立大模型或强制微服务部署。
+
 ```text
-Corvus 信息服务
-  ├─ 新闻/公告/政策事实抽取
-  ├─ 外围市场状态
-  └─ 信息影响标签与历史反应
-             │
-             ▼
-Pyxis 风险服务
-  ├─ 大盘风险
-  ├─ 板块/龙头风险
-  ├─ 个股位置与流动性风险
-  ├─ 盘中风险变化
-  └─ 持仓退出风险
-             │
-             ▼
-Astrolabe 风险信息融合
-  ├─ 买入许可
-  ├─ 风险等级
-  ├─ 止损/止盈参数建议
-  └─ evidence_ids
-             │
-     ┌───────┴────────┐
-     ▼                ▼
-Tarot 选股服务       持仓管理
-  ├─ 绿盘低吸         ├─ 动态止损
-  ├─ 横盘埋伏         ├─ 移动止盈
-  └─ 打板追龙接口     └─ 时间退出
-             │
-             ▼
-Stargazer Agent
-  ├─ 盘后两类观察池
-  ├─ 盘中触发提醒
-  ├─ 模型与风险相互质询
-  ├─ LLM解释
-  └─ 人工最终决策
+共同数据/状态底座（PIT、质量、版本、实时/回放同口径）
+  ├─ Tarot 机会与战法
+  │    ├─ GREEN 盘后 Coverage Watchlist（调整/底部类、下杀关注类分别记录）
+  │    ├─ 盘中 Opportunity Discovery（可发现观察池外、合格域内机会）
+  │    ├─ Opportunity Queue → GREEN Entry State
+  │    └─ 横盘埋伏；打板追龙仅预留接口
+  └─ 信息/风险旁路
+       ├─ Corvus：事实事件、外围信息、信息影响研究
+       ├─ Pyxis / R0：市场、板块、个股及持仓风险
+       └─ Astrolabe：信息风险汇总、约束建议、证据引用
+
+机会/入场快照 + 信息/风险快照 + 持仓/组合状态 + 人工冻结计划
+                              ↓
+                 VERSIONED POLICY ENGINE
+                              ↓
+         Stargazer Agent 展示/解释/结构化质询 → 人工决定
+                              ↓
+           真实执行记录 → Position State → Policy 再评估
+
+Runtime 负责调度、持久化、恢复，不决定交易动作。
+数据库/日志/回放/归因贯穿全链；训练重任务串行。
 ```
 
-LLM只负责交流与解释，不直接计算概率、改模型权重或替代回测。
+Agent 对话 LLM 负责交流、解释和待确认计划草案，不直接计算交易概率、改模型权重或替代回测；Astrolabe 不另设一套与 Policy 冲突的最终买卖权限。对话草案与 Corvus 事实抽取的受控入口见 #9.4。
 
 ---
 
@@ -723,6 +714,8 @@ sector_regime_similarity
 #### Y0.5-C：Stock Behavioral Profile——学习个股长期个性
 
 每只股票建立滚动更新的行为画像，用于描述“这只股票平时是什么性格”，而不是让模型只看跨股票统一阈值。
+
+2026-09-28 补充：GREEN 买点研究先实现该画像的轻量子集（历史下杀幅度、修复概率、量价承接、流动性区域及样本置信度），不必等完整 Pyxis 长期个性模型完成；共享字段仍须保持同一口径。按记录 #10，只使用当时已经闭环的历史事件，样本不足回退到共性估计或等待，不单独为每只股票训练模型。
 
 第一代建议建立 `stock_behavior_profile`，至少包含：
 
@@ -1465,16 +1458,18 @@ DATA PIPELINE / LABEL BUILDING / FEATURE LOGGING / SHADOW PREDICTION = **CONTINU
 ### 定位
 - 正式架构只冻结**功能层**，不冻结第三方框架：`MODEL/SIGNAL LAYER`（Opportunity/Entry State/Position State/R0/Pyxis/Corvus）→ `ORCHESTRATION / RUNTIME LAYER` → `VERSIONED POLICY ENGINE` → `Human Decision`。
 - **ORCHESTRATION ≠ POLICY（第四条硬边界）**：Orchestration 只管"谁什么时候运行、状态去哪"；Policy 只管"冻结输入→什么动作"。换任何 workflow 引擎（LangGraph/自研 runner/Temporal）都不得改变 Policy 结果。Policy 逻辑不得住在 Orchestration 里（"顺便算 policy_action"禁止）。
-- 实现选型=DEFERRED：LangGraph 降级为 IMPLEMENTATION_CANDIDATE。Runtime 层冻结的是能力合同：parallel fan-out / state persistence / resume-recovery / human interrupt / snapshot 汇总 / lifecycle routing / audit trail。到 SHADOW_RUNTIME_V1 立项时 benchmark（LangGraph vs thin custom runner + plan_db/状态机）。
+- 实现选型=DEFERRED：LangGraph 是 IMPLEMENTATION_CANDIDATE，不是必装依赖。Runtime 层冻结的是能力合同：parallel fan-out / state persistence / resume-recovery / human interrupt / snapshot 汇总 / lifecycle routing / audit trail。到 SHADOW_RUNTIME_V1 按 #9.6 的需求与输入就绪门立项，再 benchmark（LangGraph vs thin custom runner + plan_db/状态机）；模型数量本身不构成立项依据。
 
 ### 快照契约（现在冻结，代码接口已落地 `stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts.py`）
+
+- 这里“已落地”指框架无关的数据类/输入输出契约；**不代表所有模型已实现适配器，也不代表 LangGraph 图、持久化和恢复流程已接好**。接口字段后续按 #9.3 升级，禁止因此声称接入时完全无需改动。
 - 五类世界状态快照：`OpportunitySnapshot / EntryStateSnapshot / RiskSnapshot / ContextSnapshot / PositionStateSnapshot` + 一个决策对象 `PolicyDecision`（**与快照不并列**：五个快照是状态，PolicyDecision 是确定性函数的结果）。
 - 全部强制全局头：`snapshot_id / schema_version / frozen_artifact_ref / symbol / asof_ts（最晚用到的信息时刻）/ created_ts（实际生成时刻）`；`frozen_artifact_ref` 用 `artifact_type:artifact_version:hash` 三元组（非文件路径），防同名误认。
 - `PolicyDecision` 记录：`policy_version / input_snapshot_ids / action / reason_codes / requires_human_review / created_ts`。
 
 ### 三条硬纪律
 1. **POLICY_DETERMINISM_CONTRACT**：同输入+同 policy_version ⇒ 同输出。policy_action/reason_codes 必须可复现、可审计。
-2. **LLM = presentation/explanation sidecar only**：可翻译 reason_code、生成摘要；**禁止**修改 score/决定 BUY-WAIT-REJECT/调仓/退出/生成 discretionary override；**LLM 输出不得成为任何确定性节点的输入特征**（防"文本→parser→signal"偷偷进决策路径）。
+2. **Agent 对话 LLM = presentation/explanation sidecar**：可翻译 reason_code、生成摘要和待人工确认的计划草案；**禁止**直接修改 score/决定 BUY-WAIT-REJECT/调仓/退出或代替人工 override。自由文本及未经确认的 LLM 输出不得直接进入确定性决策节点。Corvus 的证据约束事实抽取、人工确认后版本化的结构化计划是独立受控入口，不等于放开“文本→parser→signal”捷径（见 #9.4）。
 3. **SHADOW_RUNTIME_V1 首版本机旁路**：读取监控/历史产生的 Snapshot→调模型→跑 Policy→生成 Shadow Decision；NO order / NO production control / 不依赖监控进程。当前监控机精简 exe 生产路径**禁止**引入 LangGraph/langchain-core/checkpoint DB/async runtime。验证（稳定性/延迟/恢复/一致性/资源/异常恢复）通过后才谈部署。
 
 ### 顺序不变
@@ -1523,7 +1518,7 @@ STEP1（诊断，进行中）→ O2A → O3 → 至少一个 Opportunity Source 
 
 ### 两条铁律
 - **Preference ≠ Performance 分开学习**："用户喜欢早买"（UserPreference）不得自动推导"早买更赚钱"（Performance）；两套模型并列输出（如："你在此类场景倾向提前介入；但历史 38 笔提前介入 MAE 明显更高，R0 建议等待"）。最终可形成三 Profile：TraderPreferenceProfile / TraderPerformanceProfile / SystemPerformanceProfile。
-- **个性化不得污染确定性 Policy**：未来 Profile 若参与 Policy，只能经**明确字段+冻结版本+明确规则**（如 risk_tolerance_level=2 经 policy_v5 规则引用）；**禁止** LLM 读自由文本/近期聊天悄悄改行为；LLM 永远只做解释/对话/计划展示/历史检索/行为总结（presentation sidecar），且其输出不得成为确定性节点输入。
+- **个性化不得污染确定性 Policy**：未来 Profile 若参与 Policy，只能经**人工确认+明确字段+冻结版本+明确规则**（如 risk_tolerance_level=2 经 policy_v5 规则引用）；**禁止** LLM 读自由文本/近期聊天悄悄改行为。Agent 的未确认输出不得作为决策输入；确认后的计划/偏好通过受控配置接口进入，聊天原文只作证据与后续离线研究，不在线改权重（见 #9.4）。
 
 ### 阶段划分（M0-M3，不拖走当前主线）
 - **M0（现在）**：只定义 schema + 不可变日志。四个基础对象即刻开始落库：`DecisionEvent`（decision_id/trade_date/opportunity_id/policy_decision_id/system_action/human_action/override_flag/override_reason_code/human_comment/execution_result/outcome_ref + 全局头）、DailySessionSummary、TraderProfileSnapshot、TradeEpisode。全部沿用 Snapshot 契约全局头（schema_version/frozen_artifact_ref/created_ts/asof_ts）。成本极低，保证从今天起数据不丢。
@@ -1782,8 +1777,8 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 
 - 本次只读核对路线、C2/C3 epoch manifest、C3 源码与 PIT 表、镜像预检、C4 源码/试跑 QA/进度；另对 C4 累计纯函数作隔离小样本复现。**没有执行全量重建、alpha 重算、模型训练或修改运行进程**。以下 PASS 限于产物所报范围，不等于全面独立验收。
 - 相对路径以下均基于 `D:/stargazer/stargazer_ml/v5_hybrid/`。C2/C3：`opportunity_v2/gate1c/epoch_build_v1/EPOCH_MANIFEST.json`，21/21 月块 OK、409 日，数学/主键/版本检查已有产物；C3 行业键问题仍需补验收，不能直接衔接机会训练。
-- C4：`opportunity_v2/gate1c_c4/C4_PROGRESS.json` 读取时有 15 个 done 分块、覆盖 3,900/5,200 股票；目录仅有 DRYRUN manifest、进度与试跑 QA，未见全量 manifest/全量验收报告。**分块完成≠全量完成；文件进度不证明进程仍在运行**。本轮进程命令行查询被系统拒绝，未将任务定性为正常/崩溃，也未重复启动。
-- `C4_QA_RESULTS.json` 为 20 日试跑：baseline_valid 恒 0，QA3 未执行（null），ALL_PASS=false；QA4 的 hole 样本数为 0。其余 PASS 只覆盖被执行路径，不能据此宣称量比有效期/缺分钟处理已验证。
+- **C4 状态在本次维护期间更新**：初读进度为 15 个 done 分块、3,900/5,200 股票，仅有 20 日试跑 QA（baseline_valid 恒 0、QA3=null、ALL_PASS=false、hole 样本 0）。该快照现已被全量产物替代，保留这里只说明审计时间线，不再当作当前状态。本轮进程命令行查询被系统拒绝，未据旧进度判断进程存活，也未重复启动。
+- **C4 最新实物**：`gate1c_c4/C4_MANIFEST.json`，409 日、506,564,407 行，manifest 声明 sha256 `6c95ce90…`、baseline_valid 443,723,355 行；最新 `C4_QA_RESULTS.json` 六项 PASS，QA4 检查 1,745 个 hole/24,875 个 no-trade 行。`qa_fix_report.md` 已记录读取偏移/int32 溢出修正及失败存根。认可这些修复，但现有 QA4 只检查洞所在行等条件，**未检查洞之后累计前缀仍不完整**，故 Q3 不因 ALL_PASS 自动关闭。
 
 ### 8.2 先修的数据/验收问题（未修复前不得晋级）
 
@@ -1792,10 +1787,10 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - `gate1c/c3_sector_sametime.py:154-156` 用 `industry_name_l1` 建 membership 和分组，而原路线 O5-1A 已冻结 `index_code_l1` 及明确的缺码回退键。PIT 表在 2025-03-03 有 31 个非空一级代码、37 个名称；801030 被分成“化工”111 只与“基础化工”333 只，801200 为“商业贸易”51 与“商贸零售”61，801730 为“电力设备”367 与“电气设备”29。2025-09-25 同类拆分仍存在。这不是未来信息问题，而是同一行业被人为拆组；同样使用名称的 naive 对拍无法发现它。
 - 下步复用已审计代码键/回退映射，保留 PIT 生效区间与名称展示，验证每个 symbol-P 唯一归属、别名合并不改变真实历史行业切换；重跑小样本数学+落盘+语义三层 QA。**旧 27 valid/8 invalid 是名称桶结果，不能原样迁到代码桶**；在不看收益的前提下按同一冻结标准重做行业覆盖与 full/mirror 预检，再发新版 C3 与 scope/validity manifest。旧产物留档，不把其 35 桶数量作为新版本必须匹配的验收值。
 
-**Q2｜C4 U 型验收指标用错：已证实；20 日试跑未覆盖正路径。**
+**Q2｜C4 U 型验收原指标用错：原缺陷已证实，同期实现已修正，解释边界继续保留。**
 
-- `gate1c_c4/c4_sametime_v1.py:856-892` 对 `expected_cum_volume_same_time` 要求开盘中位数大于午盘（单侧检验 greater）。相同股票/完整日的累计量不应因“午盘清淡”而减少；不同覆盖样本下的组间中位数差也不能证明 U 型。取消该硬门，不反向改阈值使其通过。
-- 同分钟正确性的硬验收改为独立手算与可控合成例；至少覆盖 50 个有效历史日后的非空分母/非空 ratio，另含不足 50 日和分母为零。验证第 D 日及 D 之后数据改变不影响历史分母，S 之后分钟改变不影响 S 的当前值。日内季节性用同票同日、等长交易分钟区间的**增量量/额**作描述，剔除竞价锚和午休的时长差，不强制所有股票符合某种形状。
+- 初读 `gate1c_c4/c4_sametime_v1.py` 对 `expected_cum_volume_same_time` 要求开盘中位数大于午盘（单侧检验 greater）。同期代码现已改为累计基线同日差分，最新 QA 明示 `INTRADAY_SEASONALITY_SANITY`、`closing_side_tested=false`；原累计水平比较缺陷按报告已修，不重复立项重跑。71,400 vs 19,800 是当前抽样定义下的基线分钟增量描述，**不是完整 U 型证明，也不是选股有效性证据**。
+- 同分钟正确性的硬验收仍以独立手算与可控合成例为准；至少覆盖 50 个有效历史日后的非空分母/非空 ratio，另含不足 50 日和分母为零。验证第 D 日及 D 之后数据改变不影响历史分母，S 之后分钟改变不影响 S 的当前值。日内季节性宜用同票同日、等长交易分钟区间的**增量量/额**作描述，单列零成交/竞价锚，不强制所有股票符合某种形状。当前 QA 的 `inc>0` 筛选及累计中位数曲线差分需如实注明；不能把数千万相关分钟行的 p≈0 当数千万独立证据。
 
 **Q3｜C4 缺分钟后累计值恢复但少计成交：已证实，阻塞量额有效性。**
 
@@ -1846,3 +1841,233 @@ feature_asof_ts / data_resolution = MINUTE_EXACT
 - 覆盖：分钟级 valid 99.88%、MINUTE_SOURCE_HOLE 0.12%（NaN 语义）、真实无交易 12.28M（0 量=真实信息）、baseline_valid 87.59%（min_lookback=50 启动期置 0）。
 - 坑入档：QA 对拍 harness 自身是 bug 高发区（读 rg 必须绝对行号；int 日期用 int64）；分钟镜像缓存 volume_scale_factor 本次证实无关（构建全程 stockdb 直连）。
 - NEXT：C5（liquidity/tradability 状态合同，轻量）→ C6（replay 审计）→ Gate1C FINAL → INTRADAY_SECTOR_DIFFUSION_V1。
+
+### 同日收官登记补核（2026-09-26；解决上段 ALL_PASS 与记录 #8 的适用范围）
+
+- 上段 C4 构建完成、读取器修复和原六项 QA PASS 予以保留；本次已按最新 manifest/QA 更新页首状态。上段“U 型断言成立”收窄为 **基线分钟增量的开盘/午盘季节性描述**，与 QA 的 closing_side_tested=false 一致，不主张完整 U 型或模型 edge。
+- **不能由 C4 ALL_PASS 自动推到 Gate1C FINAL**：Q1（C3 名称拆组）、Q3（hole 后累计前缀）、Q4（换手定义/股本可见性与跨源融合）仍 OPEN。它们与已修的 QA row-group 读取错误不是同一问题；原 frozen C4 文件可作为可追溯产物保留，受影响字段未补验前不入正式机会训练。
+- C5 可先写不依赖数值结论的状态合同；正式构建/融合/晋级仍按 #8.4 的质量项→新版必要产物→C5/C6 顺序。已完成全量不重复构建；只有版本依赖确受修正影响的部分才重算，且不得将旧 hash 的 PASS 迁给新数据。
+
+---
+
+## 2026-09-26 路线变更记录 #9：C5 有效性、架构边界与端到端增量验收
+
+**变更范围**：不换总框架，不重开已关闭假设，不新增大模型；将当前 C5 的语义缺口及未来组合接口写清。沿用 #7/#8 的重任务串行、失败留档、先质量后训练纪律。本轮只改本路线，以下实现/测试要求均不冒充已完成。
+
+### 9.1 C5 当前证据与晋级前待办
+
+本节源码/产物路径基于 `stargazer_ml/v5_hybrid/opportunity_v2/`。实读 `gate1c_c5/C5_PROGRESS.json` 正在记录分块；`C5_QA_RESULTS.json` 创建时间为 2026-09-26 15:00，仍报 all_pass=false、时间字段/理由/血缘问题。该 QA 先于当前代码和重跑进度，**不能直接拿它断言当前重跑已失败或已修好**；最终必须绑定同一代码、配置和输入版本。未核实进程存活、不干预现有任务。
+
+| 待办 | 本轮代码证据 | 修正要求及验收 |
+|---|---|---|
+| C5-R1 分钟级市场有效性 | `c5_state_contract.py:154` 将 market_context_valid 设为全 1 | 关联同一决策时点的 C2 聚合质量、来源/适用域与可见性。覆盖全年不等于每分钟有效；缺失/过期/不适用不默认放行。单列“基准可读”与“候选属于研究域”，不简单按股票是否属于基准篮子二分。 |
+| C5-R2 行业有效性不能互相替代 | `:149-170` 由静态 SECTOR_VALID 生成 spv，并令 sector_aggregate_valid=spv；sector_series=None 时甚至全 1 | proxy 适用性、PIT 归属、当前分钟覆盖、剔除目标后成员数与分母分别检查；复用 C3 的目标股级 LOO validity。缺归属/无表返回未知或 invalid 并记录理由，不能全 1。研究资格显式 AND 真实输入，禁止只检查一个简化恒等式。 |
+| C5-R3 可观察成交不等于可执行 | `tradability_state()` 默认 TRADABLE，但 AT_LIMIT/LOCKED 暂未发射 | 旧枚举只作为 v1 观测状态，不作为买入许可。新 schema 区分 observed_trade、执行证据状态及 buy/sell 方向；涨跌停/停牌/可卖数量/报价时效/订单规模未核实则 execution_feasible=UNKNOWN，而非 True。只需先预留容量字段，不在 C5 另训容量大模型。 |
+| C5-R4 上游质量不能因转换而洗白 | C5 继承 C4 minute/baseline 字段，并沿用 C3 名称桶有效列表 | #8 Q1/Q3/Q4 仍须分别核销：行业代码键、累计前缀完整性、股本可见性与跨源口径。C4 ratio 因洞失效时，不允许 C5 把它解释成 LOW/NORMAL；C3 改版须更新有效名单和 C5 血缘。 |
+
+- `UNKNOWN` 可以是一次合法状态计算的结果，但不表示数据足以支持交易。分别表达 **状态计算是否成功、状态是否已知、研究是否合格、交易是否可执行**；下游禁止只读一个 valid=1 就发买入建议。
+- 相对成交额 0.20/0.50 切点保持描述性冻结，不根据收益改阈值；它们本身不能证明“冲击成本极高”或“可承接常规订单”。NORMAL 也可能绝对成交额很小，需保留绝对量额、拟交易规模和容量未知标记。没有盘口不推断封单队列，也不把零成交分钟自动当停牌。
+- 同步时间语义：C4 的编码时间与 C5 的裸 HHMM 不得同名 join；输出显式 `trade_date/minute_of_day/feature_asof_ts` 或契约规定的完整时间，提供唯一转换器与边界测试。只写 `feature_asof=S` 不能证明全部输入在 S 前已可见。
+- 最小补测：有效行业的某一分钟聚合失效；剔除目标后不足 5 个成员；缺行业表；C4 洞后 ratio 不可用；有成交但方向/规模执行未知；涨停/跌停/买入与已有仓位可卖数量不同；930/午休/收盘/时间编码；人工改计划版本后的重放。保留未知记录，按任务缺失情况暂停对应建议，不把未知当低风险或盈利负例。
+- 最终报告同时列“原 QA 修复”和“本节新增语义用例”，更新 code/config/schema/input hash；续跑检查完整版本元组，不能仅凭 c4_ref 相同复用逻辑已变的旧块。本节未核销前 C5 仅研究候选产物，不解锁正式买入建议；按依赖重算受影响字段，不无差别重复全量构建。
+
+### 9.2 功能分工不变，消除重复筛选与双重决策
+
+| 组件 | 职责 | 不应承担的职责 |
+|---|---|---|
+| GREEN 盘后 Coverage Watchlist | 分别记录调整/底部类与次日下杀关注类，提高监控优先级 | 不宣称已提高赢家密度，不作为盘中发现唯一入口 |
+| 盘中 Opportunity | 在合格域内发现并验证有增量的机会来源 | 不要求必须先在盘后池内，不重复训练 GREEN 同一信号后称两份独立证据 |
+| GREEN Entry State | 描述下杀、企稳、修复及战法入场状态 | 状态就绪不等于盈利保证，不直接下单 |
+| Corvus | 事实/信息影响与外围上下文，带证据与信任状态 | 不把新闻正负语气直接当买卖动作 |
+| Pyxis / R0 / Astrolabe | 输出风险、信息风险汇总、约束建议及证据 | 不重复计算同一风险后加权成多票“共识”，不另设最终动作引擎 |
+| Policy + Position/Portfolio State | 汇总机会、风险、人工计划、可执行性与账户约束，给出可审计建议 | 不由 LLM/Runtime 任意改动作，不把拒绝开仓等同于立刻清仓 |
+
+- 机会与风险在**逻辑上并行输入** Policy；不要求两条重训练任务物理并行。Corvus 可给 Pyxis 提供事实，但风险尚未知不应阻止候选被记录/观察；建议权限按当前影子合同限制。
+- Watchlist 外发现仍受 GREEN_ELIGIBLE_UNIVERSE 与质量边界约束，不是无限全市场扫描。多来源用稳定 opportunity/event id 去重，保留 source_modes；同源 ATR/修复/板块信号需做重叠归因，不能简单投票或相乘概率。
+- **硬限制与软风险分离**：账户仓位上限、明确不可执行、违反人工冻结禁令由确定性 Policy 约束；市场/板块/个股风险概率先输出提示和置信/缺失，不未经消融就作永久拦截。买入、持有、减仓、退出是不同上下文；数据中断应冻结新增建议并报警，不能因此自动清仓或假定持仓安全。
+- 持仓/组合接口保留实际成本、数量、可卖数量、行业/共同风险敞口；组合约束先用简单确定性规则，无需再建一个“大总模型”。横盘埋伏、未来打板分支复用这套边界，各自保留标签/战法版本，不迫使所有策略使用同一预测头。
+
+### 9.3 C6/融合前完善共同快照契约
+
+- 在现有 `contracts/snapshot_contracts.py` 的 v1 上**规划新 schema 版本**，不原地换字段含义：除 snapshot/model/schema/hash/asof/created 字段，补 `available_at`、新鲜度/失效规则、quality/missing_reason、data_scope/benchmark_scope、evidence/input refs；预测类快照另带 target_definition、prediction_horizon、label/exit/cost/execution_contract_version。状态类不强填收益期限。
+- `asof_ts` 是信息对应时点，`available_at` 是实际可获得时点，`created_ts` 是计算完成时点；实时建议不得引用尚未完成的模型输出。历史重算另记 replay_mode，不能以今天回填的事实假装当时已知。有效期应按行情/公告/日线各自语义冻结，不为取得好收益事后调 TTL。
+- Policy 汇合时做字段级时间与适用域检查：10:30 机会不能静默配过期的 9:45 风险；30 分钟风险和 5 日机会不直接相减。同名 loss5 必须明确是 5% 损失还是 5 日窗口，避免含义靠名字猜测。
+- 每次输出记录 input_snapshot_ids、版本、质量缺口和 reason_codes；同输入+同 Policy 版本同输出。不要求这时引入 Feast/Kafka/新微服务；现有纯函数、SQL 审计表及 Parquet 研究数据即可承载。相同转换逻辑用于离线与影子推理，最终用回放逐项核验。
+
+> 2026-09-26 接口预留进度：已新增 `contracts/snapshot_contracts_v2.py`，与原 v1 并存。v2 封套覆盖五类快照，明确 `asof_ts / available_at / created_ts / expires_at`、质量与缺失原因、研究/基准域、证据及输入引用、回放标记；预测元数据另带目标、期限及标签/退出/成本/执行契约版本。纯函数 `assess_for_shadow` 仅检查单张快照在指定时刻是否已可见、计算完成、未过期且质量有效；序列化往返与边界测试已通过。这是模块接入时使用的接口预留，不代表跨快照 Policy、C6、模型适配、LangGraph 或盯盘集成已经通过。旧 v1 不原地改义，现有调用继续按 v1 工作；有效期由各数据生产者按冻结口径提供，不在接口内猜测 TTL。
+
+> 同日接口补充（完成）：在尚未接入运行时的 v2 上增加 `SnapshotRequirementV2` 调用方输入要求（种类/股票/研究域/基准域/预测口径匹配）、`unavailable_snapshot` 模型未就绪的 UNKNOWN 空输出、序列化引用类型一致性与空产物引用校验。调用方必须提供独立冻结的 requirement 才检查匹配；READY 仅表示输入可用。8 项单测、原 v1 自测与 Git 白名单检查通过，接入约定见 `contracts/README_v2.md`。仅契约代码/测试/说明开放 Git 跟踪，数据与模型继续忽略；未做 Git 提交。这些检查不替代跨模块 Policy、输入真实性或模型效果验收。接口预留暂收口，下一项仍是 Gate1C/C6 上游质量核销与回放。
+
+### 9.4 对话计划与信息抽取的受控入口
+
+- **对话路径**：交流/检索→结构化 DRAFT→字段/执行条件校验→人工确认→不可变计划版本→确定性监控。只有确认后的结构化规则/偏好可作为 Policy 输入；聊天文本、未经确认的修改与 LLM 自行 override 都不得进入交易动作。
+- **Corvus 路径**：原文/来源/可见时间→事实候选（可由 Qwen 抽取）→现有证据、实体、否定、日期、金额与完整性门→正式事件→冻结信息/风险模型。它不是对话 Agent 直接发信号；SCHEMA_VALIDATED 仍不等于事实正确或有价格预测力。这里澄清原“所有 LLM 输出都不能进入任何节点”的过宽表述，不放松事实层验收。
+- 交流、修改、采纳、拒绝、未触发、数据缺失、实际成交和反事实分开记录；风格学习继续后置离线验证，不因为用户认同计划就把它标成盈利正例，不每日在线改模型权重。仍无自动下单、无自动冻结、无 DPO/RL 提前立项。
+
+### 9.5 组合验收与后续执行顺序
+
+1. **现在**：核销 C5-R1～R4 与 #8 上游问题；保留构建/失败记录，以最终匹配版本的 QA 裁决。同步契约后仅重建必要产物，本次不控制现有进程。
+2. **C6**：时间/新鲜度/缺失降级、版本血缘、append、重启幂等与快照重放；加入异常用例后通过 Gate1C，才启动预注册盘中机会实验。
+3. **机会实验**：沿用 #8 的简单规则/正则 LR 与有限搜索纪律，单独证明机会来源，不能拿增加风险过滤后剩下的收益倒推来源通过。
+4. **组合影子验收（分层立项，不要求现在全部实现）**：A=通过的机会源+统一参考执行；B=A+GREEN Entry State；C=B+已验证风险提示/过滤；D=C+账户/组合约束。各组共享比较范围、成本、执行规则和起止期；未触发/被拒资金留现金，不事后递补美化。逐层报实际净收益/回撤、减少亏损/错失盈利、覆盖与容量、来源重叠、缺失拒绝率，以及日/月/来源分层；同时做共同事件配对和账户级对比。人工真实成交单列，不混入机械比较冒称因果效果。所有组都遵守安全硬限制，不以放开账户红线构造对照。
+5. **交接不变**：首个机会实验裁决后允许预算复盘并串行转 Corvus 历史回填/标签验收→第一代信息影响基线→影子验证→Pyxis 增量研究；Opportunity 成功时可先登记组合影子任务，但不必等所有融合层完成才转 Corvus。失败则保留负结论，不无限追加实验。轻量采集/日志持续，LangGraph 选型仍推迟，不为架构讨论重写监控程序。
+
+### 9.6 LangGraph 预留现状、延期范围与启用时机（同日补充）
+
+- **已核实的预留**：`contracts/snapshot_contracts.py` 已定义 SnapshotHeader、Opportunity/EntryState/Risk/Context/PositionState 五类快照和 PolicyDecision，不依赖 LangGraph；路线要求模块以 `predict/infer/evaluate(snapshot)→Snapshot` 暴露能力。当前状态 = `INTERFACE_CONTRACT_EXISTS / MODULE_ADAPTERS_NOT_FULLY_VERIFIED / RUNTIME_SELECTION_DEFERRED`，不是“LangGraph 已接入”。
+- **现在不做**：不为 C5/C6 安装框架、编写 Agent 对话循环、搭图或改监控 exe；只维护可序列化契约、时间/版本/错误语义和独立 Policy。GREEN 仍是冻结影子能力，Corvus 仍需历史标签/训练验收，二者状态不因接口预留而升级。
+- **不是两个模型硬门槛**：一个模型的长期人工计划确认/恢复流程也可能需要编排；多个简单评分器仍可由轻量 runner 完成。是否用 LangGraph 取决于跨步骤状态、人工中断、失败恢复和可观测需求，而非模型计数。
+- **本项目默认评估节点**：先稳定 GREEN/Gate1C-C6 快照与回放，再按串行路线推进 Corvus。当 GREEN 与 Corvus 的正式事件或评分能提供稳定、可追溯的输入，且确实要运行“候选→信息风险汇总→计划草案→人工确认→提醒/复盘”的旁路流程时，立项 SHADOW_RUNTIME_V1 选型。Corvus 事件闭环可作为信息输入，不强求先拥有第二个训练好的预测模型；但未知/未经验证的评分仍不得改变正式交易建议。
+- **影子对比验收**：同一批快照分别交给 thin runner 与 LangGraph 原型，比较 Policy 的 action/reason_codes 一致性、断点恢复、人工等待/超时、重复事件与重复提醒、重启后版本锁定、延迟及 CPU/内存/磁盘成本。恢复时校验输入是否过期，旧计划确认不能直接执行已经失效的条件；冻结计划/成交/审计 SQL 仍是业务事实源，图 checkpoint 不是替代账本。
+- **只迁移调度，不迁移决策权**：LangGraph 若胜出，只负责任务编排和状态恢复；不改 Policy、不自动批准计划、不解除人工终审、不触发重训或扩大自动交易权限。Runtime 的轻量并发不解除“重型回填/构建/长训练串行”。选型没有明确收益时继续 thin runner，不为使用框架而使用框架；是否部署到监控机另过资源和稳定性验收。
+
+技术依据：[LangGraph 官方定位](https://docs.langchain.com/oss/python/langgraph/overview)与[持久化/恢复说明](https://docs.langchain.com/oss/python/langgraph/persistence)提供的是有状态工作流能力，不是“多模型才能使用”的前提。本节只登记采用条件，不安装或实现该框架。
+
+**本次维护验收**：页首结构与正式旁路架构一致；各类有效性与可执行性不混；未来受控计划/事实输入不与 LLM 红线冲突；LangGraph 预留与实际接入分开，启用不按模型数量拍板；串行排程和原失败记录保留。文档完成≠实现完成，以上待办须后续逐项提供代码、产物与测试证据才可核销。
+
+### 2026-09-27 Gate1C FULL 重建执行记录（进行中）
+
+- 本轮仅重建 FULL 数据基础设施，不训练 Opportunity/Corvus/Pyxis 模型；旧 MIRROR C2/C3/C4/C5 产物保留且不混用。
+- 共同窗口固定 2025-01-02～2026-09-08（409 交易日），分钟源 `STOCKDB_HTTP`，C2=`C2_V3_FULL_SOURCE`、C3=`C3_V4_FULL_SOURCE`、C4=`C4_V3`。输入代码/PIT 哈希见 `gate1c/epoch_build_full_v1/FULL_REBUILD_RUN_INPUTS.json`；stockdb 是在线源，清单不冒称冻结了服务端历史快照，按月产物须保留来源快照标识和哈希。
+- 已发现原 5 日小样本行业面板仍沿用 24 码旧缓存：2026-02-11 有 1,687 行与当前 FULL 动态资格公式不一致；用当前 C3 代码从 stockdb 重新构建同日后，31 行业、0 资格不符。因此旧小样本 PASS 不直接继承；全量 Gate 改为逐日检查 FULL 动态资格，不再以镜像静态 24 码名单或“每日全行业必须有效”裁决。
+- C5 的 FULL 依赖必须精确匹配 `C3_V4_FULL_SOURCE`；新 C5 落独立 FULL 输出目录。C5 QA 不再写死旧 MIRROR 行数/路径及单一旧原因码，应对照 C4_V3 与 C5 manifest 的行数，并扫描新分块血缘。
+- 截至本记录，C2/C3 FULL 全量任务已启动，**尚未完成**。只有 C2/C3 epoch gate=PASS 后才启动 C4_V3；只有 C4_V3 全量血缘/行数/口径检查通过后才启动 C5；C5 全量 QA 通过后仍需 C6-B 因果回放，不能提前宣布 Gate1C FINAL 或机会模型有效。
+- 串行续跑已由 `gate1c/continue_full_rebuild.ps1` 接管：等待当前 C2/C3 进程结束并核验 epoch gate，然后执行 C4_V3 → `qa_c4_v3.py` 全量结构/PIT/公式/缺口扫描 → 独立 FULL 目录 C5 → C5 QA；任一失败立即停止，不触碰旧 MIRROR。续跑日志在 `epoch_build_full_v1/full_rebuild_supervisor.log`。该后台流程**不包括 C6-B**，其因果回放须另行实施与验收。
+
+> 2026-09-27 磁盘约束更新：用户明确要求**不得把全市场各层大面板全部落盘**。已停止 C2/C3 构建进程与自动续跑器，禁止按上一条直接续跑 C4/C5；该续跑脚本仅作为未执行的历史方案保留，不得未经新磁盘预算和流水线验收重新启动。停止时仅 2025-01 月 C2/C3 分块完成，2025-02 月未形成检查点；C4_V3/C5 FULL 尚未生成。现有缓存/检查点不自动删除。下一版须先冻结磁盘上限和保留策略：C2/C3 可保留必要聚合及血缘，C4/C5 按可恢复的有限分块流式计算、验证后只保留预注册候选与同刻对照风险集及审计摘要，不生成全量单体合并副本；明确中断恢复、源快照复验、行业/市场共同域与 C6-B 反事实重放能力后再启动。
+
+> 2026-09-27 用户磁盘预算：本轮新任务的**运行中峰值新增占用 ≤30 GB，验收后保留的最终新增产物 ≤5 GB**（既有旧版产物不纳入本轮预算，也不据此删除）。现有 FULL 构建方式不可直接续跑：月度分钟缓存外推可达数十 GB，叠加 C4/C5 临时面板可能破峰值。先在单月做端到端流式试运行，记录每步前后及运行中的实际磁盘峰值、CPU/内存、候选与同刻对照覆盖；不通过预算门即停止，不启动其余月份。运行时设置硬性空间检查并在达到预算前 fail-closed；每块在校验哈希、行数、因果和血缘后才可清理本轮临时文件，记录删除清单及清理前后字节数，绝不清理旧用户产物。最终只留必要聚合、预注册候选/对照样本、模型输入/结果、审计摘要和有限回放证据。删除全量原始分钟缓存后，未来任意时点的**离线逐 bar 精确重放**不能再保证；C6-B 须在清理前完成，留冻结抽样证据，或另有可验证的外部不可变原始源。该取舍不能被“哈希仍在”冒充为可重放。
+
+> 单月试跑执行口径（进行中，非 Gate1C FINAL）：选 2026-02（14 个交易日，含已独立检查过的 2026-02-11）而非 2025-01；C4 的历史同刻基线仍使用完整过去交易日预热，只限制**输出**为目标月。C2/C3 为目标月 FULL stockdb 聚合，C4/C5 为该月全市场流式分块，输出目录与旧产物隔离；C5 的输入引用必须显式标为 `MONTH_PILOT`，不得伪称全 epoch manifest。预算按本轮试跑目录及隔离缓存计入，30 GB 峰值/5 GB 最终硬门，运行前做单股新旧 C4 月行逐字段同一性测试。单月通过仅证明低磁盘流程/语义可行，不解锁 Opportunity 训练；仍需全期分块构建与 C6-B/预注册验收。
+
+> 单月试跑续跑调整（2026-09-27，仍进行中）：首版以 2 个抓取线程完成 2026-02 的 13/14 个 C2/C3 日级检查点，实测每交易日约 8–11 分钟、新增磁盘约 0.71 GiB，无异常；第 14 天未形成检查点时暂停，记录旧运行配置并以逐日文件哈希复核后续跑。用户不再同时玩游戏，C4 后段改为最多 4 个并发单股处理，按输入顺序汇总，C2/C3 冻结计算逻辑及既有 13 天产物不变。首版只做同输入重算，未达到清理前的因果回放门槛；续跑版在清理临时缓存前补单股分钟截断/未来扰动、C5 分批与单行重放、原始回放样本留证，失败则保留全部本轮产物而不发布 PASS。以上仍是**单月抽样验收**，不冒称全 epoch C6-B 或策略盈利验证；后续全期 C6-B 继续为正式晋级硬门。
+
+### 2026-09-28 单月完成后的样本交付升级（本轮授权：工程实现与小规模验收）
+
+- 旧 `month_pilot_202602_full_v1` 于 11:25 完成：14 日、5,200 股、C4/C5 各 17,243,309 行；脚本 PASS。清理前目录 2.084 GiB、最终约 7 MiB；`peak_precleanup_gib` 是清理前目录测量，不冒称连续监测的真实峰值。因果证据仅覆盖 000001 / 20260211 / 10:30，旧报告不升级为全期 C6-B。
+- 已按旧试跑约定清理本轮 cache/daily/C4/C5 临时分块，保留 C2/C3 聚合、来源哈希和有限回放证据。该试跑**没有保留完整候选/同刻对照/训练标签表**，不能直接用于训练，也不能原样重复所有月份后宣称可训练。
+- 下一阶段先实现候选定义无关的样本交付层：输入冻结事件清单、截至 S 的触发记录、C4_V3/C5 状态分块及独立价格标签；输出候选、同分钟 risk-set 对照、无效/已触发归因、输入哈希与样本清单。仅按 S 前状态取对照；未来触发仍可当当前对照，禁止全天 never-trigger。若固定抽样对照，记录全集大小、确定性抽样种子与纳入概率。
+- `INTRADAY_SECTOR_DIFFUSION_V1` 的 `frozen_definitions` 仍为 PENDING；本轮不擅定冲击阈值、lag 阈值或 A/B/C/D 经济定义，不跑正式收益实验。小规模事件只标 `ENGINEERING_FIXTURE`，`training_eligible=0`；工程标签不能冒充正式可执行标签或 alpha 证据。
+- 特征和结果分表：特征只来自 S 前输入；H3/H5 标签按相同事件/股票/时点独立关联，未成熟/无成交/缺行情留 NULL 并记原因。事件日历、跨月持有窗口、T+1、买卖可执行性、费用、除权和基准必须由后续冻结 label contract 明确；缺正式标签合同禁止正式样本晋级及临时输入清理。
+- 清理保护：必须先验证必要样本和审计摘要已写入、输入/输出 SHA256 匹配、样本与面板对拍通过、标签合同状态明确，才可清理明确登记的本轮临时目录；失败保留现场。不得修改或补盖旧试跑的 PASS。
+- 小规模验收覆盖：同刻关联、上午/下午、低覆盖、源洞/真零成交、未来触发对照、截断/未来扰动、分块/恢复一致性、跨月/尾部截断标签、篡改拒绝。真实 witness 与合成反例分别报告，不以工程 fixture 代替全期 C6-B。
+- 资源预算针对**整个新研究任务累计**：运行新增 ≤30 GiB、最终累计 ≤5 GiB；不能每月另享 5 GiB。当前交付层按检查点统计目录高水位并在写样本前预留空间，不冒称连续 OS 监测或已证明全月运行峰值；正式月度 runner 仍需把预算检查接入抓取/分块各阶段。若需样本压缩/抽样，事前冻结规则，不按结果事后挑样本。
+- 本轮不启动剩余月份、Opportunity/Corvus 长训练或 Sequoia-X 回填。工程样本验收后先复核正式事件/标签规格，再批准逐月全期任务；Gate1C-C6 完成后先裁决行业扩散增量，稳定增量才进入简单模型，失败归档，不以深度训练救负结果。
+
+> 本轮工程验收记录：`gate1c/research_sample_export.py` 已实现有界分块读取、候选/同刻对照、标签对接、哈希发布与清理保护；14 项合成单测通过。`verify_sample_delivery_smoke.py` 用 000001/000002/000004、20260202/11/27、09:45/10:30/13:30/14:50 验证真实 C4/C5 各 2,169 行，12 个工程事件形成 22 行特征（含 10 条有效对照）及 44 行 H3/H5 结果；9 次逐股逐日源哈希核对通过。发现并修正 int32 日期乘法溢出，已加入回归测试。报告 `sample_delivery_v1/engineering_20260928/ENGINEERING_ACCEPTANCE.json` 的 `engineering_delivery_pass=true`；`formal_training_ready=false`，正式事件定义 PENDING、可执行标签提供方未接入，收益全部 NULL、可训练行数 0。约 3.63 MiB 新任务文件保留，未清理输入、未启动其他月份。**交付层验收不等于正式月度流水线接线或 Gate1C/C6-B 通过**；下一项先冻结事件与标签合同，再接月度清理前出口和累计预算检查。
+
+### 2026-09-28 正式事件与标签规格准备（草案，不追认冻结）
+
+- 用户授权开始下一步后，新增 `contracts/intraday_sd_research_contract_v1.json` 与 `INTRADAY_SD_CONTRACT_REVIEW_V1.md`。状态 `DRAFT_REQUIRES_USER_APPROVAL`；旧 Registry 的 PENDING、旧 Timing/S0 主标签和旧月度 pilot 不变。
+- 提案（待用户确认，未运行）：15 个完整交易分钟行业 LOO 正收益且行业减市场冲击达 D 前同刻历史 q90；逐股响应比≤0.50 为滞后、≥0.80 为同步；30 分钟只诊断。行业/市场窗口需逐成员两端共同有效后聚合，不能直接相减 C3 两端累计收益，不能跨午休或让新成员带入假冲击。
+- 标签提案：本实验 H3 成本后 market alpha 主、H1/H5 辅；Hn 从实际入场日后的第 n 个交易所交易日算。此为机会来源统一参考退出，不代表 GREEN 实盘必须固定持有三日，也不原地改 Timing-v1 的 H1。A−D 为主机制对照、A−B/C 同报；只证明 A 优于已经涨多的 B 不足以证明信息扩散。
+- 发现明确实现缺口：旧 `execution_engine._halt_state` 以分钟开盘价乘 1.10/0.90 近似限价，禁止直接用作本实验正式标签。须绑定逐股逐日限价/ST/板块/IPO、原始 OHLCV/成交质量、订单参与率、费用滑点和除权口径；未知信息不默认可执行，不将 C5 TRADABLE 等同于真实成交。
+- 现有交付器只接 C4/C5、H3/H5；正式实验须新 schema 补 C2/C3 连续 LOO 窗口值、个股响应与行业身份、A/B/C/D、H1 诊断和 raw/benchmark/alpha。对照匹配/抽样规则、经济意义门、执行元数据与费用合同仍 OPEN。窗口/标签验收与完整 C6-B 收据未就绪前不得进入正式月度任务。
+- 预算单位提案收紧为十进制 30,000,000,000 / 5,000,000,000 bytes（整个任务累计），以免 30 GiB 实际超过用户 30 GB；现有小规模脚本不原地追改，后续新 runner 统一预算并逐阶段检查。
+- 新增 `research_contract_preflight.py`：检查冻结状态、PENDING/OPEN、明确用户确认记录与合同文件哈希、四项实现/回放收据的合同绑定和哈希。不因改成 FROZEN 字样就放行，不启动 runner、不授权 alpha 训练；其检查仅证明记录一致，不独立证明收据内容真实。未来 runner 尚未接线，不能说所有旧入口已被保护。
+- 验收：新增 7 项合成测试全过，原交付层 14 项回归全过；预检报告 `gate1c/sample_delivery_v1/CONTRACT_PREFLIGHT_20260928.json` 明确 `formal_research_start_allowed=false`。本轮没有抓取全市场、清理旧输入或启动其他月份/模型训练。下一项先确认事件定义与 H3 主期限，再补齐其余 OPEN 规格和实现验收，不能把本次草案写成合同已冻结。
+
+### 2026-09-28 用户确认核心定义后的窗口/标签实现（小规模验收）
+
+- 用户明确接受上一轮两项提案：15 分钟主窗、个股响应≤0.50/≥0.80、H3 主验收（H1/H5 辅助）。已记入合同 `user_approved_definitions` 与 Registry PARTIAL_APPROVAL；不将确认扩大为整份执行/匹配/经济门已批准，完整合同状态仍 IMPLEMENTATION_OPEN。
+- 新增纯函数 `gate1c/intraday_sd_windows.py`：先算逐股完整窗口端点收益、再按冻结 P 权重共同成员聚合 market/sector 并 LOO，输出响应与覆盖；不以两端累计收益相减替代窗口收益。q90 原提案按 D 前最近 60 日同刻、至少 50 有效日实现为可测试逻辑，历史缺口不靠更早有效日补足；首次 A 顺序发射与完整触发记录并存。正式 q90 输入/可见性与全市场 parity 尚待验收。
+- 新增纯函数 `gate1c/intraday_sd_labels.py`：显式日历 H1/H3/H5、signal后下一合法分钟、T+1、限价锁死/停牌与延迟出场、原始价格/成本分列、参与率与数量、跨月/尾部截断、源洞/零量、除权未知、基准缺失及 MFE/MAE 因果边界。即使 COMPLETE 也标研究近似、training_eligible=0，不冒充实际成交或直接接训练。退出后的新极端价、删除或重复 bar 不改变已闭环标签；路径内重复 bar 拒绝。
+- 显式成本合同 `contracts/intraday_sd_cost_assumptions_v1.json` 绑定原账本假设：佣金各0.0003、卖印花0.0005、滑点各0.001，最低佣金沿用比例研究基线0（非券商实际报价）；50,000元订单、1%分钟量参与率为明确研究假设，不据此声称队列可成交。
+- 数据实测：stockdb 分钟返回 OHLCV/amount；日线有 is_st/pre_close，但没有直接返回已核验逐日限价及盘前可见时间。不得以当日终值 is_st 或未经尺度核验 pre_close 自动算官方限价。可信执行元数据 adapter 与跨日基准端点是正式标签前置 OPEN，不把缺失当正常交易。
+- 验收：16 项新增合成测试全过；真实 `verify_intraday_sd_replay_smoke.py` 为20260211、10股（6银行+4对照）、10:30/14:00 共20个窗口，12个sector窗口有效；独立LOO最大误差6.505e-19，4次未来截断/扰动一致。**scope为ENGINEERING_TEN_STOCK_SUBSET_NOT_FULL**，不能作为FULL或C6-B正式收据。60次H1/H3/H5标签因EXECUTION_METADATA_MISSING全部SOURCE_INVALID、收益NULL、训练行0。
+- 真实记录在 `gate1c/sample_delivery_v1/sd_replay_20260928_v2/REPLAY_ACCEPTANCE.json`；初版工程记录保留，补充因果重复行守卫后用新目录，不覆盖。当前整个样本交付任务约12.44 MB（十进制），没有新增后台长任务、没有删除输入、没有运行其他月份或模型训练。
+- 后续次序：先补可信逐股逐日执行状态/限价及跨日市场端点→正式同输入标签复放；并冻结完整同刻匹配/抽样与经济门→新月度runner接样本出口/整任务预算/清理前有限证据→更广C6-B→串行月度任务。详细实现状态与剩余规格见 `contracts/INTRADAY_SD_IMPLEMENTATION_STATUS.md`。本轮代码与小样本通过不等于全市场基建通过，更不等于策略盈利。
+
+## 2026-09-28 路线变更记录 #10：GREEN 共性选股为主，个性细化入场，旧指标辅助
+
+### 10.1 用户决策与职责边界
+
+- 用户确认的新研究主线：共性形态生成观察名单 → 个股历史 5/15 分钟行为估计入场区域 → 当日盘中承接与风险状态确认 → 人工交易计划/提醒。不是“所有股票跌到统一 ATR 倍数就买”。
+- 新形态与个性画像是后续 GREEN 研究的主体；既有量价/市场/板块指标作为背景、风险提示和消融对照，不沿用旧综合分作为新名单的唯一准入门。不因旧排序或旧 RR 不通过，就排除本轮待验证观察候选。
+- ATR/LATR 保留为波动尺度与区域特征，RSI/BOLL/量能属于新形态定义的一部分；“旧指标辅助”不等于删除这些基础量，也不等于风险与执行硬约束可以被绕过。
+- 这是研究优先级及未来职责调整，不是已验证 alpha。当前 GREEN 冻结影子输出、风险头的既有用途和正式买入建议冻结状态不变。失败实验继续留档，不以新名称重开旧阈值搜索。
+
+### 10.2 共性观察名单：两类分别定义、允许重叠但不重复持仓
+
+- 强势首次分歧类（对齐 DIP_SETUP）：先有可因果识别的强势背景与短期首次放量分歧，随后至少两天连续下跌且缩量，接近日 K BOLL 中轨。红绿穿插不满足本轮连续下跌定义；K 线实体红绿与相对前收涨跌分别记录，不能混用。此类只是值得观察，不等于分歧必将修复。
+- 调整/底部类（对齐 BOTTOM_SETUP）：此前有方向性、持续下跌，最近至少三天下跌或横盘；量能已经处于低位且变化趋稳，RSI<35，接近日 K BOLL 下轨。横盘、低 RSI、贴近下轨均不能单独证明见底；保留继续下跌和未修复样本。
+- “低量”与“稳量”分开量化：低量使用近期成交量/历史成交量基准及个股历史分位；稳量使用近期量能离散度与趋势斜率。高量但稳定不算低位稳量。原始成交量、成交额、可比换手及单位/复权质量同时记录。
+- 接近 BOLL 使用有符号距离及 ATR 归一距离；记录轨道斜率、历史跌幅/价位和首次分歧的历史定位，而不是只输出布尔通过。先保留连续特征，观察池规则与模型买入条件分离。
+- 实现前预注册尚未确定的参数：强势/长期下跌回看期、“首次”的重置条件、横盘容忍度、量能短长窗与低位阈值、RSI/BOLL 周期和轨道距离。用户给出的至少 2 天/3 天、RSI<35 与低位稳量方向保留；其余数值不根据测试收益临时补定。
+- 两类名单各带 setup_type、形成时间、证据、数据质量和失效条件。允许同股同时有两类证据，但计划库/账户按股票去重；不要求先有板块启动或风险放行才发现观察候选。
+
+### 10.3 个性买点：条件历史分布，不是记住某个必涨价格
+
+- 在候选形成后，读取该股历史已完成 5/15 分钟 K 线及可比下杀事件。历史事件按预先冻结规则识别，纳入失败/未反弹样本，禁止只搜历史成功收针。
+- 估计历史下杀 ATR/LATR 深度分位、流动性区域距离、下杀速度、量能收缩/承接、低点结构、VWAP 修复及随后 3/5 日可执行收益/风险。优先匹配形态、时段与背景，避免把早盘与下午、高位分歧与长期低位混为一谈。
+- 输出买入关注区间、修复/失败概率、独立事件数与置信度、触发/等待/失效条件；不输出“到了某个价就一定反弹”。区域由当时已知锚点与历史分布映射，不能引用未来最低/最高点。
+- 个股样本少时向同类共性分布收缩，明确 UNKNOWN/低置信度并允许等待；不为每个代码训练独立深度网络，不用代码记忆代替个性学习。
+- 日线背景冻结在信号形成时；盘中只用决策点之前已完成 bar。画像中的收益/修复统计必须满足历史 label_end_ts < feature_asof，训练折拟合预处理及参数后冻结复用。股本、行业、公司行为、价格尺度与数据缺口沿用已有可见性/质量契约。
+- 新特征未验收前仅生成研究数据或解释列，不静默并入线上评分；T1–T7 已失败的组合也不自动重新加入。
+
+### 10.4 验证：分别证明选池和个性定价的增量
+
+- 最小对照为“旧观察规则 / 新共性观察规则”与“共性 ATR 入场基线 / 加个性画像入场”两维消融。旧规则只作对照，保留可解释简单规则、逻辑回归/轻量树模型基线；不一开始全量深度重训。
+- 同外层合格宇宙、数据源、时点、订单规模、费用与可执行退出约束；名单不同分别报告全池经济学、共同池配对结果、覆盖率及实际成交/空仓情况。不能用候选范围改变冒充排序提升，也不能只比较少数成功案例。
+- 主评价是成本后可执行 3 日收益/增量，5 日为持有与尾部风险复核；盘中快速收回仅辅助标签，不等于赚钱。研究期限标签与动态退出策略账本分开，禁止未来最高点兑现、买入当日可卖或负 EV 强制填仓。
+- 必须报告 STOP/左尾、校准、样本量、跨月/来源一致性、置信区间及真实现金股数账本；Rank IC 不能单独证明可交易。具体经济与统计门槛在看本轮结果前写入专属合同，不机械复制行业扩散实验门槛。
+- 2024–2026 已参与多轮开发的区间不能重新称为纯净测试。时间划分按组隔离并 purge/embargo；晋级需预注册验证及代码冻结后未参与调参的前瞻影子证据，不能靠反复观察旧测试期选择参数。
+
+### 10.5 执行顺序、资源与信息模型交接
+
+1. 先完成当前行业扩散任务尚未核销的全市场基准/执行元数据/合同与单月闭环；本记录不扩大此前授权，不触发全市场缓存、重建或训练，也不把小子集覆盖率当全市场通过。
+2. 在可复用数据与执行标签基础上，冻结新双名单参数和画像字段；小样本重建候选、核对低位稳量及历史画像的因果边界，案例只作机制审计。
+3. 通过字段/回放验收后做最小两维消融；先证明新名单底层经济学与个性画像增量，再决定是否重训 GREEN。修改输入维度或标签必须建立新模型版本，不能直接把特征塞给旧权重。
+4. 达到专属闸门才进入影子接入/正式训练候选；未通过则停止该假设、保留证据，不继续通过无限阈值搜索救结果。未验证名单可作人工研究观察，但不能包装成正式买入推荐。
+5. Corvus 采集/标签闭环继续轻量运行；本轮机会假设裁决后按预算交接信息模型训练，不要求先把新 GREEN 调到盈利。Pyxis 后续使用共享个性画像，不与 GREEN 重复建设另一套口径。
+
+- 重任务串行；新增研究同样受整个任务临时占用≤30,000,000,000 bytes、最终保留≤5,000,000,000 bytes 约束。优先流式/分片加工与事件级特征，不为了画像全量复制分钟库；清理前保留有限可审计证据，既有模型/日志/原始输入不擅自删除。
+- 状态：本记录只维护开发路线。新双名单及个性画像尚未据此实现/训练/晋级；后续每一步以实际合同、产物与验收收据更新，文档决策不等于代码完成。
+
+---
+
+# 附录 A：stockdb 用法速查（2026-09-28 固化，新对话必读）
+
+## 是什么
+本机数据引擎 free-stockdb v0.3.2：`stockdb.exe` 常驻服务，HTTP 在 **127.0.0.1:7899**，数据根 `D:/a股数据/stockdb/`（SDK/pybao 在 `D:/a股数据/stockdb/pybao`）。**口诀：数据更新.exe 跑完必须重启引擎**，否则读到旧数据/连不上。
+
+## 查询协议（最重要的 5 条）
+```python
+import urllib.request, urllib.parse, msgpack
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # 必须绕本机代理
+def sdb(t, timeout=30):
+    url = 'http://127.0.0.1:7899/?cmd=get&t=' + urllib.parse.quote(t)
+    req = urllib.request.Request(url, headers={'Accept': 'application/x-msgpack'})
+    raw = OPENER.open(req, timeout=timeout).read()
+    d = msgpack.unpackb(raw, raw=False, strict_map_key=False)
+    return d.get('data') if isinstance(d, dict) else d
+# 键结构  表:代码:日期（裸 6 位代码，不带 sh/sz 前缀；日期可尾通配）
+rows = sdb('日k:600000:20260928*')     # ← 精确日期必须带尾 *，否则返回空！
+rows = sdb('日k:600000:*')             # 全历史
+rows = sdb('分钟k:600000:20260928*')   # 当日分钟（240 根左右）
+rows = sdb('板块*')                    # 1337 条板块（含 symbols 列表）
+uni  = sdb('股票代码')                  # universe（dict of lists）
+```
+- **响应默认 msgpack**（requests 不带 Accept 也会拿到 msgpack → r.json() 会炸，这就是 D:/a股数据/build_increment.py 失败的原因；用 urllib+msgpack 最稳）
+- **没有按日批量接口**：`日k:*:20260928` 返回空，只能逐票扫（全库分钟扫描 8 线程约 15-40 分钟，引擎高压下会崩，脚本要带重试+断点）
+- 日k字段：date/code/name/open/high/low/close/pre_close/volume/amount/turnover/pct_chg/amplitude/is_st/vol_ratio/total_share/float_share/total_mv/float_mv/pe_ttm/pb
+- 分钟k字段：code/date(14位int)/open/close/high/low/volume/amount（**原始未复权**；qfq 用日线 parts）
+- 北交所（4/8/92 开头）**无分钟数据**；板块表 category='申万一级/二级/三级'/'概念'
+
+## 本地镜像（优先用镜像，别直接扫引擎）
+- **日线 parquet**：`D:/a股数据/data_daily_parts/part_*.parquet`（qfq，全历史+增量块）——池/评分/特征都吃这个；**增量刷新**：`stargazer_ml/v5_hybrid/green_v2/refresh_pool.py`（_dev_venv 跑：探最新→补 part_incr→重刷 build_pool，stockdb 挂时软失败用旧池）
+- **分钟**：stockdb 直连为主；fallback `stargazer_ml/pullback_train/minute_cache_clean/`（3959 票 parquet 至 2026-09-08，含 volume_scale_factor 修复列——跨源对拍时注意口径）；分钟纪元 **2025-01-02 起**（更早没有）
+- **PG**：localhost:5432 dbname=corvus user=corvus password=123456（计划库=stargazer_plan schema；corvus 五表在 public schema）
+
+## 环境与机器
+- `.venv`（torch/pandas 3.0.5，**无 msgpack/psycopg**）| `_dev_venv`（msgpack/akshare/psycopg/yaml，无 torch）；命令统一 `-X utf8`
+- 监控机是另一台（GitHub/Release 同步代码）；它的 stockdb 在 `C:\Users\10757\trading\free-stockdb-windows-v0.3.2-more-power\stockdb`，同协议
+- 网络坑：本机东财系接口断连，分钟/指数走新浪；tushare token 无权限（勿用）
+
+## 常见任务对照
+| 任务 | 入口 |
+|---|---|
+| 盘后选股/刷池 | `green_v2/refresh_pool.py` → `stargazer_plan/draft_gen.py` |
+| 计划冻结/导出/合并 | `stargazer_plan/cli.py`（freeze/export_frozen/merge_events/settle） |
+| 分钟扫描类研究 | 参考 `.work/step9_probe/probe_minute_scan.py`（限速+重试范式） |
+| 全库审计 | `step9_preflight/gate1a_full_scan.py` + DATA_GATE1A_FULL.yaml |
