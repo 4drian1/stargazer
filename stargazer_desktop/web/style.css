@@ -88,6 +88,13 @@ body {
   border-radius: 999px; padding: 0 5px; line-height: 16px; text-align: center;
 }
 .nav-item .badge.show { display: inline-block; }
+/* 信息面板入口：外观同 .nav-item，但不挂 data-page（避免 app.js 页面切换器覆盖 onclick） */
+.nav-item-ext {
+  background: none; border: none; color: var(--dim);
+  font-size: 13px; font-weight: 500; padding: 7px 18px; border-radius: 8px;
+  cursor: pointer; transition: .2s; font-family: inherit; position: relative;
+}
+.nav-item-ext:hover { color: var(--fg); background: var(--bg2); }
 .nav-sep { width: 1px; height: 20px; background: var(--border2); margin: 0 6px; }
 .nav-hint { margin-left: auto; font-size: 11px; color: var(--dim2); }
 

@@ -90,10 +90,33 @@
 /stargazer_ml/v5_hybrid/pullback_train/*/
 !/stargazer_ml/v5_hybrid/pullback_train/*.py
 
+# 快照契约预留：仅这些源码/测试/说明可见，不开放研究产物子树
+!/stargazer_ml/v5_hybrid/opportunity_v2/contracts/
+!/stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts.py
+!/stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts_v2.py
+!/stargazer_ml/v5_hybrid/opportunity_v2/contracts/test_snapshot_contracts_v2.py
+!/stargazer_ml/v5_hybrid/opportunity_v2/contracts/README_v2.md
+
 # ── 其它 ──
 !/migration_support/
 !/migration_support/*
 /migration_support/config_portable.yaml
+
+# ── C3 pack（Corvus C3/C4 自包含包）──
+# 仅源码/文档/合同入库；out/ 产物、.c3venv、模型 artifacts 由全局兜底排除
+!/c3/
+/c3/*
+!/c3/*.py
+!/c3/*.md
+!/c3/*.bat
+!/c3/*.ps1
+!/c3/corvus/
+/c3/corvus/*
+!/c3/corvus/*.py
+!/c3/corvus/materiality_v1/
+/c3/corvus/materiality_v1/*
+!/c3/corvus/materiality_v1/*.py
+!/c3/corvus/materiality_v1/feature_contract.json
 
 # ── 全局兜底（即使将来有人放宽白名单，这些也永不出现在任何提交）──
 **/*.parquet

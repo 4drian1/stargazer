@@ -1,12 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('web', 'web'), ('STRATEGY.md', '.'), ('config.yaml', '.'), ('data', 'data'), ('C:/Users/22107/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages/akshare/file_fold', 'akshare/file_fold')]
+binaries = []
+hiddenimports = ['yaml', 'services', 'notifier', 'paths', 'ml_bridge', 'plan_bridge', 'intraday_monitor', 'agent.brain', 'tools.financials', 'tools.lhb', 'tools.market', 'tools.news', 'tools.research', 'strategy.exits', 'strategy.funnel', 'strategy.oversold', 'strategy.scorer', 'info_panel', 'psycopg', 'pyarrow', 'akshare.stock_feature.stock_info', 'akshare.index.index_research_sw', 'akshare.index.index_stock_us_sina', 'akshare.futures.futures_foreign']
+tmp_ret = collect_all('py_mini_racer')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=[],
-    datas=[('web', 'web'), ('STRATEGY.md', '.'), ('config.yaml', '.'), ('data', 'data')],
-    hiddenimports=['yaml', 'services', 'notifier', 'paths', 'ml_bridge', 'intraday_monitor', 'agent.brain', 'tools.financials', 'tools.lhb', 'tools.market', 'tools.news', 'tools.research', 'strategy.exits', 'strategy.funnel', 'strategy.oversold', 'strategy.scorer'],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

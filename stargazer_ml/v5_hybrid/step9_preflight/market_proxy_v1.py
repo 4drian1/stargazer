@@ -41,8 +41,37 @@ import pandas as pd
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from data_source_provenance import get_daily, get_universe, get_adjustment_http  # noqa
+from data_source_provenance import get_daily, get_universe, get_adjustment_http, get_minute_http  # noqa
 from adjustment_chain import build_chains, SymbolChain  # noqa
+
+
+class MinutePriceProvider:
+    """CANONICAL 分钟端点定价 (注入式可替换). 取 ts(14位) 对应分钟 bar 的 open/close/high/low.
+
+    用于把基准对齐到真实成交分钟 (10:31 / 14:01 入场取当时分钟价, 而非当日开盘),
+    避免把盘中入场降采样成日线 open 造成的对齐错误.
+    """
+
+    def __init__(self):
+        self._cache: Dict[Tuple[str, int], pd.DataFrame] = {}
+
+    def get_price(self, code: str, ts: int, field: str) -> Optional[float]:
+        code = code.zfill(6)
+        d = int(ts) // 1000000
+        key = (code, d)
+        if key not in self._cache:
+            self._cache[key] = get_minute_http(code, str(d))
+        df = self._cache[key]
+        if df is None or df.empty or "date" not in df.columns:
+            return None
+        sub = df[df["date"] == int(ts)]
+        if sub.empty or field not in sub.columns:
+            return None
+        v = sub[field].iloc[0]
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
 
 _HERE = __file__
 
@@ -77,26 +106,39 @@ class MarketProxyV1:
         self._weights_cache: Dict[int, Tuple[Dict[str, float], int, float]] = {}
         self._full_universe_cache: Optional[List[str]] = None
         self._daily_cache: Dict[Tuple[str, int, int], pd.DataFrame] = {}
-        self._chain_cache: Dict[str, Optional[SymbolChain]] = {}
+        self._chain_cache: Dict[str, Tuple[Optional[SymbolChain], str]] = {}
 
     # ---------------- 内部: 复权链 (默认走 canonical HTTP, 测试可注入) ----------------
+    # _chain_cache 存 (chain_or_None, status); status ∈ {OK, EMPTY, FAIL}
+    #   OK    : 有公司行为事件, 已构建链
+    #   EMPTY : 确认无公司行为 (factor=1, 计入覆盖)
+    #   FAIL  : 请求/解析失败/缺失 -> UNKNOWN, 必须排除出覆盖 (不能当 factor=1)
     def _default_chains_provider(self, codes: List[str]) -> Dict[str, SymbolChain]:
+        """默认复权链 provider (canonical HTTP).
+
+        注意: 不吞请求异常. 单码失败时本函数抛错, 由 _chain_with_status 捕获并标记 FAIL
+        (UNKNOWN, 排除出覆盖); 若吞掉异常会让缺失链被当成 EMPTY(factor=1), 属正确性错误.
+        """
         by = defaultdict(list)
         for code in codes:
             for d, rec in get_adjustment_http(code):
                 by[code.zfill(6)].append((str(d), rec))
         return build_chains(by)
 
-    def _chain(self, code: str) -> Optional[SymbolChain]:
+    def _chain_with_status(self, code: str) -> Tuple[Optional[SymbolChain], str]:
         if code in self._chain_cache:
             return self._chain_cache[code]
         try:
             prov = self.chains_provider([code])
             ch = prov.get(code.zfill(6)) or prov.get(code)
+            status = "EMPTY" if (ch is None or not getattr(ch, "events", [])) else "OK"
         except Exception:  # noqa
-            ch = None
-        self._chain_cache[code] = ch
-        return ch
+            ch, status = None, "FAIL"
+        self._chain_cache[code] = (ch, status)
+        return self._chain_cache[code]
+
+    def _chain(self, code: str) -> Optional[SymbolChain]:
+        return self._chain_with_status(code)[0]
 
     def _daily(self, code: str, start, end) -> pd.DataFrame:
         key = (code, int(start), int(end))
@@ -174,57 +216,82 @@ class MarketProxyV1:
     # ---------------- 组件 3: compute_proxy_return(...) ----------------
     def compute_proxy_return(self, start_date, start_field: str, end_date, end_field: str,
                              exclude_symbol: Optional[str] = None,
-                             weight_date: Optional[int] = None) -> Tuple[float, dict]:
-        """公司行为安全加权收益 over [start_date.start_field -> end_date.end_field].
+                             weight_date: Optional[int] = None,
+                             start_ts: Optional[int] = None, end_ts: Optional[int] = None,
+                             minute_provider: Optional["MinutePriceProvider"] = None,
+                             coverage_null_threshold: float = 0.95) -> Tuple[float, dict]:
+        """公司行为安全加权收益 over [start -> end], 支持分钟端点对齐.
 
-        每 constituent: adj_ret = raw[end]/raw[start] * f(end)/f(start) - 1.
-        f = adjustment_chain.factor_at (PIT). 区间对齐由调用方保证 (与 stock label 同 [start,end]).
-        leave-one-out: 剔除 exclude_symbol.
-        no future data: 断言 weight_date <= start_date.
+        - 分钟模式: 传入 start_ts/end_ts(14位) + minute_provider -> 取实际分钟 bar 的 open/close
+          (而非日线, 避免把 10:31/14:01 入场配成当日开盘).
+        - 日线模式(默认, 向后兼容): 用 start_date/end_date 的 open/close.
+        - 复权链状态: FAIL(请求/解析失败/缺失) -> UNKNOWN, 排除出覆盖; EMPTY(确认无) -> factor=1 计入.
+        - 覆盖率 = Σ(有效权重) / Σ(冻结合格宇宙、剔除目标股 的全部权重)  [权重口径, 非成员计数].
+        - leave-one-out: 剔除 exclude_symbol.  no future data: 断言 weight_date <= start_date.
         """
         if weight_date is None:
             weight_date = int(start_date)
+        use_minute = minute_provider is not None and start_ts is not None and end_ts is not None
+        if use_minute:
+            start_date = int(start_ts) // 1000000
+            end_date = int(end_ts) // 1000000
         # PIT 守卫: 权重冻结日必须在标签起点之前/当日, 不得用未来权重
         assert int(weight_date) <= int(start_date), \
             f"future-leak: weight_date({weight_date}) > start_date({start_date})"
-        weights, elig_count, cov = self.freeze_proxy_weights(weight_date)
+        weights, elig_count, _ = self.freeze_proxy_weights(weight_date)
         if not weights:
-            return np.nan, {"constituent_count": 0, "total": 0, "weight_coverage": 0.0,
-                            "proxy_excluded_symbol": exclude_symbol,
-                            "weight_date": weight_date}
+            return np.nan, {"constituent_count": 0, "ok_count": 0, "empty_count": 0,
+                            "fail_count": 0, "total": 0, "weight_coverage": 0.0,
+                            "weight_sum": 0.0, "proxy_excluded_symbol": exclude_symbol,
+                            "weight_date": weight_date, "minute_mode": use_minute}
+        # 分母权重 = 冻结合格宇宙、剔除目标股 的全部权重 (覆盖率分母)
+        denom_weight = sum(w for c, w in weights.items()
+                           if not (exclude_symbol is not None and self.leave_one_out
+                                   and c == exclude_symbol))
         num = 0.0
         den = 0.0
-        used = 0
-        total = 0
+        used = ok = empty = fail = 0
         for c, w in weights.items():
-            total += 1
             if exclude_symbol is not None and self.leave_one_out and c == exclude_symbol:
                 continue
-            df = self._daily(c, start_date, end_date)
-            sp = self._price(df, start_date, start_field)
-            ep = self._price(df, end_date, end_field)
+            if use_minute:
+                sp = minute_provider.get_price(c, start_ts, start_field)
+                ep = minute_provider.get_price(c, end_ts, end_field)
+            else:
+                df = self._daily(c, start_date, end_date)
+                sp = self._price(df, start_date, start_field)
+                ep = self._price(df, end_date, end_field)
             if sp is None or sp <= 0 or ep is None or ep <= 0:
                 continue
-            ch = self._chain(c)
+            ch, status = self._chain_with_status(c)
+            if status == "FAIL":
+                fail += 1
+                continue  # UNKNOWN -> 排除出覆盖 (计为覆盖率损失)
             f_s = ch.factor_at(int(start_date)) if ch else 1.0
             f_e = ch.factor_at(int(end_date)) if ch else 1.0
             adj = ep / sp * (f_e / f_s) - 1.0
             num += w * adj
             den += w
             used += 1
+            if status == "OK":
+                ok += 1
+            else:
+                empty += 1
         ret = num / den if den > 0 else np.nan
+        weight_coverage = (den / denom_weight) if denom_weight > 0 else 0.0
+        if weight_coverage < coverage_null_threshold:
+            ret = np.nan  # 覆盖率不足 -> NULL (benchmark 契约: 低覆盖不可作为有效代理收益)
         meta = {
-            "constituent_count": used,
-            "total": total,
-            "weight_coverage": cov,
-            "weight_sum": float(den),
-            "proxy_excluded_symbol": exclude_symbol,
-            "weight_date": weight_date,
+            "constituent_count": used, "ok_count": ok, "empty_count": empty,
+            "fail_count": fail, "total": len(weights) - (1 if exclude_symbol else 0),
+            "weight_coverage": round(weight_coverage, 6),
+            "weight_sum": float(den), "proxy_excluded_symbol": exclude_symbol,
+            "weight_date": weight_date, "minute_mode": use_minute,
         }
         return ret, meta
 
     # ---------------- 组件 4: attach_alpha_labels(sample) ----------------
-    def attach_alpha_labels(self, sample: dict) -> dict:
+    def attach_alpha_labels(self, sample: dict, minute_provider: Optional["MinutePriceProvider"] = None) -> dict:
         """给样本附加 S0 / Timing 的 market-proxy alpha + 审计字段.
 
         sample 必须含: symbol, plan_date, d_date, h1_date, h3_date,
@@ -241,10 +308,14 @@ class MarketProxyV1:
 
         proxy_s0, meta_s0 = self.compute_proxy_return(
             int(d_date), "open", int(h3_date), "close",
-            exclude_symbol=code, weight_date=plan_date)
+            exclude_symbol=code, weight_date=plan_date,
+            start_ts=sample.get("s0_start_ts"), end_ts=sample.get("s0_end_ts"),
+            minute_provider=minute_provider)
         proxy_t1, meta_t1 = self.compute_proxy_return(
             int(d_date), "open", int(h1_date), "close",
-            exclude_symbol=code, weight_date=plan_date)
+            exclude_symbol=code, weight_date=plan_date,
+            start_ts=sample.get("actual_fill_ts"), end_ts=sample.get("timing_end_ts"),
+            minute_provider=minute_provider)
 
         def _alpha(stock_r, proxy_r):
             if stock_r is None or proxy_r is None or np.isnan(stock_r) or np.isnan(proxy_r):

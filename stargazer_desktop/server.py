@@ -3,6 +3,7 @@ import json
 import os
 import queue
 import threading
+import time
 import datetime as dt
 
 import yaml
@@ -500,6 +501,94 @@ def api_plan_freeze_export():
         return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+# ---------- 信息面板（路线 #13：SHADOW 展示页，无 LLM，无决策权） ----------
+# 纯展示：计划票行情/公告/规则标注/mature p 值 + 申万板块实时 + 隔夜美股金油
+# + 快讯资讯（转述源未经核实，如实标注）。采集失败降级为缺口，不拖垮主程序。
+INFO_STATE = {"payload": None, "collected_at": 0.0}
+INFO_CACHE_TTL = 45
+INFO_AUTO_INTERVAL = 1800  # 30min
+
+
+def _info_collect(force: bool = False) -> dict:
+    now = time.time()
+    if (not force and INFO_STATE["payload"] is not None
+            and now - INFO_STATE["collected_at"] < INFO_CACHE_TTL):
+        return INFO_STATE["payload"]
+    import info_panel
+    try:
+        payload = info_panel.collect()
+        info_panel.save_snapshot(payload)
+    except Exception:
+        # 冻结排障：traceback 落 exe 旁 data/info_panel/error.log（响应里同时携带）
+        import traceback
+        tb = traceback.format_exc()
+        try:
+            d = info_panel.DATA / "error.log"
+            d.parent.mkdir(parents=True, exist_ok=True)
+            d.write_text(tb, encoding="utf-8")
+        except Exception:
+            pass
+        raise RuntimeError(f"collect failed: {tb[-600:]}")
+    INFO_STATE["payload"] = payload
+    INFO_STATE["collected_at"] = now
+    return payload
+
+
+def _info_auto_loop():
+    while True:
+        time.sleep(60)
+        h = dt.datetime.now().hour
+        m = dt.datetime.now().minute
+        in_window = (h == 8 and m >= 30) or (9 <= h < 15) or (h == 15 and m <= 35)
+        if not in_window:
+            continue
+        if time.time() - INFO_STATE["collected_at"] >= INFO_AUTO_INTERVAL:
+            try:
+                _info_collect(force=True)
+            except Exception:
+                pass  # 缺口在下次手动刷新可见
+
+
+@app.route("/info")
+def info_page():
+    return send_from_directory(WEB, "info.html")
+
+
+@app.route("/api/info/snapshot")
+def api_info_snapshot():
+    try:
+        p = dict(_info_collect())
+        p["cache_age_s"] = round(time.time() - INFO_STATE["collected_at"], 1)
+        p["auto_interval_min"] = INFO_AUTO_INTERVAL // 60
+        return jsonify(p)
+    except Exception as exc:
+        import traceback
+        return jsonify({"error": f"{type(exc).__name__}: {exc}",
+                        "traceback": traceback.format_exc()[-800:]}), 500
+
+
+@app.route("/api/info/refresh", methods=["POST"])
+def api_info_refresh():
+    try:
+        return jsonify(_info_collect(force=True))
+    except Exception as exc:
+        return jsonify({"error": f"{type(exc).__name__}: {exc}"}), 500
+
+
+@app.route("/api/info/note", methods=["POST"])
+def api_info_note():
+    text = str((request.json or {}).get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "empty"}), 400
+    try:
+        import info_panel
+        snap = (INFO_STATE["payload"] or {}).get("snapshot_ts", "N/A")
+        f = info_panel.append_note(text, snap)
+        return jsonify({"saved": str(f)})
+    except Exception as exc:
+        return jsonify({"error": f"{type(exc).__name__}: {exc}"}), 500
+
+
 # ---------- 强势中继低吸（绿盘低吸 v2） ----------
 # 2026-09-23（T5 设计 §6）：14:30 尾盘扫描已删除——/scan、/scan_state、/state
 # 三个路由下线（run_afternoon_scan 在 sector_pullback.py 保留为死代码，无路由可达）；
@@ -652,6 +741,7 @@ def start(port=17890):
             s.close()
     notifier_thread.start()
     model_monitor_thread.start()
+    threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
     return port

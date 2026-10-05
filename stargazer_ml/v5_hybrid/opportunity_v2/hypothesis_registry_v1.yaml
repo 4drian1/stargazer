@@ -233,7 +233,8 @@ hypotheses:
        "禁止与 P_CLOSE 的 H3/H5 表混表/混成同一 OOF",
        "分钟级 LOO / exclude-symbol 聚合必须先过同类 parity Gate",
        "415 天分钟样本纪律: event count / effective independent days / events per day / trade_date clustering / MDE"]
-    frozen_definitions: "PENDING — Gate1C 后按预注册冻结 (sector same-time 冲击阈值 / lag 判定 / A-B-C-D 构造 / 短窗口 label)"
+    frozen_definitions: "PARTIAL_APPROVAL 2026-09-28: 15m 主窗/lag<=0.50/sync>=0.80/H3主; 匹配/执行来源/经济门仍PENDING，非Gate1C解锁"
+    definition_contract_ref: "contracts/intraday_sd_research_contract_v1.json (CORE_DEFINITIONS_APPROVED_IMPLEMENTATION_OPEN)"
     prereq: "Gate1C 完成 + 分钟级 same-time parity Gate PASS"
     no_rescue: "若 FAIL → 不调阈值/不换 horizon 重跑; 按顺序转 HYP-07"
 

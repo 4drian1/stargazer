@@ -1,0 +1,9 @@
+akshare
+openai
+pandas
+numpy
+pyyaml
+flask
+pywebview
+pyarrow
+psycopg[binary]
