@@ -60,7 +60,9 @@ if errorlevel 1 (
 
 REM 2. build onefile exe
 echo [2/2] building exe...
-%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name "Stargazer" --icon app.ico --add-data "web;web" --add-data "STRATEGY.md;." --add-data "config.yaml;." --add-data "data;data" --hidden-import yaml --hidden-import services --hidden-import notifier --hidden-import paths --hidden-import ml_bridge --hidden-import plan_bridge --hidden-import intraday_monitor --hidden-import agent.brain --hidden-import tools.financials --hidden-import tools.lhb --hidden-import tools.market --hidden-import tools.news --hidden-import tools.research --hidden-import strategy.exits --hidden-import strategy.funnel --hidden-import strategy.oversold --hidden-import strategy.scorer app.py
+REM resolve akshare package dir (file_fold/calendar.json must ship in-bundle)
+for /f "delims=" %%i in ('%PY% -c "import akshare,os;print(os.path.dirname(akshare.__file__))"') do set AKSITE=%%i
+%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name "Stargazer" --icon app.ico --add-data "web;web" --add-data "STRATEGY.md;." --add-data "config.yaml;." --add-data "data;data" --add-data "%AKSITE%/file_fold;akshare/file_fold" --collect-all py_mini_racer --hidden-import yaml --hidden-import services --hidden-import notifier --hidden-import paths --hidden-import ml_bridge --hidden-import plan_bridge --hidden-import intraday_monitor --hidden-import agent.brain --hidden-import tools.financials --hidden-import tools.lhb --hidden-import tools.market --hidden-import tools.news --hidden-import tools.research --hidden-import strategy.exits --hidden-import strategy.funnel --hidden-import strategy.oversold --hidden-import strategy.scorer --hidden-import info_panel --hidden-import psycopg --hidden-import pyarrow --hidden-import akshare.stock_feature.stock_info --hidden-import akshare.index.index_research_sw --hidden-import akshare.index.index_stock_us_sina --hidden-import akshare.futures.futures_foreign app.py
 if errorlevel 1 (
     echo [ERROR] build failed, send the message above to me
     pause
