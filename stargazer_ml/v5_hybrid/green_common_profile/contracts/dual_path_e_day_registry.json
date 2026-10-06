@@ -1,0 +1,364 @@
+{
+  "version": "dual_path_e_day_registry",
+  "date": "2026-10-01",
+  "generated_at": "2026-10-01 16:30:41",
+  "contract_ref": "dual_path_event_execution_contract.md (SIGNED v0.1)",
+  "network_requests": 0,
+  "calendar_max_date": 20260928,
+  "daily_snapshot": {
+    "parts_dir": "D:/a股数据\\data_daily_parts",
+    "num_parts": 35,
+    "total_bytes": 638996008,
+    "agg_sha256": "e2e73bdf3d4c64786014f13b1b28f7a34c766b6c7fd0045c31215fd5f1c881a2",
+    "last_part_name": "part_incr_20260928.parquet",
+    "last_part_size": 717161,
+    "last_part_mtime": 1790597155,
+    "calendar_max_date": 20260928,
+    "calendar_trading_days": 2121
+  },
+  "counts": {
+    "box_members_2025plus": 1072,
+    "unique_codeE": 1050,
+    "dual_setup_keys": 0,
+    "hit_valid": 94,
+    "hit_invalid": 4,
+    "planned_requests_need": 952,
+    "outside_cutoff_codeP": 22
+  },
+  "by_month": {
+    "202501": {
+      "total": 33,
+      "NEED": 27
+    },
+    "202502": {
+      "total": 3,
+      "NEED": 3
+    },
+    "202503": {
+      "total": 24,
+      "NEED": 21
+    },
+    "202504": {
+      "total": 24,
+      "NEED": 17
+    },
+    "202505": {
+      "total": 18,
+      "NEED": 16
+    },
+    "202506": {
+      "total": 33,
+      "NEED": 29
+    },
+    "202507": {
+      "total": 16,
+      "NEED": 14
+    },
+    "202508": {
+      "total": 22,
+      "NEED": 22
+    },
+    "202509": {
+      "total": 37,
+      "NEED": 28
+    },
+    "202510": {
+      "total": 56,
+      "NEED": 52
+    },
+    "202511": {
+      "total": 91,
+      "NEED": 81
+    },
+    "202512": {
+      "total": 91,
+      "NEED": 80
+    },
+    "202601": {
+      "total": 20,
+      "NEED": 19
+    },
+    "202602": {
+      "total": 18,
+      "NEED": 16
+    },
+    "202603": {
+      "total": 70,
+      "NEED": 64
+    },
+    "202604": {
+      "total": 43,
+      "NEED": 42
+    },
+    "202605": {
+      "total": 59,
+      "NEED": 55
+    },
+    "202606": {
+      "total": 154,
+      "NEED": 145
+    },
+    "202607": {
+      "total": 146,
+      "NEED": 138
+    },
+    "202608": {
+      "total": 18,
+      "NEED": 15
+    },
+    "202609": {
+      "total": 74,
+      "NEED": 68
+    }
+  },
+  "by_setup": {
+    "A_SDP": {
+      "HIT_VALID": 27,
+      "NEED": 305,
+      "HIT_INVALID": 3
+    },
+    "B_LVB": {
+      "NEED": 647,
+      "HIT_VALID": 67,
+      "HIT_INVALID": 1
+    }
+  },
+  "by_segment": {
+    "val": {
+      "total": 194,
+      "NEED": 182,
+      "HIT_VALID": 12
+    },
+    "train": {
+      "total": 495,
+      "HIT_VALID": 59,
+      "NEED": 433,
+      "HIT_INVALID": 3
+    },
+    "test": {
+      "total": 361,
+      "NEED": 337,
+      "HIT_VALID": 23,
+      "HIT_INVALID": 1
+    },
+    "gap": {}
+  },
+  "by_used_state": {
+    "unused:NEED": 952,
+    "unused:HIT_VALID": 25,
+    "used:HIT_VALID": 69,
+    "used:HIT_INVALID": 3,
+    "unused:HIT_INVALID": 1
+  },
+  "invalid_details": [
+    {
+      "code": "000600",
+      "E": 20260820,
+      "used_before": true,
+      "reason": "INVALID missing=3 dups=0 unexpected=0",
+      "disposition": "NOT_REFETCHED_IN_BATCH"
+    },
+    {
+      "code": "920061",
+      "E": 20250114,
+      "used_before": true,
+      "reason": "INVALID missing=0 dups=0 unexpected=30",
+      "disposition": "NOT_REFETCHED_IN_BATCH"
+    },
+    {
+      "code": "920576",
+      "E": 20250522,
+      "used_before": true,
+      "reason": "INVALID missing=0 dups=0 unexpected=30",
+      "disposition": "NOT_REFETCHED_IN_BATCH"
+    },
+    {
+      "code": "920576",
+      "E": 20250523,
+      "used_before": false,
+      "reason": "INVALID missing=0 dups=0 unexpected=30",
+      "disposition": "NOT_REFETCHED_IN_BATCH"
+    }
+  ],
+  "outside_cutoff": [
+    {
+      "code": "000600",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "000657",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "000973",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "001389",
+      "P": 20260928,
+      "setups": [
+        "A_SDP"
+      ]
+    },
+    {
+      "code": "002001",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "002079",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "002176",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "002378",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "002812",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "002842",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "300118",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "300432",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "300682",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "300919",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "301308",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "301588",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "600875",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "601126",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "601179",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "603698",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "603806",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    },
+    {
+      "code": "605090",
+      "P": 20260928,
+      "setups": [
+        "B_LVB"
+      ]
+    }
+  ],
+  "budget": {
+    "avg_bytes_per_day": 6141.0,
+    "est_new_bytes": 5846217,
+    "snapshot_bytes_now": 19806016,
+    "snapshot_bytes_after": 25652233,
+    "within_50mb": true
+  },
+  "list_content_hash": "efe83754667a73a33837da773830d9e4f6f7addc8d6521f1689f888b9b3c4f44",
+  "list_file_byte_hash": "5a153a06ab4965e3744e0bc4d6fdaa18a35739d37a1939767abd151e6c83ee13",
+  "request_subset_content_hash": "f0795871a3c11376bd58f182f6d95678b04b38b29d2d2d8fd39e1d2c248641d8",
+  "request_subset_file_byte_hash": "4832798ab562e18e7fd4346b2a434578f8193084e6b6060e99a4c80ca93cbdba",
+  "outside_cutoff_content_hash": "6ee79f24ac31ab67ae45c714e2a5ee2a5082a0d5f90a29b1d55275702f0d4b51",
+  "outside_cutoff_file_byte_hash": "d0721ea40dddedd6853b7246590c624ce294e1f237f244911cd7976b7c7c179c",
+  "data_hashes": {
+    "pool_a_sdp_members.parquet": "654f41fbbc66682f2cae39a0dd57881d6ee94280709901ddca67c8631b588e99",
+    "pool_b_lvb_members.parquet": "096cc8a7d6246d40c922e7743c4151546b51be5a495ab1fffd8c9b63204f5722",
+    "minute_grid.json": "723c578c6b5380f038f6e0f72d16adfcabaf3df95cbf20554743b244ad10b9e9"
+  },
+  "capabilities": {
+    "e_day_only": true,
+    "h3_h5_possible_with_e_day_alone": false,
+    "training_authorized": false,
+    "buy_advice_authorized": false
+  },
+  "elapsed_s": 24.0
+}

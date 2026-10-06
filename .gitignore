@@ -90,6 +90,18 @@
 /stargazer_ml/v5_hybrid/pullback_train/*/
 !/stargazer_ml/v5_hybrid/pullback_train/*.py
 
+# ── GREEN-CAR 双路径研究线（#16 轨）：代码+合同入库，RUN 数据目录不入 ──
+!/stargazer_ml/v5_hybrid/green_common_profile/
+!/stargazer_ml/v5_hybrid/green_common_profile/contracts/
+/stargazer_ml/v5_hybrid/green_common_profile/contracts/*/
+!/stargazer_ml/v5_hybrid/green_common_profile/contracts/*.md
+!/stargazer_ml/v5_hybrid/green_common_profile/contracts/*.py
+!/stargazer_ml/v5_hybrid/green_common_profile/contracts/*.json
+# pullback_train 实际在 stargazer_ml 根（不在 v5_hybrid 下），修正历史错位
+!/stargazer_ml/pullback_train/
+/stargazer_ml/pullback_train/*/
+!/stargazer_ml/pullback_train/*.py
+
 # 快照契约预留：仅这些源码/测试/说明可见，不开放研究产物子树
 !/stargazer_ml/v5_hybrid/opportunity_v2/contracts/
 !/stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts.py
