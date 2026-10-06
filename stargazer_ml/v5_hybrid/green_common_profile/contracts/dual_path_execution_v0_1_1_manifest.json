@@ -1,0 +1,123 @@
+{
+  "manifest_version": "DUAL_PATH_EXECUTION_MANIFEST_V0_1_1",
+  "contract_id": "DUAL_PATH_EXECUTION_V0_1_1",
+  "prepared_date": "2026-10-05",
+  "timezone": "Asia/Shanghai",
+  "status": "FINAL_FOR_ENGINEERING_RECONCILIATION",
+  "hash_basis": "SHA256 of actual file bytes; no self hash stored inside this manifest",
+  "path_base": "D:/stargazer",
+  "files": [
+    {
+      "role": "final_execution_contract",
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/contracts/dual_path_execution_contract_v0_1_1_final.md",
+      "sha256": "9c22c37e5e9bcc4e874f063730f19b138fac27f0c89de04d6b39cc1c0a8b852d",
+      "bytes": 25278
+    },
+    {
+      "role": "preserved_parent_event_contract",
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/contracts/dual_path_event_execution_contract.md",
+      "sha256": "ba4a50f911f72b617a1a95091026dc57676c3e536800343cdce56b0df8a09009",
+      "bytes": 21841
+    },
+    {
+      "role": "selection_qa_snapshot",
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/gcp_exit_path_qa.json",
+      "sha256": "ebd9684a773c26186ce3c5245c439b687a126ac25f3e4829d27193057a1002b9",
+      "bytes": 1081110
+    },
+    {
+      "role": "frozen_247_event_scope",
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/gcp_247_coverage_verify.json",
+      "sha256": "f2974391fcff26e75bea450426093679bb8547e17125d21589f5108ddfb9b673",
+      "bytes": 332691
+    },
+    {
+      "role": "board_inventory",
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/dual_path_251_event_board_inventory.json",
+      "sha256": "d3ca5e54e716b57ba91f561e18e4c1bda354a93f996af728f8d2a5477c56be81",
+      "bytes": 82812
+    }
+  ],
+  "capabilities": {
+    "engineering_implementation": true,
+    "synthetic_acceptance": true,
+    "bounded_local_reconciliation": true,
+    "individual_cash_and_cost_reconciliation": true,
+    "new_source_requests": false,
+    "rollover_collection": false,
+    "full_247_economic_replay": false,
+    "training": false,
+    "buy_advice": false,
+    "live_orders": false
+  },
+  "parameters": {
+    "entry_price_model": "NEXT_LEGAL_CONTINUOUS_BAR_OPEN",
+    "legal_fill_hhmm_ranges": [[931, 1130], [1301, 1456]],
+    "bar_model": "BAR_INDEX_NEXT_OPEN",
+    "minute_capacity_assumption": "EX_POST_MINUTE_VOLUME_CAP",
+    "order_cap_including_buy_cost": 50000,
+    "participation": 0.01,
+    "buy_mult": 1.0013,
+    "sell_mult": 0.9982,
+    "stop_atr_multiplier": 1.5,
+    "stop_pct_min": 0.03,
+    "stop_pct_max": 0.06,
+    "stop_distance_fixed_after_entry": true,
+    "planned_exit_hhmm": 1455,
+    "horizons_exchange_trading_days_after_E": [3, 5],
+    "deferral_days_after_first_exit_instruction_day": 5,
+    "data_cutoff": 20260928,
+    "train_E_max": 20260305,
+    "val_E_min": 20260309,
+    "val_E_max": 20260609,
+    "test_E_min": 20260610,
+    "st_main_new_rule_effective_date": 20260706,
+    "total_cache_budget_bytes": 52428800,
+    "new_report_budget_bytes": 5242880,
+    "network_requests_budget": 0,
+    "real_event_limit_including_controls": 16
+  },
+  "selection": {
+    "algorithm": "From QA qa_passed=true AND has_partial_gap=false, join frozen 247 scope; for each train/val/test and SH_MAIN/SZ_MAIN/GEM/STAR, select first ordered by (E,code)",
+    "random_seed": null,
+    "uses_return_or_future_stop_outcome": false,
+    "gap_free_exit_day_candidates": 145,
+    "candidate_count": 12,
+    "control_count": 4,
+    "real_count_max": 16,
+    "replacement_on_failure": false,
+    "metadata_and_entry_quality_still_required": true,
+    "is_new_blind_test": false
+  },
+  "ordinary_candidates": [
+    {"code":"600383","P":20250110,"E":20250113,"setup":"B_LVB","segment":"train","board":"SH_MAIN","S":20250113095600},
+    {"code":"002190","P":20250106,"E":20250107,"setup":"A_SDP","segment":"train","board":"SZ_MAIN","S":20250107103000},
+    {"code":"300572","P":20250122,"E":20250123,"setup":"B_LVB","segment":"train","board":"GEM","S":20250123093900},
+    {"code":"688190","P":20250619,"E":20250620,"setup":"A_SDP","segment":"train","board":"STAR","S":20250620094000},
+    {"code":"600578","P":20260317,"E":20260318,"setup":"A_SDP","segment":"val","board":"SH_MAIN","S":20260318100700},
+    {"code":"000042","P":20260320,"E":20260323,"setup":"A_SDP","segment":"val","board":"SZ_MAIN","S":20260323133000},
+    {"code":"300184","P":20260323,"E":20260324,"setup":"A_SDP","segment":"val","board":"GEM","S":20260324094000},
+    {"code":"688196","P":20260310,"E":20260311,"setup":"A_SDP","segment":"val","board":"STAR","S":20260311103100},
+    {"code":"601116","P":20260821,"E":20260824,"setup":"A_SDP","segment":"test","board":"SH_MAIN","S":20260824095600},
+    {"code":"002891","P":20260611,"E":20260612,"setup":"B_LVB","segment":"test","board":"SZ_MAIN","S":20260612130900},
+    {"code":"300724","P":20260821,"E":20260824,"setup":"A_SDP","segment":"test","board":"GEM","S":20260824093500},
+    {"code":"688088","P":20260911,"E":20260914,"setup":"B_LVB","segment":"test","board":"STAR","S":20260914102700}
+  ],
+  "isolation_controls": [
+    {"code":"688656","E":20250722,"known_issue":"20250724 minute source hole; pre-gap simulated-price diagnosis has no stop breach"},
+    {"code":"688656","E":20250723,"known_issue":"20250724 first sellable day minute source hole"},
+    {"code":"002424","E":20251217,"known_issue":"20251222 all-zero minute volume and daily row missing; halt unconfirmed"},
+    {"code":"603395","E":20260515,"known_issue":"20260518 and 20260519 interior minute holes; check actual label dependency"}
+  ],
+  "runtime_required_bindings": [
+    "contract adoption identity and timestamp",
+    "actual read-only daily/minute/adjustment/instrument/metadata file SHA256 and source priority",
+    "source price basis and volume/amount unit evidence",
+    "frozen calendar and minute_grid SHA256",
+    "new executor source hash and version",
+    "per-horizon dependency endpoints and cash ledger",
+    "independent-reference comparisons and real branch coverage",
+    "before/after input hashes and actual cache footprint"
+  ],
+  "delivery_verifies": "Contract text, input hashes, deterministic selection and boundary consistency only; executor implementation and acceptance are subsequent work"
+}

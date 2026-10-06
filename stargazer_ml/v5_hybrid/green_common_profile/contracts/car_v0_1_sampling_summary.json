@@ -1,0 +1,484 @@
+{
+ "status": "DRAFT_FOR_PRE_REGISTRATION — 待用户审定签署; 签署前不抓取不训练",
+ "date": "2026-09-29",
+ "seed": 20260929,
+ "user_rulings": [
+  "先抽股票再抽episode首日=工程抽样, 不是候选股票日等概率抽样; 用于机制/因果/数据分流验收",
+  "相邻日期不独立仅用于episode分组, 不代表事件已独立; 后续统计研究另定抽样与聚类规则",
+  "33日不足主要由股票抽样后资格日期稀疏造成, 非长连续episode归并; 本轮保留33日不重抽",
+  "P-BUDGET: 本轮不做历史同刻量比消融, 不缩短历史不提高上限; 先修正预算核算(去重后)",
+  "P-END: 候选截止20260917; 标签可用数据截止另列, 窗口未走完就截断",
+  "P-SLOPE: 5交易日变化量公式, 注明不是回归斜率",
+  "P-HOLD: 收回后保持10交易分钟, 仅辅助标签, 不能救主标签",
+  "P-LAMBDA/P-L2: λ=20, C=1可登记固定默认值, 但本轮不拟合不调参",
+  "P-EMB: 15交易日可作附加隔离; 真正边界必须由逐行label_end决定",
+  "P-BLK/P-GATE: 留到统计阶段签署, 33日不计算晋级结论",
+  "P-DATA: 接受补必要复权链; 失败保持UNKNOWN不当空链",
+  "承接组vwap_distance_atr保留为预注册候选(只需E日截至S前缀); 历史同刻量比/额比后置",
+  "区域绝对价格(zone_lower/upper/mid)只保留审计表不进LR; 用ATR标准化距离/宽度/来源/合流数",
+  "穿透深度÷已观察分钟=平均穿透速率, 不是真正的分段下杀速度",
+  "本轮暂不训练CAR-G/CAR-LR: 拟合段9日/开发段8日/诊断段15日, 只验证计算/因果/分流不验证效果",
+  "成功标准: 每个事件'什么时候/接近哪条锚点/当时是否已收回/之后是否收回'算对可重放, 非跑出盈利"
+ ],
+ "sampling_program": {
+  "universe": "(code,P,setup)∈冻结池; E=P下一交易日; E∈[20250102,20260917]",
+  "episode_rule": "相邻E间隔>2交易日开新episode (提案P-EP)",
+  "stock_pick": "每setup code升序RNG无放回抽10股",
+  "day_pick": "每股无放回抽≤5个episode, 取episode首日",
+  "rng_call_order": "default_rng(20260929); A股票→A逐股episode→B股票→B逐股episode",
+  "caps": {
+   "stocks": 20,
+   "days_per_setup": 50,
+   "days_per_stock": 10,
+   "total": 100
+  }
+ },
+ "universe_stats": {
+  "n_candidates": 8268,
+  "n_stocks": 2935,
+  "board_distribution": {
+   "MAIN": 5257,
+   "CHINEXT": 2357,
+   "STAR": 654
+  },
+  "bse_excluded_stock_days": 330,
+  "bse_excluded_unique_codes": 138,
+  "bse_note": "北交所逐池记录计数: 股票日数 + 去重股票数分别登记",
+  "per_setup": {
+   "A_SDP": 4334,
+   "B_LVB": 3934
+  }
+ },
+ "selected_stats": {
+  "n_stocks": 20,
+  "n_candidates": 33,
+  "per_setup_days": {
+   "A_SDP": 15,
+   "B_LVB": 18
+  },
+  "per_setup_stocks": {
+   "A_SDP": 10,
+   "B_LVB": 10
+  },
+  "quota_truncated": {},
+  "per_stock_days": {
+   "000008": 2,
+   "001231": 1,
+   "002571": 1,
+   "002819": 3,
+   "002913": 1,
+   "002979": 1,
+   "300243": 1,
+   "301040": 2,
+   "301122": 2,
+   "301152": 2,
+   "600208": 4,
+   "600996": 1,
+   "601689": 2,
+   "601789": 1,
+   "603098": 2,
+   "603887": 2,
+   "603888": 1,
+   "603992": 1,
+   "688158": 2,
+   "688639": 1
+  },
+  "episode_len_stats": [
+   1,
+   1.3333333333333333,
+   2
+  ]
+ },
+ "cache_accounting": {
+  "method": "去重 (code,date) 集合后扣缓存; 旧版按候选累计会重复计数",
+  "class_1_2_feature_label_minute": 66,
+  "class_1_2_note": "E日 + 未来60交易分钟可能跨到的下一交易日 (下午信号); 持续性标签在60m窗内不延长",
+  "class_3_hist_baseline": 1761,
+  "class_3_note": "R组同刻历史基线 ≤60交易日/股; 独立增量消融; 本轮默认不作",
+  "class_4_adj_chain": 18,
+  "class_4_note": "复权链每股一次; 失败保持UNKNOWN不当空链",
+  "total_without_R": 84,
+  "total_with_R_for_reference": 1845,
+  "budget_cap": 2000,
+  "vwap_note": "vwap_distance_atr 只需 E日截至S的量额前缀, 不需历史分钟; 历史同刻量比/额比后置"
+ },
+ "hashes": {
+  "candidate_list_byte_sha256": "0ef1c647d5cbd81cd40d6c62dd4b97bb4213efad0a6c70cb1d00e61164b65f48",
+  "candidate_list_canonical_sha256": "0ef1c647d5cbd81cd40d6c62dd4b97bb4213efad0a6c70cb1d00e61164b65f48",
+  "canonical_note": "规范化=UTF-8/LF/末尾换行; 与字节哈希分别登记, 不混用",
+  "gcp_v0_1_spec.py": "ef767e62adada42d9582e4b6e2ca99b34e69400b0e93a9bd82e916c0387e20c6",
+  "gcp_v0_1_pools.py": "8ad4b703138d5d57b4a82044cd993d3c4a677ce234532e63e77f888ad64d3368",
+  "gcp_v0_1_round_a.py": "9c312d509c1849701cec59b53681942764fbc4568f3e2144f4bb5f3f8e2007fc",
+  "gcp_v0_1_round_b_spec.py": "0ede74f95c117a0305d6c6c902741121825bc620be55baf3f0883b1872159ff5",
+  "gcp_round_b_engine.py": "d3bb2faf077ff5edc096e5b365ba104f8d33892f29141479cc1b379037660bef",
+  "pool_a_sdp_members.parquet": "654f41fbbc66682f2cae39a0dd57881d6ee94280709901ddca67c8631b588e99",
+  "pool_b_lvb_members.parquet": "096cc8a7d6246d40c922e7743c4151546b51be5a495ab1fffd8c9b63204f5722",
+  "contract_conditional_anchor_reaction_v0_1.md": "80da44f8a01c8a37063f7115803dfe126c05e1f48e03caec6e5716527b4ace6a",
+  "本脚本_gcp_car_v0_1_sampling.py": "bcee959fb3a072ee117e3adbe92ea65f92a8008ecf6558bd795f7554ca76f8e5"
+ },
+ "selected": [
+  {
+   "code": "000008",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20260115,
+   "E": 20260116,
+   "candidate_episode_id": "000008|A_SDP|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 4
+  },
+  {
+   "code": "000008",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20260403,
+   "E": 20260407,
+   "candidate_episode_id": "000008|A_SDP|ep001",
+   "episode_len": 2,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 4
+  },
+  {
+   "code": "001231",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20251030,
+   "E": 20251031,
+   "candidate_episode_id": "001231|A_SDP|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "002571",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20251021,
+   "E": 20251022,
+   "candidate_episode_id": "002571|A_SDP|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "300243",
+   "setup": "A_SDP",
+   "board": "CHINEXT",
+   "P": 20260824,
+   "E": 20260825,
+   "candidate_episode_id": "300243|A_SDP|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "301040",
+   "setup": "A_SDP",
+   "board": "CHINEXT",
+   "P": 20250428,
+   "E": 20250429,
+   "candidate_episode_id": "301040|A_SDP|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "301040",
+   "setup": "A_SDP",
+   "board": "CHINEXT",
+   "P": 20260521,
+   "E": 20260522,
+   "candidate_episode_id": "301040|A_SDP|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "301122",
+   "setup": "A_SDP",
+   "board": "CHINEXT",
+   "P": 20260305,
+   "E": 20260306,
+   "candidate_episode_id": "301122|A_SDP|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "301122",
+   "setup": "A_SDP",
+   "board": "CHINEXT",
+   "P": 20260730,
+   "E": 20260731,
+   "candidate_episode_id": "301122|A_SDP|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "601789",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20260317,
+   "E": 20260318,
+   "candidate_episode_id": "601789|A_SDP|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "603098",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20250321,
+   "E": 20250324,
+   "candidate_episode_id": "603098|A_SDP|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  },
+  {
+   "code": "603098",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20260317,
+   "E": 20260318,
+   "candidate_episode_id": "603098|A_SDP|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  },
+  {
+   "code": "603887",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20250218,
+   "E": 20250219,
+   "candidate_episode_id": "603887|A_SDP|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  },
+  {
+   "code": "603887",
+   "setup": "A_SDP",
+   "board": "MAIN",
+   "P": 20260819,
+   "E": 20260820,
+   "candidate_episode_id": "603887|A_SDP|ep001",
+   "episode_len": 2,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  },
+  {
+   "code": "688639",
+   "setup": "A_SDP",
+   "board": "STAR",
+   "P": 20260116,
+   "E": 20260119,
+   "candidate_episode_id": "688639|A_SDP|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "002819",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20241231,
+   "E": 20250102,
+   "candidate_episode_id": "002819|B_LVB|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 3,
+   "n_eligible_days_stock": 4
+  },
+  {
+   "code": "002819",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20251121,
+   "E": 20251124,
+   "candidate_episode_id": "002819|B_LVB|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 3,
+   "n_eligible_days_stock": 4
+  },
+  {
+   "code": "002819",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20251127,
+   "E": 20251128,
+   "candidate_episode_id": "002819|B_LVB|ep002",
+   "episode_len": 1,
+   "n_episodes_stock": 3,
+   "n_eligible_days_stock": 4
+  },
+  {
+   "code": "002913",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20251120,
+   "E": 20251121,
+   "candidate_episode_id": "002913|B_LVB|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "002979",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20250620,
+   "E": 20250623,
+   "candidate_episode_id": "002979|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "301152",
+   "setup": "B_LVB",
+   "board": "CHINEXT",
+   "P": 20250331,
+   "E": 20250401,
+   "candidate_episode_id": "301152|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "301152",
+   "setup": "B_LVB",
+   "board": "CHINEXT",
+   "P": 20250923,
+   "E": 20250924,
+   "candidate_episode_id": "301152|B_LVB|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "600208",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20250522,
+   "E": 20250523,
+   "candidate_episode_id": "600208|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 4,
+   "n_eligible_days_stock": 5
+  },
+  {
+   "code": "600208",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20250527,
+   "E": 20250528,
+   "candidate_episode_id": "600208|B_LVB|ep001",
+   "episode_len": 2,
+   "n_episodes_stock": 4,
+   "n_eligible_days_stock": 5
+  },
+  {
+   "code": "600208",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20251121,
+   "E": 20251124,
+   "candidate_episode_id": "600208|B_LVB|ep002",
+   "episode_len": 1,
+   "n_episodes_stock": 4,
+   "n_eligible_days_stock": 5
+  },
+  {
+   "code": "600208",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20251217,
+   "E": 20251218,
+   "candidate_episode_id": "600208|B_LVB|ep003",
+   "episode_len": 1,
+   "n_episodes_stock": 4,
+   "n_eligible_days_stock": 5
+  },
+  {
+   "code": "600996",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20241231,
+   "E": 20250102,
+   "candidate_episode_id": "600996|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "601689",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20260724,
+   "E": 20260727,
+   "candidate_episode_id": "601689|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "601689",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20260915,
+   "E": 20260916,
+   "candidate_episode_id": "601689|B_LVB|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 2
+  },
+  {
+   "code": "603888",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20260707,
+   "E": 20260708,
+   "candidate_episode_id": "603888|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "603992",
+   "setup": "B_LVB",
+   "board": "MAIN",
+   "P": 20260529,
+   "E": 20260601,
+   "candidate_episode_id": "603992|B_LVB|ep000",
+   "episode_len": 1,
+   "n_episodes_stock": 1,
+   "n_eligible_days_stock": 1
+  },
+  {
+   "code": "688158",
+   "setup": "B_LVB",
+   "board": "STAR",
+   "P": 20260605,
+   "E": 20260608,
+   "candidate_episode_id": "688158|B_LVB|ep000",
+   "episode_len": 2,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  },
+  {
+   "code": "688158",
+   "setup": "B_LVB",
+   "board": "STAR",
+   "P": 20260730,
+   "E": 20260731,
+   "candidate_episode_id": "688158|B_LVB|ep001",
+   "episode_len": 1,
+   "n_episodes_stock": 2,
+   "n_eligible_days_stock": 3
+  }
+ ]
+}

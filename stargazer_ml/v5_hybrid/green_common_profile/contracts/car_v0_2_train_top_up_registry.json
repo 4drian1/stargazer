@@ -1,0 +1,18 @@
+{
+  "version": "car_v0_2_train_top_up_registry",
+  "signed_date": "2026-10-01",
+  "seed": 43,
+  "target": 150,
+  "sampling_rule": "A/B each half; monthly stratified by P; episode gap>=5 incl. used set",
+  "pool_counts": {
+    "pool_before_exclusions_in_train_window": 4459,
+    "excluded_33": 17,
+    "excluded_400": 207,
+    "after_episode_filter": 2555
+  },
+  "n_candidates": 150,
+  "n_stocks": 149,
+  "list_content_sha256": "691ab74bdf6b636c3c818481366829cf3373856ef48741f1eb0cf0743d5b64fe",
+  "list_file_sha256": "59ff444bf5a2e9310e5e82258d7b68c832065fd4149636e35c45b2645519d74b",
+  "hash_note": "content hash = normalized text UTF-8/LF/no trailing newline; file hash = actual written bytes"
+}

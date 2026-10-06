@@ -76,6 +76,18 @@ def latest_block_date():
     return str(int(df["date"].iloc[0]))
 
 
+def available_trade_dates():
+    """日线 parts 全部已覆盖交易日（全量+增量块，仅读 date 列）。"""
+    import glob
+    import pandas as pd
+    dates = set()
+    for pat in ("part_*.parquet", "part_incr_*.parquet"):
+        for f in glob.glob(rf"D:/a股数据/data_daily_parts/{pat}"):
+            dates.update(str(int(d)) for d in
+                         pd.read_parquet(f, columns=["date"])["date"].unique())
+    return dates
+
+
 def build_universe(date):
     """最新日期块 → 股票 universe：非ST/volume>0/close>1，
     剔除基金（5xxxxx/15xxxx/16xxxx/18xxxx——T5 为个股回撤打分器）。"""
@@ -290,6 +302,13 @@ def main():
     a = ap.parse_args()
 
     date = a.date or latest_block_date()
+    requested_date = date  # 输出文件名按请求日（桌面端按请求日找文件）；内容注明实际评分日
+    avail = available_trade_dates()
+    if date not in avail:
+        fb = max(avail)
+        print(f"[date-guard] {date} 无交易数据（节假日或数据未更新），"
+              f"自动改用最近有数据的交易日 {fb}", file=sys.stderr)
+        date = fb
     mhash = check_freeze()
     pool, rule = rule_candidates()
     trading_date = a.trading_date or str(pool.get("next_trading_date") or "")
@@ -349,10 +368,13 @@ def main():
     if not model_top:
         raise SystemExit("模型名单为空（全部 unscored）——检查打分输出")
 
-    md_path = GREEN_V2 / f"daily_dual_list_{date}.md"
+    if requested_date != date:
+        universe_note = (f"**日期回退**：请求打分日 {requested_date} 无交易数据，"
+                         f"实际评分日 {date}。") + universe_note
+    md_path = GREEN_V2 / f"daily_dual_list_{requested_date}.md"
     overlap = write_dual_md(date, trading_date, universe_note, mhash,
                             pool, rule, model_top, scores, md_path)
-    print(f"[md] 双名单: {md_path}（重叠 {len(overlap)} 只）")
+    print(f"[md] 双名单: {md_path}（实际评分日 {date}，重叠 {len(overlap)} 只）")
 
     session_id = None
     if not a.no_db:

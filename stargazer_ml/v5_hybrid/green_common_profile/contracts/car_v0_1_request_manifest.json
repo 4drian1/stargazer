@@ -1,0 +1,64 @@
+{
+  "status": "APPROVED 2026-09-29 — 有界抓取与真实工程回放; 不批准训练",
+  "date": "2026-09-29",
+  "scope": "20股 / 33候选日 (candidate_list); 30m/60m/收回后10m; 不加R组/不做5d10d/不训练",
+  "code_version": {
+    "labels": "gcp_car_v0_1_labels.py",
+    "acceptance": "gcp_car_v0_1_label_acceptance.py",
+    "sampling": "gcp_car_v0_1_sampling.py",
+    "replay": "gcp_car_v0_1_real_replay.py",
+    "engine": "gcp_round_b_engine.py (本轮 detect_signal 返回 dict 补 signal_close 字段, 非破坏性)",
+    "round_b_acceptance": "gcp_round_b_acceptance.py (旧调用方回归)",
+    "contract": "contracts/conditional_anchor_reaction_v0_1.md",
+    "run_sheet": "contracts/car_v0_1_run_sheet_draft.md"
+  },
+  "code_sha256_normalized_utf8_lf_trailing_nl": {
+    "gcp_car_v0_1_labels.py": "63b02397e83b77e7e7ef3134e096ff2b64cbd1e134869d77381629da322c39fc",
+    "gcp_car_v0_1_label_acceptance.py": "ad2165c4bf077ebcc63ce1172651a68efd31ec727383a9a9e17448e169c86c2b",
+    "gcp_car_v0_1_sampling.py": "bcee959fb3a072ee117e3adbe92ea65f92a8008ecf6558bd795f7554ca76f8e5",
+    "gcp_car_v0_1_real_replay.py": "c3cbdf652e680ffc74ea9b3864701c06af2a2bd6779cf1c688676eb80c90cd1c",
+    "gcp_round_b_engine.py": "949eb09e0089965e05c0702391dab5546d2ee9dc892417e179c7c9a30e204034",
+    "gcp_round_b_acceptance.py": "4ac9affc8c0ee60e99d887001360795c58c4232aa163db5656bb4395dbb6aee6",
+    "conditional_anchor_reaction_v0_1.md": "80da44f8a01c8a37063f7115803dfe126c05e1f48e03caec6e5716527b4ace6a",
+    "car_v0_1_run_sheet_draft.md": "1b827d4b6aa7acb3fd56285fd9fcb37ee9814f9e4659095ef72422ba136057e9"
+  },
+  "regression_after_engine_change": {
+    "change": "gcp_round_b_engine.py detect_signal 返回 dict 新增 signal_close 字段 (CAR 标签 classify_event_at_s 需要 S 时 close)",
+    "non_breaking": "True (只增字段, 不改原有字段; 旧调用方未读 signal_close)",
+    "round_b_acceptance": "46/46 PASS (退出码 0)",
+    "car_label_acceptance": "80/80 PASS (退出码 0)",
+    "run_at": "2026-09-29"
+  },
+  "data_source": "canonical stockdb HTTP (data_source_provenance.get_minute_http)",
+  "minute_request": {
+    "file": "car_v0_1_minute_request_list.txt",
+    "format": "code,date,role,cache=HIT/MISS  (role=E_DAY/FUTURE_WINDOW_DAY)",
+    "unique_code_date_pairs": 66,
+    "cache_hit": 0,
+    "cache_miss": 66,
+    "new_requests": 66,
+    "byte_sha256": "779db9ae99c22a4df29a9f5bc9b9c426a226a2ccc3899f7072a46bd0c0fd43ad",
+    "normalized_sha256_utf8_lf_trailing_nl": "779db9ae99c22a4df29a9f5bc9b9c426a226a2ccc3899f7072a46bd0c0fd43ad"
+  },
+  "adj_request": {
+    "file": "car_v0_1_adj_request_list.txt",
+    "format": "code,cache=HIT/MISS",
+    "unique_codes": 20,
+    "cache_hit": 2,
+    "cache_miss": 18,
+    "new_requests": 18,
+    "byte_sha256": "e7795f65bcb38c53df9612c0960328dbbaa879ff9a438524c6d34351509cf23d",
+    "normalized_sha256_utf8_lf_trailing_nl": "e7795f65bcb38c53df9612c0960328dbbaa879ff9a438524c6d34351509cf23d",
+    "failure_policy": "失败保持 UNKNOWN, 不当空链; 不插值"
+  },
+  "retry_policy": "有限重试 最多3次总尝试; 源缺及复权失败保持显式状态; 不插值、不自动扩围",
+  "disk_cap_mb": 50,
+  "estimated_storage_mb": 26.4,
+  "candidate_list_sha256": "0ef1c647d5cbd81cd40d6c62dd4b97bb4213efad0a6c70cb1d00e61164b65f48",
+  "real_replay_guardrails": [
+    "按分窗口状态决定有效性: hold 缺失不删除已完整有效的 60m 主标签",
+    "核验闭环终点: hold 提前失败时修改其记录终点之后的数据不应改变已闭环输出",
+    "5d/10d 真实回放不做; window_complete 一律 False (未抓取)",
+    "R组历史基线本轮不加"
+  ]
+}

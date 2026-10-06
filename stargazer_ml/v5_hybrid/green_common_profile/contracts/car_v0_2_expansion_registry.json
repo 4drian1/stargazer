@@ -1,0 +1,65 @@
+{
+  "seed": 42,
+  "target_per_pool": 200,
+  "episode_min_gap_days": 5,
+  "pool_size": {
+    "A_SDP": 4617,
+    "B_LVB": 4048,
+    "merged": 8665,
+    "e_map_dropped": 108,
+    "excluded_33": 31,
+    "after_exclude_33": 8526
+  },
+  "after_episode_filter": 5731,
+  "sampled": {
+    "A_SDP": 200,
+    "B_LVB": 200
+  },
+  "unique_candidates": 400,
+  "unique_codes": 385,
+  "date_range": [
+    20250103,
+    20260928
+  ],
+  "n_dates": 198,
+  "time_split": {
+    "train": [
+      20250103,
+      20260305,
+      118
+    ],
+    "val": [
+      20260309,
+      20260609,
+      40
+    ],
+    "test": [
+      20260610,
+      20260928,
+      40
+    ]
+  },
+  "requests": {
+    "minute_total": 798,
+    "minute_cached": 13,
+    "minute_new": 785,
+    "adj_total": 385,
+    "adj_cached": 9,
+    "adj_new": 376
+  },
+  "sha256": {
+    "candidate_list_content": "25637be7ab73633791db2b20c7e13fe3db4788596abd3c04ca8f4792288d66a9",
+    "candidate_list_file": "63cf0ec48f580b0e1a1498db60995d432b58416b24fa239487f87ae1d860b2f4",
+    "minute_requests_content": "e0edf1e603487ee451457abccd662d95c53824c4acbbc28cee33011922090c9f",
+    "minute_requests_file": "ca1ebd023b9662c470146980cd4c153675df5a7746300280612204c026fde70b",
+    "adj_requests_content": "7188f8f8eafae15317c761175cd397b98ea77c66b49704f96fd699a1418b0369",
+    "adj_requests_file": "4f137bcd6ae25871ab77f7b94bcde100784820e286a8f331d94cf7811dd67fcb",
+    "note": "content=规范化文本(UTF-8/LF/无末尾换行); file=实际文件字节(含CRLF转换)"
+  },
+  "files": {
+    "candidate_list": "car_v0_2_expansion_candidate_list.txt",
+    "minute_requests": "car_v0_2_expansion_minute_requests.txt",
+    "adj_requests": "car_v0_2_expansion_adj_requests.txt"
+  },
+  "note": "重试计入预算; 测速20条来自本清单前20条; 不根据标签结果修改抽样"
+}

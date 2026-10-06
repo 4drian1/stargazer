@@ -13,15 +13,29 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 import paths as _paths  # 桌面端路径规范：打包后可写数据在 exe 同级，不在 _MEI 临时目录
 DATA = Path(_paths.APP_DIR) / "data" / "info_panel"
-C3 = Path(r"D:/stargazer/c3")
-PLAN = Path(r"D:/stargazer/stargazer_plan")
-PIT = Path(r"D:/stargazer/stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/pit_membership.parquet")
+def _sibling(name):
+    """桌面端 exe/源码同级或上级目录查找（本机与监控机目录形态不同）。"""
+    bases = [Path(_paths.APP_DIR).parent, Path(_paths.APP_DIR).parent.parent,
+             Path(r"D:/stargazer")]
+    for b in bases:
+        p = b / name
+        if p.exists():
+            return p
+    return Path(r"D:/stargazer") / name  # 兜底缺省（缺口会在 gaps 区明示）
+
+
+C3 = Path(os.environ.get("STARGAZER_C3_ROOT") or "") if os.environ.get(
+    "STARGAZER_C3_ROOT") else _sibling("c3")
+PLAN = Path(os.environ.get("STARGAZER_PLAN_ROOT") or "") if os.environ.get(
+    "STARGAZER_PLAN_ROOT") else _sibling("stargazer_plan")
+PIT = _sibling("stargazer_ml") / "v5_hybrid/opportunity_v2/o5_sector_lag/pit_membership.parquet"
 sys.path.insert(0, str(PLAN))
 
 KEYWORD_DIRECTION = {  # 与 c3/_taxonomy.py 冻结粗表一致（仅展示用）
