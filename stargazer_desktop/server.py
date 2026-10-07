@@ -16,6 +16,7 @@ import ml_bridge
 import plan_bridge
 import intraday_monitor
 import fmt
+import pentacles_demo
 from agent.brain import Brain, load_config
 
 # sector_pullback（→numpy+pandas）延迟到路由首次调用时才导入
@@ -501,6 +502,31 @@ def api_plan_freeze_export():
         return jsonify({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+# ---------- 星币侍从 Demo：独立观察，不触及旧监控 ----------
+@app.route('/api/pentacles/state')
+def api_pentacles_state():
+    return jsonify(pentacles_demo.state())
+
+
+@app.route('/api/pentacles/monitor', methods=['POST'])
+def api_pentacles_monitor():
+    try:
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            raise ValueError('请求必须为 JSON 对象')
+        return jsonify(pentacles_demo.set_enabled(body.get('enabled')))
+    except ValueError as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
+@app.route('/api/pentacles/run', methods=['POST'])
+def api_pentacles_run():
+    try:
+        return jsonify(pentacles_demo.run(get_cfg()))
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
 # ---------- 信息面板（路线 #13：SHADOW 展示页，无 LLM，无决策权） ----------
 # 纯展示：计划票行情/公告/规则标注/mature p 值 + 申万板块实时 + 隔夜美股金油
 # + 快讯资讯（转述源未经核实，如实标注）。采集失败降级为缺口，不拖垮主程序。
@@ -741,6 +767,7 @@ def start(port=17890):
             s.close()
     notifier_thread.start()
     model_monitor_thread.start()
+    pentacles_demo.monitor.start(get_cfg, lambda: pentacles_demo.state()['snapshot'])
     threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()

@@ -9,13 +9,14 @@ function md(text) { return marked.parse(text || ""); }
 /* ---------- 页面切换 ---------- */
 function switchPage(page) {
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
-  ["monitor", "premarket", "plan", "chat"].forEach(p => {
+  ["monitor", "premarket", "plan", "chat", "pentacles"].forEach(p => {
     const el = $("page" + p.charAt(0).toUpperCase() + p.slice(1));
     if (el) el.classList.toggle("active", p === page);
   });
 }
 document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => {
   switchPage(b.dataset.page);
+  if (b.dataset.page === "pentacles" && window.refreshPentacles) window.refreshPentacles();
   if (b.dataset.page === "chat") {
     const badge = b.querySelector(".badge");
     if (badge) badge.classList.remove("show");
