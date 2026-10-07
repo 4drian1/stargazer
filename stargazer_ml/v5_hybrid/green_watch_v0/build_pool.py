@@ -44,7 +44,23 @@ except Exception as _cal_err:  # noqa
     ) from _cal_err
 
 BASE = Path(__file__).resolve().parent
-BARS_GLOB = "D:/a股数据/data_daily_parts/part_*.parquet"
+_REPO_ROOT = BASE.parents[2]  # green_watch_v0 → v5_hybrid → stargazer_ml → 仓库根
+
+
+def _bars_glob() -> str:
+    """日线目录：env STARGAZER_DAILY_PARTS（mquote 同名先例）→ 仓库根 data_daily_parts
+    （监控机布局）→ 本机 D:/a股数据 缺省。返回目录（调用方拼 part_*.parquet）。"""
+    import os
+    v = os.environ.get("STARGAZER_DAILY_PARTS")
+    if v:
+        return str(Path(v) / "part_*.parquet")
+    for cand in (_REPO_ROOT / "data_daily_parts", Path("D:/a股数据/data_daily_parts")):
+        if cand.exists():
+            return str(cand / "part_*.parquet")
+    return "D:/a股数据/data_daily_parts/part_*.parquet"  # 都不存在：保持缺省让报错信息可识别
+
+
+BARS_GLOB = _bars_glob()
 OUT = BASE / "pool_daily.parquet"
 LATEST_JSON = BASE / "pool_latest.json"
 
