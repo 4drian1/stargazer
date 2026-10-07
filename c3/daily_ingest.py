@@ -39,7 +39,21 @@ from _taxonomy import KEYWORD_DIRECTION, map_canonical, tier_of  # noqa: E402
 
 OUT = ROOT / "out"
 EVENTS_DIR = OUT / "daily_events"
-POOL_PATH = Path(r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json")
+_REPO_ROOT = ROOT.parent  # c3/ → 仓库根（与 stargazer_ml 同级）
+
+
+def _pool_path() -> Path:
+    """池文件：env STARGAZER_POOL_JSON → 仓库相对布局（监控机同构部署）→ 本机缺省。"""
+    import os
+    v = os.environ.get("STARGAZER_POOL_JSON")
+    if v:
+        return Path(v)
+    p = _REPO_ROOT / "stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json"
+    return p if p.exists() else Path(
+        r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json")
+
+
+POOL_PATH = _pool_path()
 EVIDENCE_VERSION = "c4_route_a_facts_v1"
 HISTORY_LINK = OUT / "event_document_link.parquet"
 HISTORY_CLUSTER = OUT / "event_cluster.parquet"

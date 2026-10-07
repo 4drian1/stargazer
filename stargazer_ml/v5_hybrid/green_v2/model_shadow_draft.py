@@ -33,13 +33,38 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent           # green_v2/
 GREEN_V2 = BASE
-POOL_JSON = Path(r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json")
-POOL_DAILY = Path(r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_daily.parquet")
-WATCHLIST = Path(r"D:/stargazer/stargazer_desktop/data/watchlist.json")
-SCORE_SCRIPT = Path(r"D:/stargazer/stargazer_ml/pullback_train/t5_batch_score.py")
-VENV_PY = Path(r"D:/stargazer/.venv/Scripts/python.exe")
-PLAN_DIR = Path(r"D:/stargazer/stargazer_plan")
-DEVENV_PY = Path(r"D:/stargazer/_dev_venv/Scripts/python.exe")
+_REPO_ROOT = BASE.parents[2]                     # 仓库根（stargazer_ml/v5_hybrid/green_v2 → 根）
+
+
+def _root_path(env: str, rel: str, dev_default: str) -> Path:
+    """env 覆盖 → 仓库相对布局 → 本机 dev 缺省（监控机/本机同构部署）。"""
+    v = os.environ.get(env)
+    if v:
+        return Path(v)
+    p = _REPO_ROOT / rel
+    return p if p.exists() else Path(dev_default)
+
+
+POOL_JSON = _root_path("STARGAZER_POOL_JSON",
+                       "stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json",
+                       r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_latest.json")
+POOL_DAILY = _root_path("STARGAZER_POOL_DAILY",
+                        "stargazer_ml/v5_hybrid/green_watch_v0/pool_daily.parquet",
+                        r"D:/stargazer/stargazer_ml/v5_hybrid/green_watch_v0/pool_daily.parquet")
+WATCHLIST = _root_path("STARGAZER_WATCHLIST",
+                       "stargazer_desktop/data/watchlist.json",
+                       r"D:/stargazer/stargazer_desktop/data/watchlist.json")
+SCORE_SCRIPT = _root_path("STARGAZER_SCORE_SCRIPT",
+                          "stargazer_ml/pullback_train/t5_batch_score.py",
+                          r"D:/stargazer/stargazer_ml/pullback_train/t5_batch_score.py")
+VENV_PY = _root_path("STARGAZER_VENV_PY", ".venv/Scripts/python.exe",
+                     r"D:/stargazer/.venv/Scripts/python.exe")
+if os.environ.get("STARGAZER_ML_PYTHON") and not os.environ.get("STARGAZER_VENV_PY"):
+    VENV_PY = Path(os.environ["STARGAZER_ML_PYTHON"])  # 监控机既有逃生口约定
+PLAN_DIR = _root_path("STARGAZER_PLAN_DIR", "stargazer_plan",
+                      r"D:/stargazer/stargazer_plan")
+DEVENV_PY = _root_path("STARGAZER_DEVENV_PY", "_dev_venv/Scripts/python.exe",
+                       r"D:/stargazer/_dev_venv/Scripts/python.exe")
 MANIFEST = GREEN_V2 / "t5_freeze_manifest.json"
 RUN_DIR = GREEN_V2 / "_run"
 
