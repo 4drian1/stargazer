@@ -37,6 +37,7 @@
     <button class="nav-item" data-page="plan" id="navPlan" hidden>交易计划</button>
     <button class="nav-item" data-page="chat">AI 对话<i class="badge"></i></button>
     <button class="nav-item-ext" onclick="location.href='/info'">信息面板</button>
+    <button class="nav-item" data-page="pentacles">星币侍从</button>
     <span class="nav-sep"></span>
     <span class="nav-hint" id="navHint">本地模型</span>
   </nav>
@@ -179,6 +180,26 @@
             </div>
             <div id="planPoolList" class="dash-list"><div class="empty">点「盘后选股」后，从下方规则名单勾选候选</div></div>
           </div>
+        </div>
+      </section>
+
+      <!-- 星币侍从：独立研究 Demo -->
+      <section id="pagePentacles" class="page">
+        <div class="pentacles-page">
+          <div class="pentacles-toolbar">
+            <div><h2>星币侍从 <span class="pentacles-tag">研究 Demo</span></h2><p>共性选观察对象 · 区域研究参考 · 非买卖建议</p></div>
+            <div class="pentacles-actions">
+              <div class="push-quick"><span>次日到价提醒</span><label class="switch"><input type="checkbox" id="pentaclesMonitor" aria-label="开启次日独立报价监控和到价推送"><span class="slider"></span></label></div>
+              <button class="tb-btn" id="pentaclesRun">盘后总结 · 分析选股</button>
+            </div>
+          </div>
+          <div id="pentaclesStatus" class="pentacles-status" role="status">尚未生成观察名单。点击盘后总结，从最新本地日线选股。</div>
+          <div class="pentacles-filters"><button class="stab active" data-pool="ALL">全部</button><button class="stab" data-pool="A_SDP">强势分歧</button><button class="stab" data-pool="B_LVB">低位稳量</button><span id="pentaclesCount"></span></div>
+          <div class="pentacles-table-wrap"><table class="pentacles-table">
+            <thead><tr><th>序</th><th>股票 / 共性形态</th><th>快照收盘</th><th>关注区域（非买入价）</th><th>区域依据</th><th>距区域 / ATR</th><th>RSI14</th><th>观察状态</th></tr></thead>
+            <tbody id="pentaclesRows"><tr><td colspan="8" class="empty">暂无观察快照，不填充虚构股票或模型评分。</td></tr></tbody>
+          </table></div>
+          <div class="pentacles-note">盘后选股 → 开启次日到价提醒 → 下一交易日触及/跌破关注区域时提醒人工复核。软件须保持运行；微信还需打开顶部推送开关并配置渠道。每股每日去重，失败最多尝试三次。过期名单、陈旧报价或价格口径不一致不提醒；区域不是买入指令，逐股个性预测仍未验收。</div>
         </div>
       </section>
 
@@ -335,5 +356,6 @@
 
 <script src="marked.min.js"></script>
 <script src="app.js"></script>
+<script src="pentacles.js"></script>
 </body>
 </html>

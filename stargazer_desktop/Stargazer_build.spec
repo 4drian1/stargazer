@@ -15,7 +15,7 @@ _ML_PULLBACK = os.path.join(_PROJECT, "stargazer_ml", "pullback_train")
 
 hiddenimports = [
     'yaml', 'services', 'notifier', 'paths', 'ml_bridge', 'plan_bridge',
-    'intraday_monitor', 'fmt', 'openai', 'pywebview',
+    'intraday_monitor', 'pentacles_demo', 'fmt', 'openai', 'pywebview',
 ]
 hiddenimports += collect_submodules('agent')
 hiddenimports += collect_submodules('tools')
