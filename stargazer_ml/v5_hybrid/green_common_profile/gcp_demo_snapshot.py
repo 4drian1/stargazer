@@ -53,6 +53,11 @@ def build(daily_dir, now=None):
     else:
         raise ValueError('本地日线为空')
     date = int(daily.date.max())
+    if date < expected_date:
+        raise ValueError(
+            f'日线分片数据止于 {date}，未到预期数据日 {expected_date}'
+            f'（stockdb 已更新但 data_daily_parts 未同步）。'
+            f'请先跑 green_v2/refresh_pool.py 或数据同步工具后再生成名单。')
     rows = []
     for code, g in daily.groupby('code', sort=False):
         if int(g.date.iloc[-1]) != date:

@@ -129,7 +129,7 @@ def main():
     else:
         # 逐日补（跨节假日多日缺失也能补）
         import datetime as dt
-        d0 = dt.datetime.strptime(str(parts + 1), "%Y%m%d")
+        d0 = dt.datetime.strptime(str(parts), "%Y%m%d") + dt.timedelta(days=1)
         d1 = dt.datetime.strptime(str(sdb), "%Y%m%d")
         cur = d0
         while cur <= d1:
