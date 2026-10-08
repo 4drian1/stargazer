@@ -18,7 +18,24 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 
 BASE = "http://127.0.0.1:7899"
-PARTS = Path(r"D:/a股数据/data_daily_parts")
+
+
+def _parts_dir() -> Path:
+    """日线目录：env STARGAZER_DAILY_PARTS（mquote/build_pool 同名先例）→ 仓库根
+    data_daily_parts（监控机布局）→ 本机 D:/a股数据 缺省。"""
+    import os
+    v = os.environ.get("STARGAZER_DAILY_PARTS")
+    if v:
+        return Path(v)
+    here = Path(__file__).resolve().parent          # green_v2/
+    root = here.parents[2]                           # 仓库根
+    for cand in (root / "data_daily_parts", Path(r"D:/a股数据/data_daily_parts")):
+        if cand.exists():
+            return cand
+    return Path(r"D:/a股数据/data_daily_parts")
+
+
+PARTS = _parts_dir()
 PROBE_CODE = "600000"
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
