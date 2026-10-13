@@ -136,6 +136,44 @@ def test_clean_url_strips_literal_spaces():
     assert clean_url(clean) == clean
 
 
+def test_entry_failure_stops_and_finalizes():
+    """入口级失败即停（用户 2026-10-13 裁决）：首篇有限重试后失败 →
+    不请求下一篇 → 失败终局（非 completed）→ 再次运行拒绝。全程零网络。"""
+    import importlib
+    import os
+    import tempfile
+    import special_564_run
+
+    with tempfile.TemporaryDirectory() as td:
+        os.environ['BATCH_564_DIR'] = td
+        importlib.reload(special_564_run)
+        calls = []
+
+        class BoomClient:
+            def __init__(self, *a, **k):
+                pass
+
+            def fetch_ann_text(self, url, archive_dir=None):
+                calls.append(url)
+                raise ConnectionError('boom')
+
+        special_564_run.CninfoAnnClient = BoomClient
+        try:
+            rc = special_564_run.main()
+            assert rc == 0
+            assert len(calls) == 1, f'失败后仍请求下一篇：实际 {len(calls)} 次'
+            stop = json.loads((Path(td) / 'stop_record.json').read_text(encoding='utf-8'))
+            assert stop['stop_reason'].startswith('fetch_fail'), stop
+            try:
+                special_564_run.main()
+                raise AssertionError('失败终局后再次运行未被拒绝')
+            except SystemExit:
+                pass
+        finally:
+            os.environ.pop('BATCH_564_DIR', None)
+            importlib.reload(special_564_run)
+
+
 if __name__ == '__main__':
     fns = [v for k, v in sorted(globals().items())
            if k.startswith('test_') and callable(v)]
