@@ -70,7 +70,7 @@ def main() -> int:
     # 批次最终性守卫（REV5 治理修复）：已终结批次拒绝再次运行——
     # 停止线被触发后，任何续跑须用户书面授权（不得靠重建计数器"重启续抓"）。
     # 授权续跑方式：用户批准后删除/改名 stop_record.json（留痕），或指定新批次目录。
-    if (BATCH / 'stop_record.json').exists():
+    if batch_finalized(BATCH):
         raise SystemExit(
             f'批次已终结（{BATCH}/stop_record.json 存在）。'
             '停止线触发后续跑须用户书面授权：获授权后移走 stop_record.json 留痕，'
@@ -106,8 +106,10 @@ def main() -> int:
             smoke_maps[code6] = m
             log('smoke_ok', code=code6, rows=len(rows))
         except Exception as exc:
+            # REV6：首次冒烟失败即整批终止（治理修正：不得再发第二次请求）
             stop_reason = f'smoke_failed:{type(exc).__name__}'
             log('smoke_fail', code=code6, err=str(exc)[:120])
+            break
     # 字段序验证：与本地 1008 收盘比对（容忍 ±0.01）
     field_ok = True
     loc = local_window('600000', cal, 20261008, 20261008)
@@ -161,9 +163,11 @@ def main() -> int:
             c['remote'] = f'budget_trip'
             break
         except Exception as exc:
+            # REV6：案例失败即整批终止
             stop_reason = f'fetch_fail:{type(exc).__name__}'
             log('case_fail', code=c['code'], err=str(exc)[:100])
             c['remote'] = f'error:{type(exc).__name__}'
+            break
 
     # ---- 逐点比对（|diff| ≤ 0.01 元；逐日 close@P + low@P+1..P+5）----
     points = []
@@ -208,22 +212,31 @@ def main() -> int:
     return 0
 
 
-def finalize(ledger, req, nbytes, disk, stop_reason, points=None):
+def finalize(ledger, req, nbytes, disk, stop_reason, points=None,
+             batch_dir=BATCH):
     final = dict(stop_reason=stop_reason,
                  requests_used=req.used, requests_cap=req.hard_cap,
                  response_bytes=nbytes.used, response_bytes_cap=nbytes.hard_cap_bytes,
                  disk_bytes=disk.used, disk_bytes_cap=disk.hard_cap_bytes,
                  note='单次运行账本；额度不随重启重置，本批终结')
-    with (BATCH / 'stop_record.json').open('xb') as f:      # 独占写：终局不可覆盖
-        f.write(json.dumps(final, ensure_ascii=False, indent=1))
-    with (BATCH / 'request_ledger.json').open('xb') as f:   # 独占写：账本不可覆盖
-        f.write(json.dumps(ledger, ensure_ascii=False, indent=1))
+    stop_b = (json.dumps(final, ensure_ascii=False, indent=1)).encode('utf-8')
+    ledger_b = (json.dumps(ledger, ensure_ascii=False, indent=1)).encode('utf-8')
+    # REV6 修复：xb 为二进制模式，必须写字节（旧版写 str 抛 TypeError 留零字节假终局）
+    with (batch_dir / 'stop_record.json').open('xb') as f:
+        f.write(stop_b)
+    with (batch_dir / 'request_ledger.json').open('xb') as f:
+        f.write(ledger_b)
     if points is not None:
-        write_report(points, final)
+        write_report(points, final, batch_dir)
     print(json.dumps(final, ensure_ascii=False))
 
 
-def write_report(points, final):
+def batch_finalized(batch_dir) -> bool:
+    """批次最终性守卫（REV6）：终局文件存在即拒绝再跑。"""
+    return (Path(batch_dir) / 'stop_record.json').exists()
+
+
+def write_report(points, final, batch_dir=BATCH):
     L = ['# 独立价格比对报告（batch_20261010）', '',
          f"- 账本：请求 {final['requests_used']}/{final['requests_cap']}｜"
          f"响应 {final['response_bytes']} B/{final['response_bytes_cap']} B｜"
@@ -246,7 +259,7 @@ def write_report(points, final):
                 s = p.get('verdict', p.get('remote', ''))
             L.append(f"| {p['code']} | {p['P']} | {p.get('remote','')} | {s} |")
         L.append('')
-    (BATCH / 'report.md').write_text('\n'.join(L), encoding='utf-8')
+    (batch_dir / 'report.md').write_text('\n'.join(L), encoding='utf-8')
 
 
 if __name__ == '__main__':
