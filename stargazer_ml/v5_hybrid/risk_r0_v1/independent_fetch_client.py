@@ -1,30 +1,45 @@
-"""independent_fetch_client.py — 腾讯日K独立取数受控客户端（请求单 §1/§5 执行件）。
+"""independent_fetch_client.py — 腾讯日K独立取数受控客户端（请求单 REV3 执行件）。
 
-设计约束（对应 bounded_independent_verification_request_order.md 修订条款）：
-- **直连** web.ifzq.gtimg.cn fqkline 接口，**不使用 akshare 封装**（封装有隐藏起点查询
-  且无超时，违反"一次调用≠一次请求"的计数纪律）。
-- **计数**：每次 HTTP 请求（含重试、冒烟）都计入 hard cap，超限即停（FetchBudgetExceeded）。
-- **限速**：默认 1 请求/秒；**超时**：每请求 urllib timeout（默认 10s），重试 ≤3 次指数退避。
-- **响应校验（防静默退回复权）**：param 末位 fq 留空 → 只接受响应含 `day` 键且
-  **不含** `qfqday`/`hfqday`；否则拒绝（RawResponseRejected），绝不静默用复权数据。
-- 只实现请求单 §3 所需：单码一段日K（P-5..W_end 一次取齐）。
+设计约束（bounded_independent_verification_request_order.md 修订条款）：
+- **直连** web.ifzq.gtimg.cn fqkline，不用 akshare 封装（隐藏起点查询+无超时）。
+- **请求计数**：每次 HTTP（含重试/冒烟/辅助）入 FetchCounter hard_cap=25，超限即停。
+- **字节预算真实生效**：默认传输按 read_cap 限量读取（绝不多读）；收到响应先按实际
+  字节数计入 ByteCounter（**含重试与拒收响应**），累计触线即 ByteBudgetExceeded。
+- **禁止隐藏重定向**：默认传输挂 _NoRedirect，遇 3xx 直接 RedirectRefused 停止，
+  重定向产生的额外请求永远不进计数器（因为根本不发生）。
+- **原始响应留证**：archive_dir 提供时，原始字节+请求参数+实际抓取时刻+SHA256+
+  outcome（ok/rejected/error）全部落盘；**异常响应同样留证**（连接失败留尝试记录）。
+  落盘字节另计 DiskWriteCounter（原始+sidecar+索引+报告+停机留因）。
+- 冒烟 smoke=True → 该次调用零重试。
 
 零网络测试见 test_independent_fetch_client.py（mock 传输层）。
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
 
 
 class FetchBudgetExceeded(RuntimeError):
     pass
 
 
+class ByteBudgetExceeded(RuntimeError):
+    pass
+
+
 class RawResponseRejected(RuntimeError):
     pass
+
+
+class RedirectRefused(RuntimeError):
+    """遇 3xx 重定向即停，不自动跟随（隐藏请求不入计数器）。"""
 
 
 class FetchCounter:
@@ -41,6 +56,29 @@ class FetchCounter:
         self.used += n
 
 
+class ByteCounter:
+    """累计响应/落盘字节；触线即停。"""
+
+    def __init__(self, hard_cap_bytes: int):
+        self.hard_cap_bytes = hard_cap_bytes
+        self.used = 0
+
+    def consume(self, n: int) -> None:
+        if self.used + n > self.hard_cap_bytes:
+            raise ByteBudgetExceeded(
+                f'字节预算超限：累计 {self.used + n} > {self.hard_cap_bytes} B；即停')
+        self.used += n
+
+    @property
+    def remaining(self) -> int:
+        return self.hard_cap_bytes - self.used
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise RedirectRefused(f'重定向拒绝（HTTP {code} -> {newurl}）：不自动跟随')
+
+
 def _validate_raw(payload: dict, symbol: str) -> list:
     data = payload.get('data') or {}
     node = data.get(symbol) or {}
@@ -53,47 +91,90 @@ def _validate_raw(payload: dict, symbol: str) -> list:
     return raw
 
 
-class TencentDailyClient:
-    """受控腾讯日K客户端。transport 可注入以便零网络测试。"""
+def _default_transport(url: str, timeout: float, read_cap: int) -> bytes:
+    """限量读取（最多 read_cap 字节，多读即抛 ByteBudgetExceeded）+ 禁重定向。"""
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}), _NoRedirect())
+    req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+    with opener.open(req, timeout=timeout) as resp:
+        data = resp.read(read_cap + 1)
+    if len(data) > read_cap:
+        raise ByteBudgetExceeded(f'响应超过剩余字节预算（>{read_cap} B 未读完即弃）')
+    return data
 
+
+class TencentDailyClient:
     BASE = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get'
 
-    def __init__(self, counter: FetchCounter, *, rate_limit_s: float = 1.0,
-                 timeout_s: float = 10.0, max_retries: int = 3,
-                 transport=None, sleep=time.sleep):
+    def __init__(self, counter: FetchCounter, byte_counter: ByteCounter | None = None,
+                 *, rate_limit_s: float = 1.0, timeout_s: float = 10.0,
+                 max_retries: int = 3, transport=None, sleep=time.sleep,
+                 disk_counter: ByteCounter | None = None):
         self.counter = counter
+        self.bytes = byte_counter or ByteCounter(5 * 1024 * 1024)  # 5MB 响应硬限
         self.rate_limit_s = rate_limit_s
         self.timeout_s = timeout_s
         self.max_retries = max_retries
-        self._transport = transport or self._default_transport
+        self._transport = transport or _default_transport
         self._sleep = sleep
         self._last_ts = 0.0
+        self.disk = disk_counter  # 提供时才落盘留证
+        self._seq = 0
 
-    def _default_transport(self, url: str, timeout: float) -> bytes:
-        req = urllib.request.Request(url, headers={'Accept': 'application/json'})
-        return urllib.request.build_opener(
-            urllib.request.ProxyHandler({})).open(req, timeout=timeout).read()
-
-    def fetch_raw_daily(self, code6: str, start: str, end: str) -> list:
-        """单码一段日K（原始价）。一次本函数调用 = 至多 (1+max_retries) 次计数请求。"""
+    def fetch_raw_daily(self, code6: str, start: str, end: str, *,
+                        archive_dir=None, smoke: bool = False) -> list:
         prefix = 'sh' if code6.startswith('6') else 'sz'
         symbol = f'{prefix}{code6}'
         param = f'{symbol},day,{start},{end},640,'  # 末位留空 = 原始价
         url = self.BASE + '?' + urllib.parse.urlencode({'param': param})
+        attempt_cap = 0 if smoke else self.max_retries
         attempt = 0
         while True:
             self.counter.consume(1)
             self._throttle()
+            fetched_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
             try:
-                raw = self._transport(url, self.timeout_s)
-                return _validate_raw(json.loads(raw.decode('utf-8')), symbol)
-            except (RawResponseRejected, FetchBudgetExceeded):
+                read_cap = max(self.bytes.remaining, 0)
+                raw = self._transport(url, self.timeout_s, read_cap)
+                self.bytes.consume(len(raw))          # 含将被拒收的响应
+                rows = _validate_raw(json.loads(raw.decode('utf-8')), symbol)
+                self._archive(archive_dir, symbol, param, url, fetched_at, raw, 'ok')
+                return rows
+            except (RawResponseRejected,) as exc:
+                # 拒收响应同样留证
+                self._archive(archive_dir, symbol, param, url, fetched_at,
+                              locals().get('raw', b''), f'rejected:{type(exc).__name__}')
                 raise
-            except Exception:
+            except (FetchBudgetExceeded, ByteBudgetExceeded,
+                    RedirectRefused):
+                raise                              # 预算/重定向：即停不重试
+            except Exception as exc:
+                self._archive(archive_dir, symbol, param, url, fetched_at, b'',
+                              f'error:{type(exc).__name__}')
                 attempt += 1
-                if attempt > self.max_retries:
+                if attempt > attempt_cap:
                     raise
                 self._sleep(2 ** attempt)
+
+    def _archive(self, archive_dir, symbol, param, url, fetched_at, raw: bytes,
+                 outcome: str) -> None:
+        if archive_dir is None:
+            return
+        d = Path(archive_dir)
+        d.mkdir(parents=True, exist_ok=True)
+        self._seq += 1
+        sha = hashlib.sha256(raw).hexdigest()
+        base = f'{self._seq:04d}_{symbol}'
+        blob = d / f'{base}.bin'
+        blob.write_bytes(raw)
+        meta = dict(seq=self._seq, symbol=symbol, param=param, url=url,
+                    fetched_at=fetched_at, sha256=sha, bytes=len(raw), outcome=outcome)
+        (d / f'{base}.json').write_text(
+            json.dumps(meta, ensure_ascii=False, indent=1), encoding='utf-8')
+        with (d / 'index.jsonl').open('a', encoding='utf-8') as f:
+            f.write(json.dumps(meta, ensure_ascii=False) + '\n')
+        if self.disk is not None:
+            self.disk.consume(len(raw) + 400)     # 原始+sidecar+索引行近似
 
     def _throttle(self) -> None:
         wait = self.rate_limit_s - (time.time() - self._last_ts)
@@ -103,7 +184,6 @@ class TencentDailyClient:
 
 
 def case_windows(cases: list) -> list:
-    """把案例展开为 (code6, start, end)：取 P-5 自然日 .. W_end（接口按区间返回，一次取齐）。"""
     from datetime import datetime, timedelta
     out = []
     for c in cases:
