@@ -1,0 +1,393 @@
+{
+ "generated_at": "2026-10-10T23:30:40",
+ "network_requests": 0,
+ "calendar": {
+  "n_files": 39,
+  "n_trading_days": 2125,
+  "min_date": 20180102,
+  "max_date": 20261009,
+  "data_epoch_fingerprint": "daily_parts@39files_s641835930_m1791546571_epoch20261009_h0947991259779687",
+  "weekday_contaminated_days": [],
+  "weekday_contaminated_n": 0,
+  "large_gaps_gt4d": [
+   [
+    20180131,
+    20180201,
+    70
+   ],
+   [
+    20180214,
+    20180222,
+    8
+   ],
+   [
+    20180228,
+    20180301,
+    73
+   ],
+   [
+    20180330,
+    20180402,
+    72
+   ],
+   [
+    20180404,
+    20180409,
+    5
+   ],
+   [
+    20180427,
+    20180502,
+    75
+   ],
+   [
+    20180531,
+    20180601,
+    70
+   ],
+   [
+    20180629,
+    20180702,
+    73
+   ],
+   [
+    20180731,
+    20180801,
+    70
+   ],
+   [
+    20180831,
+    20180903,
+    72
+   ],
+   [
+    20180928,
+    20181008,
+    80
+   ],
+   [
+    20181031,
+    20181101,
+    70
+   ],
+   [
+    20181130,
+    20181203,
+    73
+   ],
+   [
+    20181228,
+    20190102,
+    8874
+   ],
+   [
+    20190131,
+    20190201,
+    70
+   ],
+   [
+    20190201,
+    20190211,
+    10
+   ],
+   [
+    20190228,
+    20190301,
+    73
+   ],
+   [
+    20190329,
+    20190401,
+    72
+   ],
+   [
+    20190430,
+    20190506,
+    76
+   ],
+   [
+    20190531,
+    20190603,
+    72
+   ]
+  ],
+  "large_gaps_n": 118
+ },
+ "freeze_fingerprint": [
+  "daily_parts@34files_s638278847_m1790509458_epoch20260924_h51f0af4422d8ab5c",
+  5477,
+  "32a8a840e120bd4cd36e64bbb33cfb177488f6c9b79454e7d4a07d05aee079e3"
+ ],
+ "adjustment": {
+  "cache_total": 5477,
+  "ok": 5407,
+  "empty": 70,
+  "union_n": 5477,
+  "missing_vs_union": 0,
+  "missing_sample": [],
+  "fail_distinct": 3,
+  "fail_sample": [
+   "301552",
+   "603095",
+   "688686"
+  ],
+  "coverage_ok_n": 5407,
+  "coverage_min_event_date": 19910226,
+  "coverage_max_event_date": 20260928,
+  "coverage_sample": [
+   [
+    "000001",
+    19910430,
+    20260924,
+    33
+   ],
+   [
+    "000002",
+    19910531,
+    20230825,
+    37
+   ],
+   [
+    "000004",
+    19910626,
+    20060818,
+    8
+   ],
+   [
+    "000006",
+    19921026,
+    20230628,
+    34
+   ],
+   [
+    "000007",
+    19930531,
+    20170522,
+    7
+   ],
+   [
+    "000008",
+    19930531,
+    20200529,
+    13
+   ],
+   [
+    "000009",
+    19930412,
+    20260827,
+    24
+   ],
+   [
+    "000010",
+    19960722,
+    20130719,
+    5
+   ],
+   [
+    "000011",
+    19930719,
+    20260615,
+    18
+   ],
+   [
+    "000012",
+    19930524,
+    20260723,
+    33
+   ]
+  ],
+  "note": "逐候选 [P, W末日] 覆盖交叉核验 UNVERIFIED：1,013 候选实际存储表待定位（见候选表）。"
+ },
+ "price_scale": {
+  "daily_part_schema_sample": [
+   "date",
+   "code",
+   "name",
+   "open",
+   "high",
+   "low",
+   "close",
+   "pre_close",
+   "volume",
+   "amount",
+   "turnover",
+   "pct_chg",
+   "amplitude",
+   "is_st",
+   "vol_ratio",
+   "total_share",
+   "float_share",
+   "total_mv",
+   "float_mv",
+   "pe_ttm",
+   "pb"
+  ],
+  "actual_daily_part_files": 39,
+  "inventory_parquet_entries": 42,
+  "inventory_non_data_entries_mixed": 9,
+  "sha256_match": 39,
+  "sha256_mismatch": 0,
+  "sha256_unrecorded": 0,
+  "inventory_mixing_note": "库存清单 input_manifest 混入了 .py/.md/.json 等非数据文件；其 parquet 条目与实际文件数也可能不一致（陈旧）。应以本脚本重算的 39 文件为准。",
+  "raw_claim": "UNVERIFIED_HYPOTHESIS：get_daily 为 parquet 优先+HTTP 兜底，未做价格尺度转换/验证；原样返回记录≠返回未复权价格。参见 R0_V1_DEVELOPMENT.md §2（待验证假设）。",
+  "crosscheck_sample": [
+   {
+    "file": "part_00000.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_00300.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_00600.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_00900.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_01200.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_01500.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_01800.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_02100.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_02400.parquet",
+    "status": "MATCH"
+   },
+   {
+    "file": "part_02700.parquet",
+    "status": "MATCH"
+   }
+  ]
+ },
+ "candidates": {
+  "registry_version": "dual_path_e_day_registry",
+  "registry_date": "2026-10-01",
+  "summary_counts": {
+   "box_members_2025plus": 1072,
+   "unique_codeE": 1050,
+   "dual_setup_keys": 0,
+   "hit_valid": 94,
+   "hit_invalid": 4,
+   "planned_requests_need": 952,
+   "outside_cutoff_codeP": 22
+  },
+  "by_month": {
+   "202501": {
+    "total": 33,
+    "NEED": 27
+   },
+   "202502": {
+    "total": 3,
+    "NEED": 3
+   },
+   "202503": {
+    "total": 24,
+    "NEED": 21
+   },
+   "202504": {
+    "total": 24,
+    "NEED": 17
+   },
+   "202505": {
+    "total": 18,
+    "NEED": 16
+   },
+   "202506": {
+    "total": 33,
+    "NEED": 29
+   },
+   "202507": {
+    "total": 16,
+    "NEED": 14
+   },
+   "202508": {
+    "total": 22,
+    "NEED": 22
+   },
+   "202509": {
+    "total": 37,
+    "NEED": 28
+   },
+   "202510": {
+    "total": 56,
+    "NEED": 52
+   },
+   "202511": {
+    "total": 91,
+    "NEED": 81
+   },
+   "202512": {
+    "total": 91,
+    "NEED": 80
+   },
+   "202601": {
+    "total": 20,
+    "NEED": 19
+   },
+   "202602": {
+    "total": 18,
+    "NEED": 16
+   },
+   "202603": {
+    "total": 70,
+    "NEED": 64
+   },
+   "202604": {
+    "total": 43,
+    "NEED": 42
+   },
+   "202605": {
+    "total": 59,
+    "NEED": 55
+   },
+   "202606": {
+    "total": 154,
+    "NEED": 145
+   },
+   "202607": {
+    "total": 146,
+    "NEED": 138
+   },
+   "202608": {
+    "total": 18,
+    "NEED": 15
+   },
+   "202609": {
+    "total": 74,
+    "NEED": 68
+   }
+  },
+  "daily_snapshot": {
+   "parts_dir": "D:/a股数据\\data_daily_parts",
+   "num_parts": 35,
+   "total_bytes": 638996008,
+   "agg_sha256": "e2e73bdf3d4c64786014f13b1b28f7a34c766b6c7fd0045c31215fd5f1c881a2",
+   "last_part_name": "part_incr_20260928.parquet",
+   "last_part_size": 717161,
+   "last_part_mtime": 1790597155,
+   "calendar_max_date": 20260928,
+   "calendar_trading_days": 2121
+  },
+  "per_row_binding": {
+   "original_eligibility_ref": "UNVERIFIED（实际存储表待定位，risk_candidate_source_reconciliation_v1.md §4.1 TODO）",
+   "P_date": "UNVERIFIED（registry 无逐事件 P）",
+   "candidate_rule_version": "UNVERIFIED（规则 SHA256 已记录于 reconciliation 文档，未绑定到逐行）",
+   "decision_available_ts_status": "UNVERIFIED（无逐行到达时刻）"
+  },
+  "note": "DUAL_PATH=1,013 已识别但未物化逐行存储；不得用后续行动反推资格。"
+ }
+}

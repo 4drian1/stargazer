@@ -1,0 +1,154 @@
+{
+ "corp_action_fixed_evidence": [
+  {
+   "code": "920729",
+   "event_date": 20210513,
+   "mult": 3.581,
+   "verdict": {
+    "verdict": "NOT_TESTED_DATA_MISSING",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "",
+    "detail": "missing_close pre=20210512:None ev=20210513:12.6 post=20210514:12.75"
+   }
+  },
+  {
+   "code": "600733",
+   "event_date": 20180919,
+   "mult": 3.5,
+   "verdict": {
+    "verdict": "NOT_TESTED_DATA_MISSING",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "",
+    "detail": "missing_close pre=20180918:None ev=20180919:None post=20180920:None"
+   }
+  },
+  {
+   "code": "002594",
+   "event_date": 20250729,
+   "mult": 3.036,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=3.0246 r_ev_post=1.0250 mult=3.0360 raw_dev=0.0038 qfq_dev=2.0246"
+   }
+  },
+  {
+   "code": "300668",
+   "event_date": 20180629,
+   "mult": 2.547,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.7076 r_ev_post=1.0495 mult=2.5470 raw_dev=0.0631 qfq_dev=1.7076"
+   }
+  },
+  {
+   "code": "300586",
+   "event_date": 20180524,
+   "mult": 2.532,
+   "verdict": {
+    "verdict": "NOT_TESTED_DATA_MISSING",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "",
+    "detail": "missing_close pre=20180523:None ev=20180524:None post=20180525:None"
+   }
+  },
+  {
+   "code": "920808",
+   "event_date": 20230531,
+   "mult": 2.516,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.7147 r_ev_post=1.0119 mult=2.5160 raw_dev=0.0790 qfq_dev=1.7147"
+   }
+  },
+  {
+   "code": "300401",
+   "event_date": 20180504,
+   "mult": 2.507,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.4570 r_ev_post=0.9737 mult=2.5070 raw_dev=0.0199 qfq_dev=1.4570"
+   }
+  },
+  {
+   "code": "603716",
+   "event_date": 20180425,
+   "mult": 2.504,
+   "verdict": {
+    "verdict": "UNDETERMINED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.3368 r_ev_post=1.1111 mult=2.5040 raw_dev=0.0668 qfq_dev=1.3368"
+   }
+  },
+  {
+   "code": "000564",
+   "event_date": 20211231,
+   "mult": 2.378,
+   "verdict": {
+    "verdict": "NOT_TESTED_DATA_MISSING",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "",
+    "detail": "missing_close pre=20211230:None ev=20211231:1.71 post=20220104:1.62"
+   }
+  },
+  {
+   "code": "002717",
+   "event_date": 20180424,
+   "mult": 2.314,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.2207 r_ev_post=1.0047 mult=2.3140 raw_dev=0.0403 qfq_dev=1.2207"
+   }
+  },
+  {
+   "code": "002831",
+   "event_date": 20190513,
+   "mult": 2.226,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.4089 r_ev_post=0.9732 mult=2.2260 raw_dev=0.0822 qfq_dev=1.4089"
+   }
+  },
+  {
+   "code": "300259",
+   "event_date": 20180523,
+   "mult": 2.221,
+   "verdict": {
+    "verdict": "RAW_LIKE_DIRECTION_SUPPORTED",
+    "method": "transformation_continuity",
+    "needs": "",
+    "assumptions": "大比例除权使 RAW/QFQ 方向可分离",
+    "detail": "r_pre_ev=2.3964 r_ev_post=1.0023 mult=2.2210 raw_dev=0.0790 qfq_dev=1.3964"
+   }
+  }
+ ],
+ "method_status": {
+  "transformation_continuity": "IMPLEMENTED_AND_RUN (转换方向验证；非人口独立证据)",
+  "provenance_trace": "STUB_PENDING_AUTHORIZATION",
+  "independent_compare": "STUB_PENDING_AUTHORIZATION"
+ },
+ "cross_shard_status": "PENDING_INDEPENDENT_SOURCE"
+}

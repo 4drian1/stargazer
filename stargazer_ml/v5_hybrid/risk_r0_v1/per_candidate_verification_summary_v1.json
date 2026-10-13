@@ -1,0 +1,525 @@
+{
+ "generated_at": "2026-10-13T10:00:10",
+ "network_requests": 0,
+ "population": {
+  "events": 1013,
+  "unique_code": 706,
+  "unique_codeE": 1013,
+  "version": "DUAL_PATH_1013"
+ },
+ "fetch_epoch(抓取时点_仅信息_非覆盖终点)": 20260928,
+ "six_dimension_verification": {
+  "membership_binding(历史成员关系可证)": {
+   "BOUND": 1013
+  },
+  "eligibility_known_at_P_day_decision(须独立证据)": {
+   "UNVERIFIED": 1013
+  },
+  "calendar_compare(W映射一致)": {
+   "structural_fail": 0,
+   "ok": 1013
+  },
+  "adj_status_verified(最终缓存状态)": {
+   "OK": 993,
+   "EMPTY": 19,
+   "MISSING": 1
+  },
+  "coverage_verified([P,W末日]完整性独立证据)": {
+   "UNVERIFIED": 1013
+  },
+  "coverage_chain_ok(链可构建_状态层面)": {
+   "True": 1012,
+   "False": 1
+  },
+  "scale_class(码级判别_全事件)": {
+   "AMBIGUOUS": 321,
+   "UNVERIFIED": 545,
+   "RAW": 147
+  },
+  "scale_verified(码级RAW才可套复权)": {
+   "RAW_VERIFIED": 147,
+   "UNVERIFIED": 866
+  },
+  "window_scale_crossday_diag(跨日比法_方法受限_非数据判定_非门禁)": {
+   "METHOD_CANNOT_DETERMINE": 1013
+  },
+  "window_scale_evidence_method(待建_来源溯源+独立价格比对)": {
+   "PENDING: provenance-tracing + independent-price-comparison (bounded validation, not yet run)": 1013
+  },
+  "raw_scale_codelevel_records_vs_unique_codes(147条历史支持证据保留)": {
+   "raw_records": 147,
+   "raw_unique_codes": 99
+  },
+  "label_eligibility(工程标签准入)": {
+   "LABEL_NULL": 866,
+   "SCALE_SUPPORTED_COVERAGE_PENDING": 147
+  },
+  "label_note": "ENGINEERING_OK 须 RAW+链可用+覆盖核销三者皆满足（当前覆盖全 UNVERIFIED，故 0）；RAW+链可用但覆盖未核销=SCALE_SUPPORTED_COVERAGE_PENDING（正式 MAE/Y_tail 仍 NULL）；其余 LABEL_NULL。training_eligible 全 False。",
+  "training_eligible": {
+   "False": 1013
+  },
+  "time_evidence(历史到达时刻)": {
+   "UNKNOWN": 1013
+  }
+ },
+ "structural_verdict(仅结构性缺数据隔离)": {
+  "PASS": 1009,
+  "ISOLATED": 4
+ },
+ "isolation_reason_counts": {
+  "DATA_MISSING": 3,
+  "ADJ_MISSING": 1
+ },
+ "fail_reconciliation": {
+  "fail_log_distinct": 3,
+  "historical(now_in_cache)": [
+   "301552",
+   "603095",
+   "688686"
+  ],
+  "current(not_in_cache)": [],
+  "note": "最终状态以缓存为准；历史失败不与 OK/EMPTY 重复计数"
+ },
+ "decision_available_ts": {
+  "value": "UNKNOWN",
+  "n": 1013,
+  "note": "无原始日志，今天的数据管线无法追溯补造历史到达时刻；建议另签'历史标签工程用途'范围，保留全部 training_eligible=False；前瞻运行再真实记录到达时刻。不制造时间证据。"
+ },
+ "calendar_diff_vs_independent": {
+  "independent_source": "akshare 包内 file_fold/calendar.json",
+  "independent_version": "akshare 1.18.94",
+  "independent_sha256": "f1f1ce33c5cceb5c530c3271fc951405cb5624d2f30becec85dc7a85fd47e656",
+  "source_note": "非交易所官方认证；据本地源码注释相关工具来源为新浪财经，随 akshare 包版本分发；与其零差集仅证明日线推导日历在本区间与之逐日一致，不等同交易所官方背书",
+  "akshare_calendar_n": 8797,
+  "akshare_range": [
+   19901219,
+   20261231
+  ],
+  "compare_range": [
+   20180102,
+   20261012
+  ],
+  "independent_trading_days_in_range": 2126,
+  "data_calendar_days": 2126,
+  "missing_in_data(independent_day_no_bars)": [],
+  "extra_in_data(bars_on_non_trading_day)": []
+ },
+ "price_scale_crossday": {
+  "n_cases": 40,
+  "classify_counts": {
+   "AMBIGUOUS": 29,
+   "RAW_LIKE": 9,
+   "QFQ_LIKE": 1,
+   "OTHER": 1
+  },
+  "pct_chg_consistent_n": 31,
+  "note": "仅样本对拍证据，不能推广到全人口；生成链存在 SDK(qfq) 与 HTTP(原始) 双路径，尺度口径未全量核销；小乘子案例容差内 RAW/QFQ 歧义已单列",
+  "cases": [
+   {
+    "code": "000009",
+    "ex_date": 20250827,
+    "mult": 1.003,
+    "close_prev": 9.56,
+    "pre_close": 9.53,
+    "ratio": 1.003148,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000009",
+    "ex_date": 20260827,
+    "mult": 1.004,
+    "close_prev": 7.2,
+    "pre_close": 7.2,
+    "ratio": 1.0,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000035",
+    "ex_date": 20250806,
+    "mult": 1.008,
+    "close_prev": 4.35,
+    "pre_close": 4.32,
+    "ratio": 1.006944,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000035",
+    "ex_date": 20260820,
+    "mult": 1.008,
+    "close_prev": 4.58,
+    "pre_close": 4.54,
+    "ratio": 1.008811,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000062",
+    "ex_date": 20250508,
+    "mult": 1.006,
+    "close_prev": 28.9,
+    "pre_close": 28.232,
+    "ratio": 1.023661,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000062",
+    "ex_date": 20250925,
+    "mult": 1.007,
+    "close_prev": 30.5,
+    "pre_close": 29.977,
+    "ratio": 1.017447,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000062",
+    "ex_date": 20251127,
+    "mult": 1.008,
+    "close_prev": 25.73,
+    "pre_close": 25.459,
+    "ratio": 1.010645,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000062",
+    "ex_date": 20260429,
+    "mult": 1.003,
+    "close_prev": 36.2,
+    "pre_close": 36.1,
+    "ratio": 1.00277,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000065",
+    "ex_date": 20250623,
+    "mult": 1.015,
+    "close_prev": 9.87,
+    "pre_close": 9.611,
+    "ratio": 1.026948,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000065",
+    "ex_date": 20260617,
+    "mult": 1.011,
+    "close_prev": 12.49,
+    "pre_close": 12.35,
+    "ratio": 1.011336,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000096",
+    "ex_date": 20250711,
+    "mult": 1.006,
+    "close_prev": 12.84,
+    "pre_close": 12.77,
+    "ratio": 1.005482,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000096",
+    "ex_date": 20260812,
+    "mult": 1.01,
+    "close_prev": 7.89,
+    "pre_close": 7.82,
+    "ratio": 1.008951,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000156",
+    "ex_date": 20250829,
+    "mult": 1.021,
+    "close_prev": 8.62,
+    "pre_close": 8.44,
+    "ratio": 1.021327,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000156",
+    "ex_date": 20260828,
+    "mult": 1.023,
+    "close_prev": 6.82,
+    "pre_close": 6.82,
+    "ratio": 1.0,
+    "classify": "QFQ_LIKE",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000400",
+    "ex_date": 20250110,
+    "mult": 1.003,
+    "close_prev": 25.31,
+    "pre_close": 24.84,
+    "ratio": 1.018921,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000400",
+    "ex_date": 20250709,
+    "mult": 1.007,
+    "close_prev": 22.18,
+    "pre_close": 21.83,
+    "ratio": 1.016033,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000400",
+    "ex_date": 20251017,
+    "mult": 1.009,
+    "close_prev": 27.06,
+    "pre_close": 26.82,
+    "ratio": 1.008949,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000400",
+    "ex_date": 20260626,
+    "mult": 1.01,
+    "close_prev": 22.03,
+    "pre_close": 21.81,
+    "ratio": 1.010087,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000407",
+    "ex_date": 20250707,
+    "mult": 1.012,
+    "close_prev": 3.41,
+    "pre_close": 3.36,
+    "ratio": 1.014881,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000407",
+    "ex_date": 20260210,
+    "mult": 1.003,
+    "close_prev": 5.15,
+    "pre_close": 5.14,
+    "ratio": 1.001946,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000407",
+    "ex_date": 20260710,
+    "mult": 1.012,
+    "close_prev": 3.74,
+    "pre_close": 3.7,
+    "ratio": 1.010811,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000408",
+    "ex_date": 20250905,
+    "mult": 1.019,
+    "close_prev": 53.53,
+    "pre_close": 51.63,
+    "ratio": 1.0368,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000408",
+    "ex_date": 20260417,
+    "mult": 1.017,
+    "close_prev": 87.94,
+    "pre_close": 86.44,
+    "ratio": 1.017353,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000408",
+    "ex_date": 20260904,
+    "mult": 1.013,
+    "close_prev": 75.87,
+    "pre_close": 75.86,
+    "ratio": 1.000132,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000505",
+    "ex_date": 20250611,
+    "mult": 1.003,
+    "close_prev": 6.58,
+    "pre_close": 6.56,
+    "ratio": 1.003049,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000555",
+    "ex_date": 20260522,
+    "mult": 1.001,
+    "close_prev": 13.0,
+    "pre_close": 12.99,
+    "ratio": 1.00077,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000559",
+    "ex_date": 20250610,
+    "mult": 1.024,
+    "close_prev": 7.8,
+    "pre_close": 7.536,
+    "ratio": 1.035032,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000559",
+    "ex_date": 20260519,
+    "mult": 1.011,
+    "close_prev": 18.18,
+    "pre_close": 17.98,
+    "ratio": 1.011123,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000581",
+    "ex_date": 20250618,
+    "mult": 1.048,
+    "close_prev": 19.62,
+    "pre_close": 18.66,
+    "ratio": 1.051447,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000581",
+    "ex_date": 20251015,
+    "mult": 1.005,
+    "close_prev": 21.38,
+    "pre_close": 21.28,
+    "ratio": 1.004699,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000581",
+    "ex_date": 20260715,
+    "mult": 1.042,
+    "close_prev": 17.44,
+    "pre_close": 16.74,
+    "ratio": 1.041816,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000600",
+    "ex_date": 20250618,
+    "mult": 1.018,
+    "close_prev": 7.52,
+    "pre_close": 7.174,
+    "ratio": 1.04823,
+    "classify": "OTHER",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000600",
+    "ex_date": 20260107,
+    "mult": 1.012,
+    "close_prev": 8.72,
+    "pre_close": 8.459,
+    "ratio": 1.030855,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": false
+   },
+   {
+    "code": "000600",
+    "ex_date": 20260603,
+    "mult": 1.019,
+    "close_prev": 11.8,
+    "pre_close": 11.58,
+    "ratio": 1.018998,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000626",
+    "ex_date": 20260917,
+    "mult": 1.026,
+    "close_prev": 8.74,
+    "pre_close": 8.52,
+    "ratio": 1.025822,
+    "classify": "RAW_LIKE",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000628",
+    "ex_date": 20250731,
+    "mult": 1.001,
+    "close_prev": 44.35,
+    "pre_close": 44.3,
+    "ratio": 1.001129,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000628",
+    "ex_date": 20260724,
+    "mult": 1.003,
+    "close_prev": 36.4,
+    "pre_close": 36.3,
+    "ratio": 1.002755,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000735",
+    "ex_date": 20250718,
+    "mult": 1.003,
+    "close_prev": 6.34,
+    "pre_close": 6.289,
+    "ratio": 1.008109,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000735",
+    "ex_date": 20260521,
+    "mult": 1.006,
+    "close_prev": 6.07,
+    "pre_close": 6.04,
+    "ratio": 1.004967,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   },
+   {
+    "code": "000738",
+    "ex_date": 20250626,
+    "mult": 1.009,
+    "close_prev": 19.36,
+    "pre_close": 19.19,
+    "ratio": 1.008859,
+    "classify": "AMBIGUOUS",
+    "pct_chg_consistent": true
+   }
+  ]
+ },
+ "generation_chain_evidence": {
+  "build_full_market_daily": "fetch_daily_sdk(..., fq='qfq') 主路径前复权；HTTP 兜底为原始日k",
+  "build_increment": "同口径 SDK qfq",
+  "risk": "生成链双路径（SDK qfq / HTTP 原始）并存，data_daily_parts 存在混合尺度风险；OHLC 尺度未全量核销；pre_close 已实证为 qfq 锚定（危险，禁用）"
+ }
+}

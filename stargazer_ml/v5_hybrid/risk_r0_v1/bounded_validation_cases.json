@@ -1,0 +1,159 @@
+{
+ "cross_shard": [
+  {
+   "code": "000600",
+   "E": 20260820,
+   "P": 20260819,
+   "W_end": 20260826,
+   "shards": [
+    "part_00000.parquet",
+    "part_incr_20260904.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  },
+  {
+   "code": "000600",
+   "E": 20260821,
+   "P": 20260820,
+   "W_end": 20260827,
+   "shards": [
+    "part_00000.parquet",
+    "part_incr_20260904.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  },
+  {
+   "code": "000600",
+   "E": 20260928,
+   "P": 20260924,
+   "W_end": 20261009,
+   "shards": [
+    "part_incr_20260924.parquet",
+    "part_incr_20260928.parquet",
+    "part_incr_20260929.parquet",
+    "part_incr_20260930.parquet",
+    "part_incr_20261008.parquet",
+    "part_incr_20261009.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  },
+  {
+   "code": "000893",
+   "E": 20260917,
+   "P": 20260916,
+   "W_end": 20260923,
+   "shards": [
+    "part_incr_20260916.parquet",
+    "part_incr_20260917.parquet",
+    "part_incr_20260918.parquet",
+    "part_incr_20260921.parquet",
+    "part_incr_20260922.parquet",
+    "part_incr_20260923.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  },
+  {
+   "code": "001318",
+   "E": 20260821,
+   "P": 20260820,
+   "W_end": 20260827,
+   "shards": [
+    "part_00300.parquet",
+    "part_incr_20260904.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  },
+  {
+   "code": "002009",
+   "E": 20260914,
+   "P": 20260911,
+   "W_end": 20260918,
+   "shards": [
+    "part_incr_20260916.parquet",
+    "part_incr_20260917.parquet",
+    "part_incr_20260918.parquet"
+   ],
+   "status": "PENDING_INDEPENDENT_SOURCE"
+  }
+ ],
+ "corp_action_fixed": [
+  {
+   "code": "920729",
+   "event_date": 20210513,
+   "mult": 3.581,
+   "in_training_population": false
+  },
+  {
+   "code": "600733",
+   "event_date": 20180919,
+   "mult": 3.5,
+   "in_training_population": false
+  },
+  {
+   "code": "002594",
+   "event_date": 20250729,
+   "mult": 3.036,
+   "in_training_population": false
+  },
+  {
+   "code": "300668",
+   "event_date": 20180629,
+   "mult": 2.547,
+   "in_training_population": false
+  },
+  {
+   "code": "300586",
+   "event_date": 20180524,
+   "mult": 2.532,
+   "in_training_population": false
+  },
+  {
+   "code": "920808",
+   "event_date": 20230531,
+   "mult": 2.516,
+   "in_training_population": false
+  },
+  {
+   "code": "300401",
+   "event_date": 20180504,
+   "mult": 2.507,
+   "in_training_population": false
+  },
+  {
+   "code": "603716",
+   "event_date": 20180425,
+   "mult": 2.504,
+   "in_training_population": false
+  },
+  {
+   "code": "000564",
+   "event_date": 20211231,
+   "mult": 2.378,
+   "in_training_population": false
+  },
+  {
+   "code": "002717",
+   "event_date": 20180424,
+   "mult": 2.314,
+   "in_training_population": false
+  },
+  {
+   "code": "002831",
+   "event_date": 20190513,
+   "mult": 2.226,
+   "in_training_population": false
+  },
+  {
+   "code": "300259",
+   "event_date": 20180523,
+   "mult": 2.221,
+   "in_training_population": false
+  }
+ ],
+ "_meta": {
+  "total_training_candidates": 1013,
+  "selection_rule": "cross_shard=跨 part 文件(训练人口内,待独立来源); corp_action_fixed=完整cache中|mult-1|>=0.20的大比例事件(非训练人口)",
+  "independent_source": "NOT_AVAILABLE (零网络)；method_independent_compare / method_provenance_trace 仍为 STUB",
+  "note": "公司行为固定案例验证转换方向(同一事件链内部一致性)，非对人口的独立尺度证据；跨分片/跨SDK-HTTP 待独立来源，未测试项不计 PASS"
+ }
+}
