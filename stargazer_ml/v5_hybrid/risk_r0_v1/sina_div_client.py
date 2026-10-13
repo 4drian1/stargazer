@@ -108,9 +108,25 @@ class SinaDivClient:
 
 def parse_bonus_page(html: bytes) -> dict:
     """解析分红配股页 → {'bonus': [...], 'allotment': [...], 'meta': {...}}。
-    字段以页面实际表头为准原样保留（键=表头文本），不做语义重命名。"""
+
+    部分页面的表头含合并单元格，pandas 返回元组键（MultiIndex）。一律拍平为
+    末级表头文本（批次②教训：调用方按平键取 进度/除权除息日，元组键会静默漏配）。
+    字段以页面实际表头为准原样保留，不做语义重命名。"""
     import io
     import pandas as pd
+
+    def flatten(rows):
+        out = []
+        for r in rows:
+            nr = {}
+            for k, v in r.items():
+                name = k[-1] if isinstance(k, tuple) else k
+                if name in nr and nr[name] is not None:
+                    continue    # 拍平后重名：保留先到的非空值
+                nr[name] = v
+            out.append(nr)
+        return out
+
     tables = pd.read_html(io.StringIO(html.decode('gbk', errors='replace')))
     out = {'tables_found': len(tables), 'bonus': None, 'allotment': None,
            'headers': []}
@@ -118,7 +134,7 @@ def parse_bonus_page(html: bytes) -> dict:
         headers = [str(h) for h in tb.columns]
         out['headers'].append(headers)
         joined = '|'.join(headers)
-        rows = tb.where(pd.notna(tb), None).to_dict('records')
+        rows = flatten(tb.where(pd.notna(tb), None).to_dict('records'))
         if '除权除息日' in joined and out['bonus'] is None:
             out['bonus'] = rows
         if '配股' in joined and out['allotment'] is None:

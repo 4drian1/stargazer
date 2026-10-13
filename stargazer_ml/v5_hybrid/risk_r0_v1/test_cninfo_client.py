@@ -79,21 +79,6 @@ def test_archive_roundtrip_with_disk_budget():
         assert meta['form']['searchkey'] == '600733'
 
 
-if __name__ == '__main__':
-    fns = [v for k, v in sorted(globals().items())
-           if k.startswith('test_') and callable(v)]
-    bad = 0
-    for fn in fns:
-        try:
-            fn()
-            print('PASS', fn.__name__)
-        except Exception as exc:
-            bad += 1
-            print('FAIL', fn.__name__, type(exc).__name__, exc)
-    print(f'== {len(fns) - bad}/{len(fns)} 项巨潮适配器零网络测试通过 ==')
-    sys.exit(1 if bad else 0)
-
-
 def test_budget_exception_no_retry():
     """预算触线绝不重试：字节预算在首次响应后触线，请求计数不变。"""
     c, b = FetchCounter(6), ByteCounter(len(LIST_RESP))
@@ -137,3 +122,32 @@ def test_generic_exception_retry_path():
     client = CninfoAnnClient(c, b, max_retries=2, transport=flaky, sleep=lambda s: None)
     out = client.query_ann_list('600733', '2018-01-01~2018-12-31')
     assert out['totalAnnouncement'] == 2 and c.used == 2 and state['n'] == 2
+
+
+def test_clean_url_strips_literal_spaces():
+    """批次①v2 烧毁根因回归：冻结清单 URL 含字面空格须清洗为 %20（零网络）。"""
+    from special_564_run import clean_url
+    dirty = ('http://www.cninfo.com.cn/new/disclosure/detail?stockCode=000564'
+             '&announcementId=1212057277&announcementTime=2021-12-27 00:00:00')
+    clean = clean_url(dirty)
+    assert ' ' not in clean, f'清洗后仍含空格: {clean!r}'
+    assert 'announcementTime=2021-12-27%2000:00:00' in clean
+    # 已干净的 URL 不得被二次破坏
+    assert clean_url(clean) == clean
+
+
+if __name__ == '__main__':
+    fns = [v for k, v in sorted(globals().items())
+           if k.startswith('test_') and callable(v)]
+    bad = 0
+    for fn in fns:
+        try:
+            fn()
+            print('PASS', fn.__name__)
+        except Exception as exc:
+            bad += 1
+            print('FAIL', fn.__name__, type(exc).__name__, exc)
+    print(f'== {len(fns) - bad}/{len(fns)} 项巨潮适配器零网络测试通过 ==')
+    sys.exit(1 if bad else 0)
+
+
