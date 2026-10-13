@@ -116,9 +116,14 @@ def main() -> int:
             results.append(rec)
             break
         except Exception as exc:
+            # 失败即停（用户 2026-10-13 裁决）：首篇有限重试后仍失败 → 终局记为
+            # fetch_fail，不再请求下一篇，绝不能写成 completed。
+            stop = f'fetch_fail:{type(exc).__name__}'
             ledger.append(dict(event='fetch_fail', title=item['title'][:30],
                                err=str(exc)[:100]))
             rec['status'] = f'FETCH_FAIL:{type(exc).__name__}'
+            results.append(rec)
+            break
         results.append(rec)
         if stop != 'completed':
             break
