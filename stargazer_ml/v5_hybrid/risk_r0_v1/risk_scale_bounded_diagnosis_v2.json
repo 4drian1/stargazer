@@ -1,0 +1,1124 @@
+{
+  "meta": {
+    "purpose": "bounded diagnosis v2; raw-caliber NOT confirmed (hypothesis + counterexamples)",
+    "sample_codes": 73,
+    "cache_codes": 5477,
+    "match_tol_pp": 0.5
+  },
+  "input_hash_manifest": {
+    "daily_parts": [
+      {
+        "file": "part_00000.parquet",
+        "sha256": "4adc25cfbfb1e34cc079c012f9e2df90db76b46cc5fdec1dc2d2c7155e563653",
+        "size": 36241410
+      },
+      {
+        "file": "part_00300.parquet",
+        "sha256": "11d859695bfc2d52ce55cfaeb2ba839b4ea3ad09f35e0055198e9054c8993c03",
+        "size": 29834791
+      },
+      {
+        "file": "part_00600.parquet",
+        "sha256": "06cdf158228a7236f6d051b6022585e99f5c7897e3d256487237cd0c7145d83c",
+        "size": 37943205
+      },
+      {
+        "file": "part_00900.parquet",
+        "sha256": "fdeb4f936bca23a2073df96f1772927425517bd16f8dc4262ecf20190aadf90b",
+        "size": 38032306
+      },
+      {
+        "file": "part_01200.parquet",
+        "sha256": "988d8a986e2ecba2dcc21a35ee5b1c916f8f4de0a059c0f2169df08ee53ed1f3",
+        "size": 35836805
+      },
+      {
+        "file": "part_01500.parquet",
+        "sha256": "0f88842810980fe4b5a528cc3932287daa9a92fad4310e285a4a586e0ff72ddc",
+        "size": 2064037
+      },
+      {
+        "file": "part_01800.parquet",
+        "sha256": "74564e824c39faf314391176eb648f80deee1e758f07bb7a8c87283c6c8b40c1",
+        "size": 6728158
+      },
+      {
+        "file": "part_02100.parquet",
+        "sha256": "411a48a55522b07ba7309a8973c05a42eaaeb75c3fdc2966b56b98dedd552c43",
+        "size": 10330683
+      },
+      {
+        "file": "part_02400.parquet",
+        "sha256": "eb390834fd87694579b78178284f65913579d21a48a86d2e92f6b2ccd20adac5",
+        "size": 30273128
+      },
+      {
+        "file": "part_02700.parquet",
+        "sha256": "78036c09d8c0e8d55f5ee7b272a9c740d6c737ca983e45d0292b0d708e071eb3",
+        "size": 39882277
+      },
+      {
+        "file": "part_03000.parquet",
+        "sha256": "fb5125d88d30983c6904124b8b09b8b2eda2981943414429375ac28ff3c7ad34",
+        "size": 37593060
+      },
+      {
+        "file": "part_03300.parquet",
+        "sha256": "47a1e9bd14dcf5956af837434e873ead16eda33804ac832909a0e58166bc312c",
+        "size": 24399007
+      },
+      {
+        "file": "part_03600.parquet",
+        "sha256": "90d8c66a5825b1d9ede3fee2abba0443b900d9938a3bc223415a99d0249050be",
+        "size": 15820163
+      },
+      {
+        "file": "part_03900.parquet",
+        "sha256": "dff087f1c08a2da1c46ddfb58403e7b349de1ec63967b5f762429d9effb05420",
+        "size": 8551302
+      },
+      {
+        "file": "part_04200.parquet",
+        "sha256": "70efee2032d31eedc5bb967dec3e474cebbd62e325a4611f2ee83ecb5acc66c3",
+        "size": 8032590
+      },
+      {
+        "file": "part_04500.parquet",
+        "sha256": "69ec8ee2f0e7142776510d52a0058c4a9cb6c9e3c96c0159a9d8d0769f4c3f6e",
+        "size": 3700838
+      },
+      {
+        "file": "part_04800.parquet",
+        "sha256": "37f8ffad0ab1e7ed77b798ec54e990ba14d0ecd734c40f2ae35d30865b5f553a",
+        "size": 20806748
+      },
+      {
+        "file": "part_05100.parquet",
+        "sha256": "f0504bdfb03b100f19cc9935a1b7393527590a77450a26712caae4bd30de411f",
+        "size": 36434746
+      },
+      {
+        "file": "part_05400.parquet",
+        "sha256": "738d4bbb369fca7a2889371ce1c6bd3e481ca52c25e18cf519a1e4a39a904cd1",
+        "size": 35309086
+      },
+      {
+        "file": "part_05700.parquet",
+        "sha256": "5bdf3ac459c512100ae641a270188cdc6b1b9eb1e815876a3b19755e10e2c78e",
+        "size": 33302067
+      },
+      {
+        "file": "part_06000.parquet",
+        "sha256": "a0c2375228a8a2a9f096935515ad5c4fa55f9d7ebf7847e39d33f905151cf2cb",
+        "size": 30996833
+      },
+      {
+        "file": "part_06300.parquet",
+        "sha256": "eb5c3cf14b6e12b0513835b684fcb7f5a1da2dde0310fde86483bdb4d5965bc9",
+        "size": 35751618
+      },
+      {
+        "file": "part_06600.parquet",
+        "sha256": "ac6d0660147a97b4393fce8a6d4ac9983fce598dd9d5f50d7804833261809ad9",
+        "size": 26522578
+      },
+      {
+        "file": "part_06900.parquet",
+        "sha256": "b175e84e71afa32868c70d86fed7c60ac2c1734c32dbb5a5cd2542d594659d87",
+        "size": 23250441
+      },
+      {
+        "file": "part_07200.parquet",
+        "sha256": "ce1ddfe5df1da8db2a9f647155cde497bb8aae25b426a06a076fd15db955c919",
+        "size": 15787053
+      },
+      {
+        "file": "part_07500.parquet",
+        "sha256": "d2a5f954baffe0805895066b102bec2bfb86a4b6e9b5138cbc07334bf3320f9a",
+        "size": 4168322
+      },
+      {
+        "file": "part_incr_20260904.parquet",
+        "sha256": "987750775c44d219ecbcef25620560d17e5d375c9ac69b04eaeb045730e96d48",
+        "size": 3198611
+      },
+      {
+        "file": "part_incr_20260916.parquet",
+        "sha256": "3234afa6e1b82820d54c55dc86fdf1513ba3f14c0341aa28aaf9000dec90e98b",
+        "size": 3193241
+      },
+      {
+        "file": "part_incr_20260917.parquet",
+        "sha256": "b7d070be98e76df8c4f33253f20df8a8032ded54786ba9fc4dfa86400e420b4a",
+        "size": 711986
+      },
+      {
+        "file": "part_incr_20260918.parquet",
+        "sha256": "1ae8e0272893152d84d88e9a8a172ce9d72e932295b92e86b5b7cef67e5bc9ac",
+        "size": 714490
+      },
+      {
+        "file": "part_incr_20260921.parquet",
+        "sha256": "dc7f34808c191e27dcd281f06c584aa1d65287fc7cc0dab47bb822c3e9a82d80",
+        "size": 718593
+      },
+      {
+        "file": "part_incr_20260922.parquet",
+        "sha256": "93e2911e9356a464528400a6627c045811ef95638d2843ca5acd40d1690a4226",
+        "size": 718003
+      },
+      {
+        "file": "part_incr_20260923.parquet",
+        "sha256": "f9115b4d19c870455236fbce6ccd52873c1a0914e4d2b3ce5d500f3b93e18479",
+        "size": 716272
+      },
+      {
+        "file": "part_incr_20260924.parquet",
+        "sha256": "0cb62c87eb6a6d7f468545839ecd1470ea680f7d7df6e506e9729a265bb21df1",
+        "size": 714399
+      },
+      {
+        "file": "part_incr_20260928.parquet",
+        "sha256": "1afb213df08880f3554bfdd08719dc2230b1d030da478047a0bd4b80139d5acf",
+        "size": 717161
+      },
+      {
+        "file": "part_incr_20260929.parquet",
+        "sha256": "3c8195d868ebd6c20b4da75116c4d5e84d8f2602d6f3a7aa2f7532c956e4ba39",
+        "size": 711036
+      },
+      {
+        "file": "part_incr_20260930.parquet",
+        "sha256": "0d24945d75ed34aff2b284581c20453640c6e955e642149f1d67c47e05c3234d",
+        "size": 711585
+      },
+      {
+        "file": "part_incr_20261008.parquet",
+        "sha256": "5938eda771f44ab3308b599762ad954c6611582f863731b3f02d5b65030a54dc",
+        "size": 707296
+      },
+      {
+        "file": "part_incr_20261009.parquet",
+        "sha256": "de87e98dcdc22397a1357629132785a4ab709cbf72623a3219ff8284297c8764",
+        "size": 710005
+      }
+    ],
+    "adj_cache": {
+      "file": "adj_cache.json",
+      "sha256": "7424dc97cd09f37dc7f2f3b7fedbe2778e22bd5e30c7f98f860afa3619926fcb",
+      "size": 3461440
+    },
+    "note": "输入哈希用于可复现；v1 文件缺此清单，v2 补齐。"
+  },
+  "bounded_evidence": {
+    "ordinary_days_hypothesis": [
+      {
+        "code": "000001",
+        "date": 20220517,
+        "shard": "part_00000.parquet",
+        "open": 14.51,
+        "high": 14.72,
+        "low": 14.32,
+        "close": 14.71,
+        "pre_close": 11.598,
+        "pct_chg": 2.082,
+        "prev_close_raw": 14.41,
+        "ex_rights_ret": 0.2683221245042249,
+        "raw_prev_ret": 0.020818875780707957,
+        "pct_chg_dec": 0.020819999999999998,
+        "d_ex": 0.24750212450422487,
+        "d_raw": 1.1242192920410399e-06,
+        "matches": "raw"
+      },
+      {
+        "code": "000002",
+        "date": 20220527,
+        "shard": "part_00000.parquet",
+        "open": 18.42,
+        "high": 18.49,
+        "low": 18.03,
+        "close": 18.14,
+        "pre_close": 16.47,
+        "pct_chg": -1.359,
+        "prev_close_raw": 18.39,
+        "ex_rights_ret": 0.10139647844565891,
+        "raw_prev_ret": -0.01359434475258292,
+        "pct_chg_dec": -0.01359,
+        "d_ex": 0.11498647844565892,
+        "d_raw": 4.344752582921205e-06,
+        "matches": "raw"
+      },
+      {
+        "code": "000006",
+        "date": 20220630,
+        "shard": "part_00000.parquet",
+        "open": 4.7,
+        "high": 4.78,
+        "low": 4.6,
+        "close": 4.71,
+        "pre_close": 4.68,
+        "pct_chg": -1.464,
+        "prev_close_raw": 4.78,
+        "ex_rights_ret": 0.0064102564102563875,
+        "raw_prev_ret": -0.014644351464435212,
+        "pct_chg_dec": -0.01464,
+        "d_ex": 0.021050256410256388,
+        "d_raw": 4.351464435212171e-06,
+        "matches": "raw"
+      },
+      {
+        "code": "000009",
+        "date": 20220520,
+        "shard": "part_00000.parquet",
+        "open": 11.92,
+        "high": 12.54,
+        "low": 11.68,
+        "close": 11.86,
+        "pre_close": 11.75,
+        "pct_chg": -0.336,
+        "prev_close_raw": 11.9,
+        "ex_rights_ret": 0.009361702127659521,
+        "raw_prev_ret": -0.003361344537815225,
+        "pct_chg_dec": -0.00336,
+        "d_ex": 0.012721702127659522,
+        "d_raw": 1.3445378152249915e-06,
+        "matches": "raw"
+      },
+      {
+        "code": "000011",
+        "date": 20220524,
+        "shard": "part_00000.parquet",
+        "open": 12.5,
+        "high": 12.56,
+        "low": 11.92,
+        "close": 11.93,
+        "pre_close": 11.001,
+        "pct_chg": -5.167,
+        "prev_close_raw": 12.58,
+        "ex_rights_ret": 0.08444686846650318,
+        "raw_prev_ret": -0.05166931637519878,
+        "pct_chg_dec": -0.05167,
+        "d_ex": 0.13611686846650317,
+        "d_raw": 6.836248012190294e-07,
+        "matches": "raw"
+      },
+      {
+        "code": "000012",
+        "date": 20220523,
+        "shard": "part_00000.parquet",
+        "open": 6.19,
+        "high": 6.23,
+        "low": 6.1,
+        "close": 6.17,
+        "pre_close": 5.48,
+        "pct_chg": 0.325,
+        "prev_close_raw": 6.15,
+        "ex_rights_ret": 0.1259124087591239,
+        "raw_prev_ret": 0.003252032520325132,
+        "pct_chg_dec": 0.0032500000000000003,
+        "d_ex": 0.1226624087591239,
+        "d_raw": 2.032520325131841e-06,
+        "matches": "raw"
+      },
+      {
+        "code": "000014",
+        "date": 20220525,
+        "shard": "part_00000.parquet",
+        "open": 10.96,
+        "high": 11.19,
+        "low": 10.75,
+        "close": 11.04,
+        "pre_close": 8.85,
+        "pct_chg": 0.0,
+        "prev_close_raw": 11.04,
+        "ex_rights_ret": 0.24745762711864394,
+        "raw_prev_ret": 0.0,
+        "pct_chg_dec": 0.0,
+        "d_ex": 0.24745762711864394,
+        "d_raw": 0.0,
+        "matches": "raw"
+      },
+      {
+        "code": "000016",
+        "date": 20220511,
+        "shard": "part_00000.parquet",
+        "open": 4.58,
+        "high": 4.74,
+        "low": 4.5,
+        "close": 4.62,
+        "pre_close": 4.54,
+        "pct_chg": 0.873,
+        "prev_close_raw": 4.58,
+        "ex_rights_ret": 0.017621145374449254,
+        "raw_prev_ret": 0.008733624454148492,
+        "pct_chg_dec": 0.00873,
+        "d_ex": 0.008891145374449254,
+        "d_raw": 3.624454148492065e-06,
+        "matches": "raw"
+      }
+    ],
+    "corporate_action_days_hypothesis": [
+      {
+        "code": "000001",
+        "date": 20240614,
+        "shard": "part_00000.parquet",
+        "open": 10.15,
+        "high": 10.23,
+        "low": 9.99,
+        "close": 10.18,
+        "pre_close": 9.071,
+        "pct_chg": 0.992,
+        "prev_close_raw": 10.8,
+        "ex_rights_ret": 0.1222577444603683,
+        "raw_prev_ret": -0.05740740740740746,
+        "pct_chg_dec": 0.00992,
+        "d_ex": 0.1123377444603683,
+        "d_raw": 0.06732740740740746,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.071
+      },
+      {
+        "code": "000002",
+        "date": 20180823,
+        "shard": "part_00000.parquet",
+        "open": 23.0,
+        "high": 23.15,
+        "low": 22.24,
+        "close": 22.82,
+        "pre_close": 18.07,
+        "pct_chg": -0.869,
+        "prev_close_raw": 23.92,
+        "ex_rights_ret": 0.2628666297731046,
+        "raw_prev_ret": -0.04598662207357862,
+        "pct_chg_dec": -0.00869,
+        "d_ex": 0.2715566297731046,
+        "d_raw": 0.03729662207357862,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.039
+      },
+      {
+        "code": "000006",
+        "date": 20180622,
+        "shard": "part_00000.parquet",
+        "open": 5.96,
+        "high": 6.02,
+        "low": 5.83,
+        "close": 5.99,
+        "pre_close": 5.12,
+        "pct_chg": 0.842,
+        "prev_close_raw": 6.12,
+        "ex_rights_ret": 0.169921875,
+        "raw_prev_ret": -0.021241830065359513,
+        "pct_chg_dec": 0.00842,
+        "d_ex": 0.161501875,
+        "d_raw": 0.029661830065359513,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.03
+      },
+      {
+        "code": "000009",
+        "date": 20190722,
+        "shard": "part_00000.parquet",
+        "open": 4.65,
+        "high": 4.66,
+        "low": 4.48,
+        "close": 4.5,
+        "pre_close": 4.55,
+        "pct_chg": -2.808,
+        "prev_close_raw": 5.57,
+        "ex_rights_ret": -0.01098901098901095,
+        "raw_prev_ret": -0.19210053859964094,
+        "pct_chg_dec": -0.028079999999999997,
+        "d_ex": 0.017090989010989047,
+        "d_raw": 0.16402053859964094,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.204
+      },
+      {
+        "code": "000011",
+        "date": 20200518,
+        "shard": "part_00000.parquet",
+        "open": 8.85,
+        "high": 8.87,
+        "low": 8.65,
+        "close": 8.81,
+        "pre_close": 7.44,
+        "pct_chg": 0.228,
+        "prev_close_raw": 9.15,
+        "ex_rights_ret": 0.1841397849462365,
+        "raw_prev_ret": -0.03715846994535521,
+        "pct_chg_dec": 0.00228,
+        "d_ex": 0.1818597849462365,
+        "d_raw": 0.03943846994535521,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.041
+      },
+      {
+        "code": "000012",
+        "date": 20180627,
+        "shard": "part_00000.parquet",
+        "open": 5.08,
+        "high": 5.08,
+        "low": 4.87,
+        "close": 4.92,
+        "pre_close": 3.88,
+        "pct_chg": -0.806,
+        "prev_close_raw": 5.75,
+        "ex_rights_ret": 0.268041237113402,
+        "raw_prev_ret": -0.1443478260869565,
+        "pct_chg_dec": -0.008060000000000001,
+        "d_ex": 0.276101237113402,
+        "d_raw": 0.1362878260869565,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.16
+      },
+      {
+        "code": "000014",
+        "date": 20220527,
+        "shard": "part_00000.parquet",
+        "open": 8.8,
+        "high": 9.3,
+        "low": 8.59,
+        "close": 9.1,
+        "pre_close": 8.62,
+        "pct_chg": 2.018,
+        "prev_close_raw": 10.75,
+        "ex_rights_ret": 0.05568445475638062,
+        "raw_prev_ret": -0.15348837209302324,
+        "pct_chg_dec": 0.020179999999999997,
+        "d_ex": 0.03550445475638062,
+        "d_raw": 0.17366837209302324,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.206
+      },
+      {
+        "code": "000016",
+        "date": 20180606,
+        "shard": "part_00000.parquet",
+        "open": 5.35,
+        "high": 5.38,
+        "low": 5.27,
+        "close": 5.35,
+        "pre_close": 5.02,
+        "pct_chg": 0.753,
+        "prev_close_raw": 5.47,
+        "ex_rights_ret": 0.06573705179282863,
+        "raw_prev_ret": -0.021937842778793404,
+        "pct_chg_dec": 0.00753,
+        "d_ex": 0.058207051792828625,
+        "d_raw": 0.029467842778793406,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.031
+      },
+      {
+        "code": "000019",
+        "date": 20220622,
+        "shard": "part_00000.parquet",
+        "open": 8.18,
+        "high": 8.26,
+        "low": 7.9,
+        "close": 7.91,
+        "pre_close": 7.315,
+        "pct_chg": -2.945,
+        "prev_close_raw": 8.4,
+        "ex_rights_ret": 0.08133971291866016,
+        "raw_prev_ret": -0.05833333333333335,
+        "pct_chg_dec": -0.029449999999999997,
+        "d_ex": 0.11078971291866016,
+        "d_raw": 0.02888333333333335,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.031
+      },
+      {
+        "code": "000025",
+        "date": 20190515,
+        "shard": "part_00000.parquet",
+        "open": 20.78,
+        "high": 20.98,
+        "low": 20.5,
+        "close": 20.66,
+        "pre_close": 20.14,
+        "pct_chg": 1.225,
+        "prev_close_raw": 29.6,
+        "ex_rights_ret": 0.02581926514399213,
+        "raw_prev_ret": -0.3020270270270271,
+        "pct_chg_dec": 0.01225,
+        "d_ex": 0.013569265143992131,
+        "d_raw": 0.3142770270270271,
+        "matches": "NEITHER",
+        "ca_event_mult": 1.45
+      }
+    ],
+    "conflict_code_pattern": [
+      {
+        "code": "000524",
+        "n_rows": 2115,
+        "samples": [
+          {
+            "code": "000524",
+            "date": 20180102,
+            "shard": "part_00000.parquet",
+            "open": 11.41,
+            "high": 11.55,
+            "low": 11.4,
+            "close": 11.51,
+            "pre_close": 10.442,
+            "pct_chg": 0.876,
+            "prev_close_raw": null,
+            "ex_rights_ret": 0.10227925684734718,
+            "raw_prev_ret": null,
+            "pct_chg_dec": 0.00876,
+            "d_ex": 0.09351925684734717,
+            "d_raw": null
+          },
+          {
+            "code": "000524",
+            "date": 20220516,
+            "shard": "part_00000.parquet",
+            "open": 9.51,
+            "high": 9.87,
+            "low": 9.28,
+            "close": 9.61,
+            "pre_close": 9.308,
+            "pct_chg": 2.017,
+            "prev_close_raw": 9.42,
+            "ex_rights_ret": 0.032445208422861915,
+            "raw_prev_ret": 0.020169851380042347,
+            "pct_chg_dec": 0.02017,
+            "d_ex": 0.012275208422861915,
+            "d_raw": 1.4861995765308444e-07,
+            "matches": "raw"
+          },
+          {
+            "code": "000524",
+            "date": 20261009,
+            "shard": "part_incr_20261009.parquet",
+            "open": 8.85,
+            "high": 8.9,
+            "low": 8.59,
+            "close": 8.89,
+            "pre_close": 8.85,
+            "pct_chg": 0.45,
+            "prev_close_raw": 8.85,
+            "ex_rights_ret": 0.004519774011299438,
+            "raw_prev_ret": 0.004519774011299438,
+            "pct_chg_dec": 0.0045000000000000005,
+            "d_ex": 1.977401129943726e-05,
+            "d_raw": 1.977401129943726e-05,
+            "matches": "raw"
+          }
+        ]
+      },
+      {
+        "code": "300176",
+        "n_rows": 2117,
+        "samples": [
+          {
+            "code": "300176",
+            "date": 20180102,
+            "shard": "part_02400.parquet",
+            "open": 130.18,
+            "high": 131.6,
+            "low": 121.69,
+            "close": 130.67,
+            "pre_close": 35.493,
+            "pct_chg": 0.438,
+            "prev_close_raw": null,
+            "ex_rights_ret": 2.6815710140027607,
+            "raw_prev_ret": null,
+            "pct_chg_dec": 0.00438,
+            "d_ex": 2.677191014002761,
+            "d_raw": null
+          },
+          {
+            "code": "300176",
+            "date": 20220519,
+            "shard": "part_02400.parquet",
+            "open": 4.71,
+            "high": 5.04,
+            "low": 4.7,
+            "close": 4.9,
+            "pre_close": 4.871,
+            "pct_chg": 0.0,
+            "prev_close_raw": 4.9,
+            "ex_rights_ret": 0.005953602956271897,
+            "raw_prev_ret": 0.0,
+            "pct_chg_dec": 0.0,
+            "d_ex": 0.005953602956271897,
+            "d_raw": 0.0,
+            "matches": "raw"
+          },
+          {
+            "code": "300176",
+            "date": 20261009,
+            "shard": "part_incr_20261009.parquet",
+            "open": 4.38,
+            "high": 4.4,
+            "low": 4.23,
+            "close": 4.39,
+            "pre_close": 4.41,
+            "pct_chg": -0.45,
+            "prev_close_raw": 4.41,
+            "ex_rights_ret": -0.0045351473922903285,
+            "raw_prev_ret": -0.0045351473922903285,
+            "pct_chg_dec": -0.0045000000000000005,
+            "d_ex": 3.5147392290327956e-05,
+            "d_raw": 3.5147392290327956e-05,
+            "matches": "raw"
+          }
+        ]
+      },
+      {
+        "code": "002677",
+        "n_rows": 2120,
+        "samples": [
+          {
+            "code": "002677",
+            "date": 20180102,
+            "shard": "part_00900.parquet",
+            "open": 17.06,
+            "high": 17.41,
+            "low": 17.0,
+            "close": 17.4,
+            "pre_close": 11.851,
+            "pct_chg": 2.655,
+            "prev_close_raw": null,
+            "ex_rights_ret": 0.46823052906927654,
+            "raw_prev_ret": null,
+            "pct_chg_dec": 0.026549999999999997,
+            "d_ex": 0.4416805290692765,
+            "d_raw": null
+          },
+          {
+            "code": "002677",
+            "date": 20220519,
+            "shard": "part_00900.parquet",
+            "open": 13.47,
+            "high": 13.47,
+            "low": 13.3,
+            "close": 13.37,
+            "pre_close": 11.353,
+            "pct_chg": -1.11,
+            "prev_close_raw": 13.52,
+            "ex_rights_ret": 0.1776622919052233,
+            "raw_prev_ret": -0.011094674556213047,
+            "pct_chg_dec": -0.0111,
+            "d_ex": 0.1887622919052233,
+            "d_raw": 5.325443786953835e-06,
+            "matches": "raw"
+          },
+          {
+            "code": "002677",
+            "date": 20261009,
+            "shard": "part_incr_20261009.parquet",
+            "open": 6.04,
+            "high": 6.18,
+            "low": 5.92,
+            "close": 6.17,
+            "pre_close": 6.07,
+            "pct_chg": 1.65,
+            "prev_close_raw": 6.07,
+            "ex_rights_ret": 0.016474464579901094,
+            "raw_prev_ret": 0.016474464579901094,
+            "pct_chg_dec": 0.0165,
+            "d_ex": 2.553542009890719e-05,
+            "d_raw": 2.553542009890719e-05,
+            "matches": "raw"
+          }
+        ]
+      },
+      {
+        "code": "000521",
+        "n_rows": 2123,
+        "samples": [
+          {
+            "code": "000521",
+            "date": 20180102,
+            "shard": "part_00000.parquet",
+            "open": 5.07,
+            "high": 5.19,
+            "low": 5.07,
+            "close": 5.16,
+            "pre_close": 4.137,
+            "pct_chg": 1.775,
+            "prev_close_raw": null,
+            "ex_rights_ret": 0.24728063814358237,
+            "raw_prev_ret": null,
+            "pct_chg_dec": 0.01775,
+            "d_ex": 0.22953063814358238,
+            "d_raw": null
+          },
+          {
+            "code": "000521",
+            "date": 20220524,
+            "shard": "part_00000.parquet",
+            "open": 3.57,
+            "high": 3.76,
+            "low": 3.57,
+            "close": 3.64,
+            "pre_close": 3.124,
+            "pct_chg": 1.111,
+            "prev_close_raw": 3.6,
+            "ex_rights_ret": 0.1651728553137004,
+            "raw_prev_ret": 0.011111111111111072,
+            "pct_chg_dec": 0.01111,
+            "d_ex": 0.1540628553137004,
+            "d_raw": 1.1111111110715527e-06,
+            "matches": "raw"
+          },
+          {
+            "code": "000521",
+            "date": 20261009,
+            "shard": "part_incr_20261009.parquet",
+            "open": 4.22,
+            "high": 4.34,
+            "low": 4.2,
+            "close": 4.33,
+            "pre_close": 4.23,
+            "pct_chg": 2.36,
+            "prev_close_raw": 4.23,
+            "ex_rights_ret": 0.02364066193853409,
+            "raw_prev_ret": 0.02364066193853409,
+            "pct_chg_dec": 0.0236,
+            "d_ex": 4.0661938534091585e-05,
+            "d_raw": 4.0661938534091585e-05,
+            "matches": "raw"
+          }
+        ]
+      },
+      {
+        "code": "000768",
+        "n_rows": 2125,
+        "samples": [
+          {
+            "code": "000768",
+            "date": 20180102,
+            "shard": "part_00000.parquet",
+            "open": 16.89,
+            "high": 17.14,
+            "low": 16.83,
+            "close": 17.09,
+            "pre_close": 16.145,
+            "pct_chg": 1.184,
+            "prev_close_raw": null,
+            "ex_rights_ret": 0.058532053267265516,
+            "raw_prev_ret": null,
+            "pct_chg_dec": 0.01184,
+            "d_ex": 0.04669205326726551,
+            "d_raw": null
+          },
+          {
+            "code": "000768",
+            "date": 20220523,
+            "shard": "part_00000.parquet",
+            "open": 25.2,
+            "high": 25.5,
+            "low": 24.71,
+            "close": 25.33,
+            "pre_close": 25.011,
+            "pct_chg": -1.055,
+            "prev_close_raw": 25.6,
+            "ex_rights_ret": 0.012754388069249556,
+            "raw_prev_ret": -0.010546875000000067,
+            "pct_chg_dec": -0.010549999999999999,
+            "d_ex": 0.023304388069249553,
+            "d_raw": 3.1249999999320016e-06,
+            "matches": "raw"
+          },
+          {
+            "code": "000768",
+            "date": 20261009,
+            "shard": "part_incr_20261009.parquet",
+            "open": 22.55,
+            "high": 22.73,
+            "low": 21.97,
+            "close": 22.31,
+            "pre_close": 22.6,
+            "pct_chg": -1.28,
+            "prev_close_raw": 22.6,
+            "ex_rights_ret": -0.012831858407079788,
+            "raw_prev_ret": -0.012831858407079788,
+            "pct_chg_dec": -0.0128,
+            "d_ex": 3.1858407079787474e-05,
+            "d_raw": 3.1858407079787474e-05,
+            "matches": "raw"
+          }
+        ]
+      }
+    ],
+    "partition_boundary_by_shard": [
+      {
+        "code": "000001",
+        "n_rows": 2125,
+        "shard_crossings": 13,
+        "suspicious_non_event_crossings": []
+      },
+      {
+        "code": "600000",
+        "n_rows": 2119,
+        "shard_crossings": 13,
+        "suspicious_non_event_crossings": []
+      },
+      {
+        "code": "600519",
+        "n_rows": 2125,
+        "shard_crossings": 13,
+        "suspicious_non_event_crossings": []
+      },
+      {
+        "code": "000524",
+        "n_rows": 2115,
+        "shard_crossings": 13,
+        "suspicious_non_event_crossings": []
+      },
+      {
+        "code": "300176",
+        "n_rows": 2117,
+        "shard_crossings": 13,
+        "suspicious_non_event_crossings": []
+      }
+    ]
+  },
+  "raw_caliber_hypothesis_status": {
+    "claim": "close/low 与 pct_chg 同原始口径（pct_chg=close/原始昨收-1）",
+    "status": "NOT_CONFIRMED_HYPOTHESIS",
+    "total_classified_rows": 103996,
+    "match_raw_within_0.5pp": 103709,
+    "match_ex_within_0.5pp": 52,
+    "match_NEITHER": 235,
+    "note": "多数样本支持原始口径，但存在明确反例（见 samples），故不能称为确证。pct_chg 的真实参考口径须进一步核实（可能含停复牌/集合竞价/数据修正等未建模情形）。",
+    "counterexample_samples": [
+      {
+        "code": "300176",
+        "date": 20180529,
+        "shard": "part_02400.parquet",
+        "close": 74.18,
+        "prev_close_raw": 141.61,
+        "pre_close": 38.631,
+        "pct_chg": 0.311,
+        "raw_prev_ret": -0.4761669373631806,
+        "ex_rights_ret": 0.9202195128264867
+      },
+      {
+        "code": "300176",
+        "date": 20180926,
+        "shard": "part_02400.parquet",
+        "close": 32.76,
+        "prev_close_raw": 62.14,
+        "pre_close": 32.464,
+        "pct_chg": 0.245,
+        "raw_prev_ret": -0.4728033472803348,
+        "ex_rights_ret": 0.009117792015771231
+      },
+      {
+        "code": "002731",
+        "date": 20190708,
+        "shard": "part_01200.parquet",
+        "close": 12.67,
+        "prev_close_raw": 22.52,
+        "pre_close": 12.97,
+        "pct_chg": -4.16,
+        "raw_prev_ret": -0.4373889875666075,
+        "ex_rights_ret": -0.02313030069390909
+      },
+      {
+        "code": "002790",
+        "date": 20180525,
+        "shard": "part_01200.parquet",
+        "close": 14.09,
+        "prev_close_raw": 23.65,
+        "pre_close": 7.477,
+        "pct_chg": -2.626,
+        "raw_prev_ret": -0.4042283298097251,
+        "ex_rights_ret": 0.8844456332753776
+      },
+      {
+        "code": "002790",
+        "date": 20190530,
+        "shard": "part_01200.parquet",
+        "close": 7.3,
+        "prev_close_raw": 12.61,
+        "pre_close": 6.509,
+        "pct_chg": -5.072,
+        "raw_prev_ret": -0.42109436954797774,
+        "ex_rights_ret": 0.12152404363189429
+      },
+      {
+        "code": "002057",
+        "date": 20190617,
+        "shard": "part_00300.parquet",
+        "close": 12.03,
+        "prev_close_raw": 16.79,
+        "pre_close": 9.955,
+        "pct_chg": 8.086,
+        "raw_prev_ret": -0.28350208457415127,
+        "ex_rights_ret": 0.20843797086890992
+      },
+      {
+        "code": "300109",
+        "date": 20240607,
+        "shard": "part_02400.parquet",
+        "close": 12.52,
+        "prev_close_raw": 20.6,
+        "pre_close": 10.671,
+        "pct_chg": -4.208,
+        "raw_prev_ret": -0.392233009708738,
+        "ex_rights_ret": 0.1732733576984351
+      },
+      {
+        "code": "000597",
+        "date": 20200520,
+        "shard": "part_00000.parquet",
+        "close": 5.06,
+        "prev_close_raw": 7.51,
+        "pre_close": 4.676,
+        "pct_chg": 0.397,
+        "raw_prev_ret": -0.326231691078562,
+        "ex_rights_ret": 0.08212147134302805
+      },
+      {
+        "code": "000597",
+        "date": 20190924,
+        "shard": "part_00000.parquet",
+        "close": 7.97,
+        "prev_close_raw": 11.91,
+        "pre_close": 4.973,
+        "pct_chg": -0.25,
+        "raw_prev_ret": -0.33081444164567597,
+        "ex_rights_ret": 0.602654333400362
+      },
+      {
+        "code": "002057",
+        "date": 20180607,
+        "shard": "part_00300.parquet",
+        "close": 7.51,
+        "prev_close_raw": 12.05,
+        "pre_close": 4.699,
+        "pct_chg": -5.296,
+        "raw_prev_ret": -0.37676348547717853,
+        "ex_rights_ret": 0.5982123856139605
+      },
+      {
+        "code": "603801",
+        "date": 20190521,
+        "shard": "part_06300.parquet",
+        "close": 20.41,
+        "prev_close_raw": 28.67,
+        "pre_close": 7.884,
+        "pct_chg": 2.718,
+        "raw_prev_ret": -0.2881060341820719,
+        "ex_rights_ret": 1.5887874175545407
+      },
+      {
+        "code": "000025",
+        "date": 20190515,
+        "shard": "part_00000.parquet",
+        "close": 20.66,
+        "prev_close_raw": 29.6,
+        "pre_close": 20.14,
+        "pct_chg": 1.225,
+        "raw_prev_ret": -0.3020270270270271,
+        "ex_rights_ret": 0.02581926514399213
+      },
+      {
+        "code": "603801",
+        "date": 20230705,
+        "shard": "part_06300.parquet",
+        "close": 22.18,
+        "prev_close_raw": 31.76,
+        "pre_close": 18.738,
+        "pct_chg": -0.045,
+        "raw_prev_ret": -0.3016372795969774,
+        "ex_rights_ret": 0.18369089550645756
+      },
+      {
+        "code": "603881",
+        "date": 20210426,
+        "shard": "part_06300.parquet",
+        "close": 32.89,
+        "prev_close_raw": 44.2,
+        "pre_close": 11.889,
+        "pct_chg": 4.313,
+        "raw_prev_ret": -0.25588235294117656,
+        "ex_rights_ret": 1.7664227437126758
+      },
+      {
+        "code": "603801",
+        "date": 20210519,
+        "shard": "part_06300.parquet",
+        "close": 33.94,
+        "prev_close_raw": 49.22,
+        "pre_close": 19.95,
+        "pct_chg": -1.936,
+        "raw_prev_ret": -0.31044290938642827,
+        "ex_rights_ret": 0.7012531328320801
+      }
+    ]
+  },
+  "adjustment_chain_validation": {
+    "codes_total": 5477,
+    "codes_ok": 5407,
+    "codes_without_chain": 70,
+    "invalid_multiplier_count": 0,
+    "unsorted_event_codes": 0,
+    "max_event_date_present": 20260928,
+    "codes_with_events_post_2025": 4136,
+    "coverage_endpoint_note": "max_event_date 仅是缓存【已存在事件】中的最晚公司行为日，不等于缓存的完整覆盖终点；缓存无采集截止/覆盖清单，不能据 20260928 断言所有窗口已覆盖。覆盖终点须凭采集截止证据 + 逐码存在性核验，当前 UNVERIFIED（codes_without_chain 个码无链，标签化将判 ADJ_EVIDENCE_CONFLICT）。",
+    "hand_computed_split_dividend_cases": [],
+    "hand_computed_direct_cases": [
+      {
+        "case": "split_2to1",
+        "event": [
+          20200101,
+          2.0
+        ],
+        "factor_before": 1.0,
+        "factor_on_and_after": 2.0,
+        "expected": "before=1.0, on/after=2.0",
+        "pass": true
+      },
+      {
+        "case": "stock_dividend_10for0.5",
+        "event": [
+          20200101,
+          1.05
+        ],
+        "note": "10送0.5 = 5% 送股，乘子 1.05（送股属乘性调整，非现金分红）",
+        "factor_before": 1.0,
+        "factor_on_and_after": 1.05,
+        "expected": "before=1.0, on/after=1.05",
+        "pass": true
+      },
+      {
+        "case": "cash_dividend_pay0.5_at10",
+        "event": [
+          20200101,
+          1.0526315789
+        ],
+        "note": "现金分红：除息价=前收-股息=9.50，乘子=前收/除息价=10/9.5（后复权把除息后低价还原到分红前尺度）",
+        "factor_before": 1.0,
+        "factor_on_and_after": 1.0526315789473684,
+        "expected": "before=1.0, on/after=10/9.5",
+        "pass": true
+      },
+      {
+        "case": "cash_dividend_normalize_direction",
+        "ex_close": 9.5,
+        "norm_to_pre_scale": 10.0,
+        "expected": 10.0,
+        "pass": true
+      },
+      {
+        "case": "normalize_direction",
+        "P_raw": 100,
+        "d_raw_postsplit": 50,
+        "norm_d_to_P_scale": 100.0,
+        "expected": 100.0,
+        "pass": true
+      }
+    ],
+    "factor_at_formula": "analytic_adjusted_price(raw, asof) = raw * factor_at(asof); factor_at 乘入 effective_date<=asof 的 mult",
+    "normalization_proposal": "norm_low_d = raw_low_d * factor_at(d) / factor_at(P)  （待独立手算验证方向与精度，v2 尚未放行）"
+  },
+  "revised_conclusion": "v1 的'原始口径已确证'不成立：证据仅 8 普通+10 公司行为+5 冲突码（非 73 码全量验收），且存在 pct_chg 既不匹配原始也不匹配除权的反例（如 000012@20180627：raw_prev_ret=-14.43% 而 pct_chg=-0.806%）。结论降为 HYPOTHESIS。分片边界按来源分片逐边界核验（见 partition_boundary_by_shard），未发现非事件跳变，但样本有限不构成全量放行。复权链 factor_at(d)/factor_at(P) 作为待验方案，已补链完整性/无效乘数/覆盖终点核验及独立手算拆分案例，但方向精度仍待更多手算案例确认。标签核心比值 Low_d/R_P 用 close/low（原始）同尺度，pre_close 禁用；窗口内公司行为归一化方案待验未放行。"
+}

@@ -1,0 +1,294 @@
+{
+  "artifact": "R0-V1 P0 read-only population inventory (PARTIAL scaffold)",
+  "generated_at": "2026-10-10",
+  "status": "P0_IN_PROGRESS (read-only; no collection/training/deploy)",
+  "guide": "R0_V1_DEVELOPMENT.md v0.1 (DEVELOPMENT_GUIDE / CONTRACTS_PENDING)",
+  "route_ref": "记录#17 (2026-10-10) R0-V1 development+feature-engineering guide authorized; training P4 needs separate approval",
+  "section1_old_assets": [
+    {
+      "path": "stargazer_ml/v5_hybrid/green_exit_v1/step6_rescue/r0_retrain.py",
+      "bytes": 10433,
+      "sha256": "e4691917dded7250d5a829b3450595c788f8928b9134c6328a713b279f91fb70",
+      "present": true
+    },
+    {
+      "path": "stargazer_ml/v5_hybrid/green_exit_v1/step6_rescue/diagnostics_60.md",
+      "bytes": 10047,
+      "sha256": "60d8c4a887c41bba03d78ef3b683b2a86e3a5cc5f3dbd8e8e1d7dc7958bcff31",
+      "present": true
+    },
+    {
+      "path": "stargazer_ml/v5_hybrid/green_exit_v1/step6_rescue/step6_verdict.md",
+      "bytes": 12102,
+      "sha256": "e33ef2f2337368fce4b33024916b06314368336b5823116b799e42cafa1ace50",
+      "present": true
+    },
+    {
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/contracts/dual_path_execution_contract_v0_1_1_final.md",
+      "bytes": 25278,
+      "sha256": "9c22c37e5e9bcc4e874f063730f19b138fac27f0c89de04d6b39cc1c0a8b852d",
+      "present": true
+    },
+    {
+      "path": "stargazer_ml/v5_hybrid/green_common_profile/dual_path_execution_v0_1_1.py",
+      "bytes": 30878,
+      "sha256": "aee8e60bc00951a3f18975d7a01dda7c64af27a9eb7d5e1592cd8c3716aa91cb",
+      "present": true
+    },
+    {
+      "path": "stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts_v2.py",
+      "bytes": 6692,
+      "sha256": "693e0306756b69a2e5e2d3609ecbbd4d8025ef39505acb02d332a8f5e0357a6e",
+      "present": true
+    }
+  ],
+  "daily_data_dir": {
+    "path": "D:\\a股数据\\data_daily_parts",
+    "file_count": 39,
+    "total_bytes": 641835930,
+    "files": [
+      {
+        "name": "part_00000.parquet",
+        "bytes": 36241410,
+        "sha256": "4adc25cfbfb1e34cc079c012f9e2df90db76b46cc5fdec1dc2d2c7155e563653",
+        "filename_date": null
+      },
+      {
+        "name": "part_00300.parquet",
+        "bytes": 29834791,
+        "sha256": "11d859695bfc2d52ce55cfaeb2ba839b4ea3ad09f35e0055198e9054c8993c03",
+        "filename_date": null
+      },
+      {
+        "name": "part_00600.parquet",
+        "bytes": 37943205,
+        "sha256": "06cdf158228a7236f6d051b6022585e99f5c7897e3d256487237cd0c7145d83c",
+        "filename_date": null
+      },
+      {
+        "name": "part_00900.parquet",
+        "bytes": 38032306,
+        "sha256": "fdeb4f936bca23a2073df96f1772927425517bd16f8dc4262ecf20190aadf90b",
+        "filename_date": null
+      },
+      {
+        "name": "part_01200.parquet",
+        "bytes": 35836805,
+        "sha256": "988d8a986e2ecba2dcc21a35ee5b1c916f8f4de0a059c0f2169df08ee53ed1f3",
+        "filename_date": null
+      },
+      {
+        "name": "part_01500.parquet",
+        "bytes": 2064037,
+        "sha256": "0f88842810980fe4b5a528cc3932287daa9a92fad4310e285a4a586e0ff72ddc",
+        "filename_date": null
+      },
+      {
+        "name": "part_01800.parquet",
+        "bytes": 6728158,
+        "sha256": "74564e824c39faf314391176eb648f80deee1e758f07bb7a8c87283c6c8b40c1",
+        "filename_date": null
+      },
+      {
+        "name": "part_02100.parquet",
+        "bytes": 10330683,
+        "sha256": "411a48a55522b07ba7309a8973c05a42eaaeb75c3fdc2966b56b98dedd552c43",
+        "filename_date": null
+      },
+      {
+        "name": "part_02400.parquet",
+        "bytes": 30273128,
+        "sha256": "eb390834fd87694579b78178284f65913579d21a48a86d2e92f6b2ccd20adac5",
+        "filename_date": null
+      },
+      {
+        "name": "part_02700.parquet",
+        "bytes": 39882277,
+        "sha256": "78036c09d8c0e8d55f5ee7b272a9c740d6c737ca983e45d0292b0d708e071eb3",
+        "filename_date": null
+      },
+      {
+        "name": "part_03000.parquet",
+        "bytes": 37593060,
+        "sha256": "fb5125d88d30983c6904124b8b09b8b2eda2981943414429375ac28ff3c7ad34",
+        "filename_date": null
+      },
+      {
+        "name": "part_03300.parquet",
+        "bytes": 24399007,
+        "sha256": "47a1e9bd14dcf5956af837434e873ead16eda33804ac832909a0e58166bc312c",
+        "filename_date": null
+      },
+      {
+        "name": "part_03600.parquet",
+        "bytes": 15820163,
+        "sha256": "90d8c66a5825b1d9ede3fee2abba0443b900d9938a3bc223415a99d0249050be",
+        "filename_date": null
+      },
+      {
+        "name": "part_03900.parquet",
+        "bytes": 8551302,
+        "sha256": "dff087f1c08a2da1c46ddfb58403e7b349de1ec63967b5f762429d9effb05420",
+        "filename_date": null
+      },
+      {
+        "name": "part_04200.parquet",
+        "bytes": 8032590,
+        "sha256": "70efee2032d31eedc5bb967dec3e474cebbd62e325a4611f2ee83ecb5acc66c3",
+        "filename_date": null
+      },
+      {
+        "name": "part_04500.parquet",
+        "bytes": 3700838,
+        "sha256": "69ec8ee2f0e7142776510d52a0058c4a9cb6c9e3c96c0159a9d8d0769f4c3f6e",
+        "filename_date": null
+      },
+      {
+        "name": "part_04800.parquet",
+        "bytes": 20806748,
+        "sha256": "37f8ffad0ab1e7ed77b798ec54e990ba14d0ecd734c40f2ae35d30865b5f553a",
+        "filename_date": null
+      },
+      {
+        "name": "part_05100.parquet",
+        "bytes": 36434746,
+        "sha256": "f0504bdfb03b100f19cc9935a1b7393527590a77450a26712caae4bd30de411f",
+        "filename_date": null
+      },
+      {
+        "name": "part_05400.parquet",
+        "bytes": 35309086,
+        "sha256": "738d4bbb369fca7a2889371ce1c6bd3e481ca52c25e18cf519a1e4a39a904cd1",
+        "filename_date": null
+      },
+      {
+        "name": "part_05700.parquet",
+        "bytes": 33302067,
+        "sha256": "5bdf3ac459c512100ae641a270188cdc6b1b9eb1e815876a3b19755e10e2c78e",
+        "filename_date": null
+      },
+      {
+        "name": "part_06000.parquet",
+        "bytes": 30996833,
+        "sha256": "a0c2375228a8a2a9f096935515ad5c4fa55f9d7ebf7847e39d33f905151cf2cb",
+        "filename_date": null
+      },
+      {
+        "name": "part_06300.parquet",
+        "bytes": 35751618,
+        "sha256": "eb5c3cf14b6e12b0513835b684fcb7f5a1da2dde0310fde86483bdb4d5965bc9",
+        "filename_date": null
+      },
+      {
+        "name": "part_06600.parquet",
+        "bytes": 26522578,
+        "sha256": "ac6d0660147a97b4393fce8a6d4ac9983fce598dd9d5f50d7804833261809ad9",
+        "filename_date": null
+      },
+      {
+        "name": "part_06900.parquet",
+        "bytes": 23250441,
+        "sha256": "b175e84e71afa32868c70d86fed7c60ac2c1734c32dbb5a5cd2542d594659d87",
+        "filename_date": null
+      },
+      {
+        "name": "part_07200.parquet",
+        "bytes": 15787053,
+        "sha256": "ce1ddfe5df1da8db2a9f647155cde497bb8aae25b426a06a076fd15db955c919",
+        "filename_date": null
+      },
+      {
+        "name": "part_07500.parquet",
+        "bytes": 4168322,
+        "sha256": "d2a5f954baffe0805895066b102bec2bfb86a4b6e9b5138cbc07334bf3320f9a",
+        "filename_date": null
+      },
+      {
+        "name": "part_incr_20260904.parquet",
+        "bytes": 3198611,
+        "sha256": "987750775c44d219ecbcef25620560d17e5d375c9ac69b04eaeb045730e96d48",
+        "filename_date": "20260904"
+      },
+      {
+        "name": "part_incr_20260916.parquet",
+        "bytes": 3193241,
+        "sha256": "3234afa6e1b82820d54c55dc86fdf1513ba3f14c0341aa28aaf9000dec90e98b",
+        "filename_date": "20260916"
+      },
+      {
+        "name": "part_incr_20260917.parquet",
+        "bytes": 711986,
+        "sha256": "b7d070be98e76df8c4f33253f20df8a8032ded54786ba9fc4dfa86400e420b4a",
+        "filename_date": "20260917"
+      },
+      {
+        "name": "part_incr_20260918.parquet",
+        "bytes": 714490,
+        "sha256": "1ae8e0272893152d84d88e9a8a172ce9d72e932295b92e86b5b7cef67e5bc9ac",
+        "filename_date": "20260918"
+      },
+      {
+        "name": "part_incr_20260921.parquet",
+        "bytes": 718593,
+        "sha256": "dc7f34808c191e27dcd281f06c584aa1d65287fc7cc0dab47bb822c3e9a82d80",
+        "filename_date": "20260921"
+      },
+      {
+        "name": "part_incr_20260922.parquet",
+        "bytes": 718003,
+        "sha256": "93e2911e9356a464528400a6627c045811ef95638d2843ca5acd40d1690a4226",
+        "filename_date": "20260922"
+      },
+      {
+        "name": "part_incr_20260923.parquet",
+        "bytes": 716272,
+        "sha256": "f9115b4d19c870455236fbce6ccd52873c1a0914e4d2b3ce5d500f3b93e18479",
+        "filename_date": "20260923"
+      },
+      {
+        "name": "part_incr_20260924.parquet",
+        "bytes": 714399,
+        "sha256": "0cb62c87eb6a6d7f468545839ecd1470ea680f7d7df6e506e9729a265bb21df1",
+        "filename_date": "20260924"
+      },
+      {
+        "name": "part_incr_20260928.parquet",
+        "bytes": 717161,
+        "sha256": "1afb213df08880f3554bfdd08719dc2230b1d030da478047a0bd4b80139d5acf",
+        "filename_date": "20260928"
+      },
+      {
+        "name": "part_incr_20260929.parquet",
+        "bytes": 711036,
+        "sha256": "3c8195d868ebd6c20b4da75116c4d5e84d8f2602d6f3a7aa2f7532c956e4ba39",
+        "filename_date": "20260929"
+      },
+      {
+        "name": "part_incr_20260930.parquet",
+        "bytes": 711585,
+        "sha256": "0d24945d75ed34aff2b284581c20453640c6e955e642149f1d67c47e05c3234d",
+        "filename_date": "20260930"
+      },
+      {
+        "name": "part_incr_20261008.parquet",
+        "bytes": 707296,
+        "sha256": "5938eda771f44ab3308b599762ad954c6611582f863731b3f02d5b65030a54dc",
+        "filename_date": "20261008"
+      },
+      {
+        "name": "part_incr_20261009.parquet",
+        "bytes": 710005,
+        "sha256": "de87e98dcdc22397a1357629132785a4ab709cbf72623a3219ff8284297c8764",
+        "filename_date": "20261009"
+      }
+    ]
+  },
+  "pending_deep_inventory": [
+    "逐文件内部实际日期区间/全行日期/重复键核验 (filename_date 仅作代理, 须读 parquet 验证)",
+    "候选源定位与清点: 应有候选数/唯一股票数/独立决策日/未来5交易日覆盖 (须定位 GREEN 候选规则源)",
+    "PIT 行业可达率、ST/上市日期/前收缺失率、公司行为证据可达率 (分训练可用/不可用, 保留总分母)",
+    "价格尺度冲突 (pre_close/复权) 与 32 只码历史问题复核",
+    "旧 R0 (r0_retrain.py) 人口/标签/拟合时间核查, 不默认可复用",
+    "资源事项: 是否加入现有 128MiB 累计登记 或 独立批准 R0 资源合同 (§8 须先解决)"
+  ]
+}

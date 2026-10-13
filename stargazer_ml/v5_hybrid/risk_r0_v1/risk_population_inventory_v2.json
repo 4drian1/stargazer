@@ -1,0 +1,2437 @@
+{
+  "status": "P0_AUDITED_WITH_BLOCKERS_NOT_TRAINING_READY",
+  "generated_at": "2026-10-10T21:05:18.595613+08:00",
+  "network_requests": 0,
+  "labels_created": false,
+  "models_fitted": false,
+  "input_manifest": [
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_00000.parquet",
+      "bytes": 36241410,
+      "sha256": "4adc25cfbfb1e34cc079c012f9e2df90db76b46cc5fdec1dc2d2c7155e563653"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_00300.parquet",
+      "bytes": 29834791,
+      "sha256": "11d859695bfc2d52ce55cfaeb2ba839b4ea3ad09f35e0055198e9054c8993c03"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_00600.parquet",
+      "bytes": 37943205,
+      "sha256": "06cdf158228a7236f6d051b6022585e99f5c7897e3d256487237cd0c7145d83c"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_00900.parquet",
+      "bytes": 38032306,
+      "sha256": "fdeb4f936bca23a2073df96f1772927425517bd16f8dc4262ecf20190aadf90b"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_01200.parquet",
+      "bytes": 35836805,
+      "sha256": "988d8a986e2ecba2dcc21a35ee5b1c916f8f4de0a059c0f2169df08ee53ed1f3"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_01500.parquet",
+      "bytes": 2064037,
+      "sha256": "0f88842810980fe4b5a528cc3932287daa9a92fad4310e285a4a586e0ff72ddc"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_01800.parquet",
+      "bytes": 6728158,
+      "sha256": "74564e824c39faf314391176eb648f80deee1e758f07bb7a8c87283c6c8b40c1"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_02100.parquet",
+      "bytes": 10330683,
+      "sha256": "411a48a55522b07ba7309a8973c05a42eaaeb75c3fdc2966b56b98dedd552c43"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_02400.parquet",
+      "bytes": 30273128,
+      "sha256": "eb390834fd87694579b78178284f65913579d21a48a86d2e92f6b2ccd20adac5"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_02700.parquet",
+      "bytes": 39882277,
+      "sha256": "78036c09d8c0e8d55f5ee7b272a9c740d6c737ca983e45d0292b0d708e071eb3"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_03000.parquet",
+      "bytes": 37593060,
+      "sha256": "fb5125d88d30983c6904124b8b09b8b2eda2981943414429375ac28ff3c7ad34"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_03300.parquet",
+      "bytes": 24399007,
+      "sha256": "47a1e9bd14dcf5956af837434e873ead16eda33804ac832909a0e58166bc312c"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_03600.parquet",
+      "bytes": 15820163,
+      "sha256": "90d8c66a5825b1d9ede3fee2abba0443b900d9938a3bc223415a99d0249050be"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_03900.parquet",
+      "bytes": 8551302,
+      "sha256": "dff087f1c08a2da1c46ddfb58403e7b349de1ec63967b5f762429d9effb05420"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_04200.parquet",
+      "bytes": 8032590,
+      "sha256": "70efee2032d31eedc5bb967dec3e474cebbd62e325a4611f2ee83ecb5acc66c3"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_04500.parquet",
+      "bytes": 3700838,
+      "sha256": "69ec8ee2f0e7142776510d52a0058c4a9cb6c9e3c96c0159a9d8d0769f4c3f6e"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_04800.parquet",
+      "bytes": 20806748,
+      "sha256": "37f8ffad0ab1e7ed77b798ec54e990ba14d0ecd734c40f2ae35d30865b5f553a"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_05100.parquet",
+      "bytes": 36434746,
+      "sha256": "f0504bdfb03b100f19cc9935a1b7393527590a77450a26712caae4bd30de411f"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_05400.parquet",
+      "bytes": 35309086,
+      "sha256": "738d4bbb369fca7a2889371ce1c6bd3e481ca52c25e18cf519a1e4a39a904cd1"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_05700.parquet",
+      "bytes": 33302067,
+      "sha256": "5bdf3ac459c512100ae641a270188cdc6b1b9eb1e815876a3b19755e10e2c78e"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_06000.parquet",
+      "bytes": 30996833,
+      "sha256": "a0c2375228a8a2a9f096935515ad5c4fa55f9d7ebf7847e39d33f905151cf2cb"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_06300.parquet",
+      "bytes": 35751618,
+      "sha256": "eb5c3cf14b6e12b0513835b684fcb7f5a1da2dde0310fde86483bdb4d5965bc9"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_06600.parquet",
+      "bytes": 26522578,
+      "sha256": "ac6d0660147a97b4393fce8a6d4ac9983fce598dd9d5f50d7804833261809ad9"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_06900.parquet",
+      "bytes": 23250441,
+      "sha256": "b175e84e71afa32868c70d86fed7c60ac2c1734c32dbb5a5cd2542d594659d87"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_07200.parquet",
+      "bytes": 15787053,
+      "sha256": "ce1ddfe5df1da8db2a9f647155cde497bb8aae25b426a06a076fd15db955c919"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_07500.parquet",
+      "bytes": 4168322,
+      "sha256": "d2a5f954baffe0805895066b102bec2bfb86a4b6e9b5138cbc07334bf3320f9a"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260904.parquet",
+      "bytes": 3198611,
+      "sha256": "987750775c44d219ecbcef25620560d17e5d375c9ac69b04eaeb045730e96d48"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260916.parquet",
+      "bytes": 3193241,
+      "sha256": "3234afa6e1b82820d54c55dc86fdf1513ba3f14c0341aa28aaf9000dec90e98b"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260917.parquet",
+      "bytes": 711986,
+      "sha256": "b7d070be98e76df8c4f33253f20df8a8032ded54786ba9fc4dfa86400e420b4a"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260918.parquet",
+      "bytes": 714490,
+      "sha256": "1ae8e0272893152d84d88e9a8a172ce9d72e932295b92e86b5b7cef67e5bc9ac"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260921.parquet",
+      "bytes": 718593,
+      "sha256": "dc7f34808c191e27dcd281f06c584aa1d65287fc7cc0dab47bb822c3e9a82d80"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260922.parquet",
+      "bytes": 718003,
+      "sha256": "93e2911e9356a464528400a6627c045811ef95638d2843ca5acd40d1690a4226"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260923.parquet",
+      "bytes": 716272,
+      "sha256": "f9115b4d19c870455236fbce6ccd52873c1a0914e4d2b3ce5d500f3b93e18479"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260924.parquet",
+      "bytes": 714399,
+      "sha256": "0cb62c87eb6a6d7f468545839ecd1470ea680f7d7df6e506e9729a265bb21df1"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260928.parquet",
+      "bytes": 717161,
+      "sha256": "1afb213df08880f3554bfdd08719dc2230b1d030da478047a0bd4b80139d5acf"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260929.parquet",
+      "bytes": 711036,
+      "sha256": "3c8195d868ebd6c20b4da75116c4d5e84d8f2602d6f3a7aa2f7532c956e4ba39"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20260930.parquet",
+      "bytes": 711585,
+      "sha256": "0d24945d75ed34aff2b284581c20453640c6e955e642149f1d67c47e05c3234d"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20261008.parquet",
+      "bytes": 707296,
+      "sha256": "5938eda771f44ab3308b599762ad954c6611582f863731b3f02d5b65030a54dc"
+    },
+    {
+      "path": "D:\\a股数据\\data_daily_parts\\part_incr_20261009.parquet",
+      "bytes": 710005,
+      "sha256": "de87e98dcdc22397a1357629132785a4ab709cbf72623a3219ff8284297c8764"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\r1_label_admission_v0_1_2.json",
+      "bytes": 178939,
+      "sha256": "7cdd7558a012014c71c7fcbffe09c449a2f915bd686fb5583428263aa0be8f10"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\feb2026_adjustment_cache_v1\\adj_cache.json",
+      "bytes": 3461440,
+      "sha256": "7424dc97cd09f37dc7f2f3b7fedbe2778e22bd5e30c7f98f860afa3619926fcb"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\o5_sector_lag\\pit_membership.parquet",
+      "bytes": 207716,
+      "sha256": "a1acd54477b9337e8edc4c187777814c40538a0b80877babdced5d5200b9c2de"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\v5_6_green\\green_timing_dataset.parquet",
+      "bytes": 10191367,
+      "sha256": "fa35caa62e339f8b6a213731459513cb53decb6109b4c06542e9a09c858aab40"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_watch_v0\\pool_daily_v11.parquet",
+      "bytes": 1385632620,
+      "sha256": "f3d7f1c274cd7859dec2c357ea964d33e4f08cc71ba843f1eaf6695ee80af500"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\r1_branch_at_decision_v0_1_2.json",
+      "bytes": 493633,
+      "sha256": "9c35ac5d5806803d2513f14aef79d536aff87afa8401fbead1ac357664432299"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_exit_v1\\step6_rescue\\r0_retrain.py",
+      "bytes": 10433,
+      "sha256": "e4691917dded7250d5a829b3450595c788f8928b9134c6328a713b279f91fb70"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_exit_v1\\step6_rescue\\common.py",
+      "bytes": 9121,
+      "sha256": "cd6a6f4b6221572f4c5df2aa5136a408e6048bb1f299bb2a1b6f107d4397722e"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\o5_sector_lag\\etl_pit_membership.py",
+      "bytes": 46997,
+      "sha256": "e17dd9e9e9bc5a2bc29cb107448593988caa1d9c674a06de2249b9a88a351215"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\R0_V1_DEVELOPMENT.md",
+      "bytes": 27025,
+      "sha256": "3d7b80397d9ff94f781c136128d74d5e6ca64f3abbb1772fea3ce84b25ccf059"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\P0_readonly_inventory_tasklist_v1.md",
+      "bytes": 4208,
+      "sha256": "7c17bbfe8335fb164b5f9c80a2b19298f68138cd41520a06487812978e0a0deb"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\p0_deep_inventory.py",
+      "bytes": 16435,
+      "sha256": "6bc2a6aa9ebc212be36085231296a2f87c4390415d4ab6408b7aa8cc0df2dc39"
+    }
+  ],
+  "daily_files": [
+    {
+      "file": "part_00000.parquet",
+      "rows": 618863,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_00300.parquet",
+      "rows": 488369,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 1,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 1
+    },
+    {
+      "file": "part_00600.parquet",
+      "rows": 624039,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 1,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 1
+    },
+    {
+      "file": "part_00900.parquet",
+      "rows": 624419,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_01200.parquet",
+      "rows": 563296,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 6348,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 2,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 2,
+      "ohlc_order_invalid": 2
+    },
+    {
+      "file": "part_01500.parquet",
+      "rows": 76457,
+      "date_min": 20230614,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 64459,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_01800.parquet",
+      "rows": 298386,
+      "date_min": 20200218,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 286386,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 2,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 2,
+      "ohlc_order_invalid": 2
+    },
+    {
+      "file": "part_02100.parquet",
+      "rows": 511139,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 499668,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 16,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 21,
+      "ohlc_order_invalid": 16
+    },
+    {
+      "file": "part_02400.parquet",
+      "rows": 555355,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 110865,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 3,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 4,
+      "ohlc_order_invalid": 3
+    },
+    {
+      "file": "part_02700.parquet",
+      "rows": 625996,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_03000.parquet",
+      "rows": 568000,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_03300.parquet",
+      "rows": 368746,
+      "date_min": 20200824,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_03600.parquet",
+      "rows": 244075,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 29384,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_03900.parquet",
+      "rows": 418456,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 406623,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 4883,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_04200.parquet",
+      "rows": 384699,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 372699,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 300,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_04500.parquet",
+      "rows": 155052,
+      "date_min": 20210628,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 143092,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 28,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_04800.parquet",
+      "rows": 393476,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 60978,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_05100.parquet",
+      "rows": 624269,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 3,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 3,
+      "ohlc_order_invalid": 3
+    },
+    {
+      "file": "part_05400.parquet",
+      "rows": 609575,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 299,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 2,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 2,
+      "ohlc_order_invalid": 2
+    },
+    {
+      "file": "part_05700.parquet",
+      "rows": 565522,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_06000.parquet",
+      "rows": 485506,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 1,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 1
+    },
+    {
+      "file": "part_06300.parquet",
+      "rows": 564305,
+      "date_min": 20180102,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 2,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 2,
+      "ohlc_order_invalid": 2
+    },
+    {
+      "file": "part_06600.parquet",
+      "rows": 398140,
+      "date_min": 20190722,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 2,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 2,
+      "ohlc_order_invalid": 2
+    },
+    {
+      "file": "part_06900.parquet",
+      "rows": 343513,
+      "date_min": 20190722,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 1,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 1
+    },
+    {
+      "file": "part_07200.parquet",
+      "rows": 240074,
+      "date_min": 20200716,
+      "date_max": 20260825,
+      "stocks": 300,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 1,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 1,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 1
+    },
+    {
+      "file": "part_07500.parquet",
+      "rows": 62204,
+      "date_min": 20200727,
+      "date_max": 20260825,
+      "stocks": 63,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260904.parquet",
+      "rows": 60100,
+      "date_min": 20260826,
+      "date_max": 20260904,
+      "stocks": 7544,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 3,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260916.parquet",
+      "rows": 60049,
+      "date_min": 20260907,
+      "date_max": 20260916,
+      "stocks": 7538,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 6,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260917.parquet",
+      "rows": 7503,
+      "date_min": 20260917,
+      "date_max": 20260917,
+      "stocks": 7503,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260918.parquet",
+      "rows": 7510,
+      "date_min": 20260918,
+      "date_max": 20260918,
+      "stocks": 7510,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260921.parquet",
+      "rows": 7506,
+      "date_min": 20260921,
+      "date_max": 20260921,
+      "stocks": 7506,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260922.parquet",
+      "rows": 7513,
+      "date_min": 20260922,
+      "date_max": 20260922,
+      "stocks": 7513,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260923.parquet",
+      "rows": 7497,
+      "date_min": 20260923,
+      "date_max": 20260923,
+      "stocks": 7497,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260924.parquet",
+      "rows": 7491,
+      "date_min": 20260924,
+      "date_max": 20260924,
+      "stocks": 7491,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260928.parquet",
+      "rows": 7518,
+      "date_min": 20260928,
+      "date_max": 20260928,
+      "stocks": 7518,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260929.parquet",
+      "rows": 7490,
+      "date_min": 20260929,
+      "date_max": 20260929,
+      "stocks": 7490,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20260930.parquet",
+      "rows": 7490,
+      "date_min": 20260930,
+      "date_max": 20260930,
+      "stocks": 7490,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 1,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20261008.parquet",
+      "rows": 7418,
+      "date_min": 20261008,
+      "date_max": 20261008,
+      "stocks": 7418,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    },
+    {
+      "file": "part_incr_20261009.parquet",
+      "rows": 7430,
+      "date_min": 20261009,
+      "date_max": 20261009,
+      "stocks": 7430,
+      "duplicate_key_excess": 0,
+      "null_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "infinity_by_field": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "pre_close": 0,
+        "volume": 0,
+        "amount": 0,
+        "is_st": 0
+      },
+      "nonpositive_ohlc_rows": 0,
+      "negative_volume_or_amount": 0,
+      "zero_volume_rows": 0,
+      "ohlc_order_invalid": 0
+    }
+  ],
+  "daily_totals": {
+    "files": 39,
+    "bytes": 641835930,
+    "physical_rows": 11614446,
+    "lookup_unique_rows": 11614446,
+    "observed_calendar_days": 2125,
+    "date_min": 20180102,
+    "date_max": 20261009,
+    "by_year_rows": {
+      "2018": 853517,
+      "2019": 932531,
+      "2020": 1035098,
+      "2021": 1224479,
+      "2022": 1382218,
+      "2023": 1511597,
+      "2024": 1602797,
+      "2025": 1708802,
+      "2026": 1363407
+    }
+  },
+  "duplicate_keys": {
+    "duplicate_keys": 0,
+    "duplicate_rows": 0,
+    "conflicting_numeric_keys": 0,
+    "identical_numeric_keys": 0,
+    "examples": []
+  },
+  "scale_audit": {
+    "comparison": "pre_close vs previous available daily close; tolerance max(0.01, abs(prev)*0.001)",
+    "comparable_rows": 9628434,
+    "mismatch_rows": 6912784,
+    "mismatch_codes": 5333,
+    "old_conflict_codes": 32,
+    "old_conflict_codes_still_mismatching": [
+      "000856",
+      "001236",
+      "002139",
+      "002165",
+      "002361",
+      "002432",
+      "002534",
+      "002563",
+      "002827",
+      "002860",
+      "002982",
+      "003010",
+      "300399",
+      "300546",
+      "300618",
+      "300649",
+      "300835",
+      "300925",
+      "300950",
+      "301025",
+      "301217",
+      "301265",
+      "301499",
+      "600313",
+      "600888",
+      "603216",
+      "603306",
+      "603395",
+      "603867",
+      "603983",
+      "688190",
+      "688401"
+    ],
+    "examples": [
+      {
+        "code": 1,
+        "date": 20180103,
+        "close": 13.33,
+        "pre_close": 10.475
+      },
+      {
+        "code": 1,
+        "date": 20180104,
+        "close": 13.25,
+        "pre_close": 10.195
+      },
+      {
+        "code": 1,
+        "date": 20180105,
+        "close": 13.3,
+        "pre_close": 10.136
+      },
+      {
+        "code": 1,
+        "date": 20180108,
+        "close": 12.96,
+        "pre_close": 10.175
+      },
+      {
+        "code": 1,
+        "date": 20180109,
+        "close": 13.08,
+        "pre_close": 9.914
+      },
+      {
+        "code": 1,
+        "date": 20180110,
+        "close": 13.47,
+        "pre_close": 10.001
+      },
+      {
+        "code": 1,
+        "date": 20180111,
+        "close": 13.4,
+        "pre_close": 10.301
+      },
+      {
+        "code": 1,
+        "date": 20180112,
+        "close": 13.55,
+        "pre_close": 10.253
+      },
+      {
+        "code": 1,
+        "date": 20180115,
+        "close": 14.2,
+        "pre_close": 10.359
+      },
+      {
+        "code": 1,
+        "date": 20180116,
+        "close": 14.2,
+        "pre_close": 10.863
+      },
+      {
+        "code": 1,
+        "date": 20180117,
+        "close": 14.23,
+        "pre_close": 10.863
+      },
+      {
+        "code": 1,
+        "date": 20180118,
+        "close": 14.72,
+        "pre_close": 10.882
+      },
+      {
+        "code": 1,
+        "date": 20180119,
+        "close": 14.8,
+        "pre_close": 11.259
+      },
+      {
+        "code": 1,
+        "date": 20180122,
+        "close": 14.44,
+        "pre_close": 11.318
+      },
+      {
+        "code": 1,
+        "date": 20180123,
+        "close": 14.65,
+        "pre_close": 11.046
+      },
+      {
+        "code": 1,
+        "date": 20180124,
+        "close": 14.64,
+        "pre_close": 11.201
+      },
+      {
+        "code": 1,
+        "date": 20180125,
+        "close": 14.2,
+        "pre_close": 11.192
+      },
+      {
+        "code": 1,
+        "date": 20180126,
+        "close": 14.05,
+        "pre_close": 10.863
+      },
+      {
+        "code": 1,
+        "date": 20180129,
+        "close": 13.74,
+        "pre_close": 10.746
+      },
+      {
+        "code": 1,
+        "date": 20180130,
+        "close": 13.65,
+        "pre_close": 10.504
+      }
+    ],
+    "raw_scale_verdict": "NOT_CERTIFIED: this comparison cannot distinguish adjustment/company actions/source holes; no RAW claim"
+  },
+  "candidate_sources": [
+    {
+      "input": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\v5_6_green\\green_timing_dataset.parquet",
+      "physical_rows": 15841,
+      "unique_code_date": 15664,
+      "duplicate_code_date_excess": 177,
+      "population": "Existing source rows; NOT adopted as R0 population",
+      "schema": [
+        "code",
+        "date",
+        "close",
+        "ret1",
+        "ret5",
+        "ret20",
+        "atr20_pct",
+        "rsi14",
+        "pos20",
+        "pos60",
+        "amount_ratio20",
+        "adv20",
+        "close_location",
+        "ret1_atr",
+        "slow_oversold",
+        "shock_oversold",
+        "impulse_flag",
+        "first_divergence_flag",
+        "market_ret_1d",
+        "g1_days_since_impulse",
+        "g1_impulse_ret_atr",
+        "g1_impulse_amount_ratio",
+        "g1_post_impulse_return",
+        "g1_volume_decay",
+        "g1_retrace_atr",
+        "market_ret_3d",
+        "market_ret_5d",
+        "market_gap",
+        "shock_yday",
+        "repair_today",
+        "deterioration_today",
+        "shock_repair",
+        "shock_continue",
+        "breadth_balance",
+        "down_up_log",
+        "breadth_z20",
+        "event_id",
+        "mode_id",
+        "sleeve_id",
+        "candidate_depth",
+        "intended_price_qfq",
+        "decision_ts",
+        "feature_cutoff_ts",
+        "earliest_execution_ts",
+        "candidate_id",
+        "filled",
+        "fill_date",
+        "fill_price_raw",
+        "exit_date_old",
+        "exit_price_raw",
+        "gross_return_old",
+        "order_return_old",
+        "mfe_old",
+        "mae_old",
+        "loss3_old",
+        "corporate_action",
+        "label_end_date",
+        "p_loss3_raw",
+        "p_loss3",
+        "pred_return",
+        "joint_score",
+        "test_year",
+        "exit_date",
+        "gross_return",
+        "order_return",
+        "mfe",
+        "mae",
+        "loss3",
+        "exit_reason",
+        "corporate_action_new",
+        "t1_entry_date",
+        "t1_label_end_date",
+        "t1_entry_open_raw",
+        "t1_close_return",
+        "t1_mfe",
+        "t1_mae",
+        "t1_hit5_before_loss3",
+        "t1_loss3_before_hit5",
+        "t1_touch_loss3",
+        "t1_barrier",
+        "t1_barrier_day",
+        "t1_rule_return",
+        "t2_entry_date",
+        "t2_label_end_date",
+        "t2_entry_open_raw",
+        "t2_close_return",
+        "t2_mfe",
+        "t2_mae",
+        "t2_hit5_before_loss3",
+        "t2_loss3_before_hit5",
+        "t2_touch_loss3",
+        "t2_barrier",
+        "t2_barrier_day",
+        "t2_rule_return",
+        "t3_entry_date",
+        "t3_label_end_date",
+        "t3_entry_open_raw",
+        "t3_close_return",
+        "t3_mfe",
+        "t3_mae",
+        "t3_hit5_before_loss3",
+        "t3_loss3_before_hit5",
+        "t3_touch_loss3",
+        "t3_barrier",
+        "t3_barrier_day",
+        "t3_rule_return",
+        "best_entry_offset",
+        "t1_is_best",
+        "max_label_end_date",
+        "sector",
+        "ret1_eco",
+        "ret5_eco",
+        "ret20_eco",
+        "gap_open",
+        "high_to_close",
+        "upper_shadow",
+        "close_location_eco",
+        "amount_ratio20_eco",
+        "pos60_stock",
+        "ret1_prev",
+        "ret5_prev",
+        "ret20_prev",
+        "log_amount_ratio20_prev",
+        "pos60_prev",
+        "market_ret",
+        "market_high_to_close",
+        "market_upper_shadow",
+        "market_worst_ret",
+        "market_down3_ratio",
+        "market_down5_ratio",
+        "market_limit_up_count",
+        "market_limit_up_ratio",
+        "loss_effect_absent",
+        "sector_ret",
+        "sector_high_to_close",
+        "sector_upper_shadow",
+        "sector_worst_ret",
+        "sector_down3_ratio",
+        "sector_down5_ratio",
+        "sector_limit_up_count",
+        "sector_ret5",
+        "sector_ret5_prev",
+        "leader_code",
+        "leader_ret1",
+        "leader_ret20",
+        "leader_gap_open",
+        "leader_high_to_close",
+        "leader_upper_shadow",
+        "leader_close_location",
+        "leader_divergence",
+        "center_code",
+        "center_ret1",
+        "center_gap_open",
+        "center_ret20",
+        "center_total_mv",
+        "center_repair_after_drawdown",
+        "sector_divergence",
+        "relative_to_sector",
+        "strong_dip_sector_up",
+        "strong_dip_contract",
+        "is_current_leader",
+        "analog_limit_peer_count",
+        "analog_limit_peer_similarity",
+        "history_specific_n",
+        "history_sector_n",
+        "history_opp_rate",
+        "history_loss3_rate",
+        "history_rule_return"
+      ],
+      "asof_columns_present": [
+        "mode_id"
+      ],
+      "mode_counts": {
+        "G0": 10982,
+        "G1": 4859
+      },
+      "available_at_certification": "NOT_TESTED; retrospective asof value is not capture-time proof",
+      "by_year": [
+        {
+          "rows": 2440,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 2431,
+          "mature_but_missing_stock_rows": 9,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2021,
+          "stocks": 163,
+          "dates": 232,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 2440
+          },
+          "chain_status_counts": {
+            "OK": 2440
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 2440,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 4192,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 4176,
+          "mature_but_missing_stock_rows": 16,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2022,
+          "stocks": 179,
+          "dates": 231,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 4192
+          },
+          "chain_status_counts": {
+            "OK": 4192
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 4192,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 2110,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 2103,
+          "mature_but_missing_stock_rows": 7,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2023,
+          "stocks": 168,
+          "dates": 232,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 2110
+          },
+          "chain_status_counts": {
+            "OK": 2110
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 2110,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 4154,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 4151,
+          "mature_but_missing_stock_rows": 3,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2024,
+          "stocks": 183,
+          "dates": 221,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 4154
+          },
+          "chain_status_counts": {
+            "OK": 4154
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 4154,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 2768,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 2762,
+          "mature_but_missing_stock_rows": 6,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2025,
+          "stocks": 182,
+          "dates": 237,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 2768
+          },
+          "chain_status_counts": {
+            "OK": 2768
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 2768,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        }
+      ]
+    },
+    {
+      "input": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_watch_v0\\pool_daily_v11.parquet",
+      "physical_rows": 3474943,
+      "unique_code_date": 3474943,
+      "duplicate_code_date_excess": 0,
+      "population": "Existing source rows; NOT adopted as R0 population",
+      "schema": [
+        "date",
+        "code",
+        "bottom_score",
+        "intraday_dip_score",
+        "bottom_gate",
+        "dip_eligible_v11",
+        "bottom_evidence_count",
+        "ev_shrink_newlow",
+        "ev_macd_recover",
+        "ev_rsi_reclaim30",
+        "ev_reclaim_boll",
+        "ev_reclaim_pivotlow",
+        "ev_long_lowwick",
+        "ev_higher_low",
+        "ev_volume_decay",
+        "ev_low_absorb",
+        "atr_ref",
+        "atr_pct",
+        "ma20_slope5",
+        "dist_ma20",
+        "dist_low60",
+        "dist_low20",
+        "range_pos20",
+        "range_pos60",
+        "macd_dif",
+        "macd_dea",
+        "macd_hist",
+        "rsi14",
+        "dist_boll_lower",
+        "impulse_return",
+        "pullback_atr",
+        "pullback_pct",
+        "pullback_days",
+        "lower_wick_ratio",
+        "close_position",
+        "drop_speed_3d",
+        "drop_speed_5d",
+        "new_low_flag",
+        "up_volume_median",
+        "down_volume_median",
+        "volume_ratio",
+        "turnover_rate",
+        "amount",
+        "market_cap",
+        "float_market_cap",
+        "stock_return_1d",
+        "stock_return_3d",
+        "sector_proxy_ret1",
+        "sector_proxy_ret3",
+        "zone_strength",
+        "volume",
+        "pre_close",
+        "close",
+        "ma5_slope",
+        "ma10_slope",
+        "ma20_slope_3",
+        "ma20_slope_5",
+        "ma20_slope_10",
+        "ret_3d",
+        "ret_5d",
+        "ret_10d",
+        "ret_20d",
+        "ret_60d",
+        "dist_from_20d_high",
+        "dist_from_60d_high",
+        "prior_impulse_return",
+        "prior_impulse_days",
+        "breakout_strength_atr",
+        "recent_breakout_flag",
+        "up_volume_expansion_ratio",
+        "down_volume_contraction_ratio",
+        "prior_range_expansion",
+        "prior_turnover_strength",
+        "dist_confirmed_swing_low_atr",
+        "dist_breakout_platform_atr",
+        "recent_lower_low_count",
+        "recent_lower_high_count",
+        "support_break_depth_atr",
+        "support_break_volume_ratio",
+        "distribution_score_raw",
+        "zone_distance_atr",
+        "prior_strength_pass",
+        "structure_intact_flag",
+        "structural_breakdown_flag",
+        "clear_distribution_flag",
+        "liquidity_pass",
+        "dip_quality_score",
+        "dip_readiness_score",
+        "dip_stage",
+        "primary_setup",
+        "primary_score",
+        "bottom_tier",
+        "dip_tier",
+        "primary_tier",
+        "rule_version",
+        "plan_date",
+        "effective_trade_date",
+        "candidate_contract_version",
+        "candidate_generated_asof",
+        "source_data_snapshot_id"
+      ],
+      "asof_columns_present": [
+        "rule_version",
+        "candidate_generated_asof",
+        "candidate_contract_version",
+        "source_data_snapshot_id"
+      ],
+      "rule_version": {
+        "GREEN-WATCH-v1.1-daily": 3474943
+      },
+      "candidate_contract_version": {
+        "GREEN-WATCH-v1.1-DIP-GATE-DECOMPOSITION": 3474943
+      },
+      "source_data_snapshot_id": {
+        "daily_parts@29files_s634697090_m1789653245_epoch20260917_he8ac7a14e984c762": 3474943
+      },
+      "available_at_certification": "NOT_TESTED; retrospective asof value is not capture-time proof",
+      "by_year": [
+        {
+          "rows": 488974,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 488296,
+          "mature_but_missing_stock_rows": 678,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2021,
+          "stocks": 2944,
+          "dates": 243,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 164558,
+            "SH_MAIN_PREFIX": 159615,
+            "GEM_PREFIX": 132249,
+            "STAR_PREFIX": 30873,
+            "BSE_PREFIX": 1493,
+            "OTHER_OR_NON_STOCK": 186
+          },
+          "chain_status_counts": {
+            "OK": 487649,
+            "EMPTY": 1146,
+            "UNKNOWN": 179
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 488137,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 556601,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 555965,
+          "mature_but_missing_stock_rows": 636,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2022,
+          "stocks": 3306,
+          "dates": 242,
+          "board_prefix_counts": {
+            "SH_MAIN_PREFIX": 174723,
+            "GEM_PREFIX": 154961,
+            "STAR_PREFIX": 47744,
+            "SZ_MAIN_PREFIX": 177410,
+            "BSE_PREFIX": 1530,
+            "OTHER_OR_NON_STOCK": 233
+          },
+          "chain_status_counts": {
+            "OK": 553233,
+            "EMPTY": 3134,
+            "UNKNOWN": 234
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 556368,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 643438,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 643022,
+          "mature_but_missing_stock_rows": 416,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2023,
+          "stocks": 3520,
+          "dates": 242,
+          "board_prefix_counts": {
+            "GEM_PREFIX": 188601,
+            "STAR_PREFIX": 68723,
+            "SZ_MAIN_PREFIX": 195633,
+            "SH_MAIN_PREFIX": 187652,
+            "BSE_PREFIX": 2822,
+            "OTHER_OR_NON_STOCK": 7
+          },
+          "chain_status_counts": {
+            "OK": 638927,
+            "EMPTY": 4504,
+            "UNKNOWN": 7
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 643431,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 615803,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 615327,
+          "mature_but_missing_stock_rows": 476,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2024,
+          "stocks": 3814,
+          "dates": 242,
+          "board_prefix_counts": {
+            "STAR_PREFIX": 67764,
+            "SH_MAIN_PREFIX": 183671,
+            "GEM_PREFIX": 175081,
+            "SZ_MAIN_PREFIX": 183308,
+            "BSE_PREFIX": 5979
+          },
+          "chain_status_counts": {
+            "OK": 610189,
+            "EMPTY": 5614
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 615803,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 692401,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 691316,
+          "mature_but_missing_stock_rows": 1085,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2025,
+          "stocks": 3856,
+          "dates": 243,
+          "board_prefix_counts": {
+            "GEM_PREFIX": 207065,
+            "SZ_MAIN_PREFIX": 190830,
+            "SH_MAIN_PREFIX": 198145,
+            "STAR_PREFIX": 74922,
+            "BSE_PREFIX": 21439
+          },
+          "chain_status_counts": {
+            "OK": 686599,
+            "EMPTY": 5802
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 692401,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 477726,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 477000,
+          "mature_but_missing_stock_rows": 726,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2026,
+          "stocks": 3915,
+          "dates": 173,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 127663,
+            "BSE_PREFIX": 11918,
+            "GEM_PREFIX": 145921,
+            "SH_MAIN_PREFIX": 133490,
+            "STAR_PREFIX": 49101,
+            "OTHER_OR_NON_STOCK": 9633
+          },
+          "chain_status_counts": {
+            "OK": 464242,
+            "EMPTY": 3438,
+            "UNKNOWN": 10046
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 468093,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        }
+      ]
+    },
+    {
+      "input": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\r1_branch_at_decision_v0_1_2.json",
+      "physical_rows": 1013,
+      "unique_code_date": 1013,
+      "duplicate_code_date_excess": 0,
+      "branch_counts": {
+        "NO_ACTION": 343,
+        "DIP_REPAIR": 330,
+        "BASE_HOLD": 159,
+        "UNCLASSIFIABLE": 154,
+        "BASE_BREAKOUT": 27
+      },
+      "population": "Full 1013 box population, not only 124 admitted labels",
+      "by_year": [
+        {
+          "rows": 426,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 0,
+          "all_next5_rows_present": 423,
+          "mature_but_missing_stock_rows": 3,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2025,
+          "stocks": 319,
+          "dates": 128,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 122,
+            "GEM_PREFIX": 156,
+            "SH_MAIN_PREFIX": 97,
+            "STAR_PREFIX": 51
+          },
+          "chain_status_counts": {
+            "OK": 414,
+            "EMPTY": 12
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 426,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        },
+        {
+          "rows": 587,
+          "anchor_date_not_observed": 0,
+          "calendar_tail": 5,
+          "all_next5_rows_present": 581,
+          "mature_but_missing_stock_rows": 1,
+          "meaning": "File-row coverage only, NOT label readiness; observed calendar is not exchange-certified",
+          "year": 2026,
+          "stocks": 417,
+          "dates": 127,
+          "board_prefix_counts": {
+            "SZ_MAIN_PREFIX": 185,
+            "GEM_PREFIX": 142,
+            "SH_MAIN_PREFIX": 204,
+            "STAR_PREFIX": 56
+          },
+          "chain_status_counts": {
+            "OK": 579,
+            "EMPTY": 7,
+            "UNKNOWN": 1
+          },
+          "anchor_row_missing": 0,
+          "pre_close_nonpositive_or_missing": 0,
+          "st_value_unknown": 0,
+          "sector_effective_interval_single_match": 587,
+          "sector_effective_interval_ambiguous": 0,
+          "sector_available_at_certified": null,
+          "listing_date_certified": null
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "sector_source_rows": 12920,
+    "sector_columns": [
+      "symbol",
+      "industry_code",
+      "industry_name_l1",
+      "industry_name_l2",
+      "industry_name_l3",
+      "index_code_l1",
+      "index_code_l2",
+      "index_code_l3",
+      "effective_from",
+      "effective_to",
+      "update_time",
+      "name_source",
+      "source",
+      "source_version",
+      "snapshot_version"
+    ],
+    "sector_available_at": "NOT_CERTIFIED: effective dates/update_time are not historical publication timestamps",
+    "listing_date": "PENDING_SOURCE: absent from daily and selected candidate sources; first seen is not listing date",
+    "st": "Daily 0/1 availability audited; capture-time/PIT certification remains pending",
+    "chain": "OK/EMPTY/UNKNOWN reachability only; not corporate-action/window/RAW certification"
+  },
+  "old_r0": {
+    "train_end": 20231220,
+    "dev_window": [
+      20240101,
+      20241231
+    ],
+    "labels": "X1 STOP / daily close loss3,loss5 / X1_RF failure / MAE thresholds; NOT new P_tail_5d",
+    "cost": "gross_return - 0.0031; NOT current cash-ledger execution label",
+    "source_filter": "mode_id=G0, further target joins; not adopted as R0-V1 population"
+  },
+  "blockers": [
+    "P1 population/decision/ref/threshold contract not signed",
+    "RAW scale/duplicate conflict policy not certified",
+    "Exchange calendar/sector historical availability/listing provenance not certified",
+    "R0 resource contract before mother table/models not approved",
+    "Training/collection/shadow not authorized"
+  ]
+}

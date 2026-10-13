@@ -102,6 +102,12 @@
 /stargazer_ml/pullback_train/*/
 !/stargazer_ml/pullback_train/*.py
 
+# ── R0-V1 风险研究线：代码+文档+小JSON证据入库（数据/大产物仍由全局兜底排除）──
+!/stargazer_ml/v5_hybrid/risk_r0_v1/
+!/stargazer_ml/v5_hybrid/risk_r0_v1/*.py
+!/stargazer_ml/v5_hybrid/risk_r0_v1/*.md
+!/stargazer_ml/v5_hybrid/risk_r0_v1/*.json
+
 # 快照契约预留：仅这些源码/测试/说明可见，不开放研究产物子树
 !/stargazer_ml/v5_hybrid/opportunity_v2/contracts/
 !/stargazer_ml/v5_hybrid/opportunity_v2/contracts/snapshot_contracts.py
