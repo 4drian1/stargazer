@@ -112,6 +112,30 @@ def test_disk_precheck_no_write():
         assert list(Path(td).rglob('*')) == []
 
 
+def test_merged_header_rows_flattened():
+    """批次②教训：合并单元格表头使 pandas 返回元组键，必须拍平为末级表头，
+    否则调用方按平键取 进度/除权除息日 会静默漏配。"""
+    fixture = """
+<html><body>
+<table><thead>
+<tr><th rowspan="2">公告日期</th><th colspan="3">分红方案(每10股)</th>
+<th rowspan="2">进度</th><th rowspan="2">除权除息日</th></tr>
+<tr><th>送股(股)</th><th>转增(股)</th><th>派息(税前)(元)</th></tr>
+</thead>
+<tbody><tr><td>2025-06-05</td><td>0</td><td>0</td><td>3.5</td>
+<td>实施</td><td>2025-06-11</td></tr>
+<tr><td>2025-09-30</td><td>0</td><td>0</td><td>0</td>
+<td>不分配</td><td>None</td></tr></tbody></table>
+</body></html>
+""".encode('gbk')
+    out = parse_bonus_page(fixture)
+    assert out['bonus'], out['headers']
+    row = out['bonus'][0]
+    assert '进度' in row and row['进度'] == '实施', row
+    assert row['除权除息日'] == '2025-06-11', row
+    assert not any(isinstance(k, tuple) for r in out['bonus'] for k in r), '仍残留元组键'
+
+
 if __name__ == '__main__':
     fns = [v for k, v in sorted(globals().items())
            if k.startswith('test_') and callable(v)]

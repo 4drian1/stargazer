@@ -20,7 +20,8 @@ from independent_fetch_client import (ByteBudgetExceeded, ByteCounter,
 from independent_fetch_run import batch_finalized
 
 HERE = Path(__file__).resolve().parent
-BATCH = HERE / 'independent_fetch' / 'batch_564_special'
+import os as _os
+BATCH = Path(_os.environ.get('BATCH_564_DIR', str(HERE / 'independent_fetch' / 'batch_564_special_v2')))
 CAP_R, CAP_B = 4, 2 * 1024 * 1024
 REPORT_RESERVE = 16 * 1024
 LINKS = json.loads((HERE / 'independent_fetch' / 'batch_b_dividend_probe'
@@ -38,6 +39,14 @@ def extract_pdf_text(pdf: bytes) -> str:
 
 
 import io
+
+
+def clean_url(url: str) -> str:
+    """冻结清单中的 URL 可能含字面空格（如 announcementTime=2021-12-27 00:00:00）。
+
+    http.client 拒绝含控制/空白字符的 URL（批次①v2 烧毁根因）。统一转 %20。
+    """
+    return url.replace(' ', '%20')
 
 
 def find_adjunct(html: bytes) -> str | None:
@@ -61,8 +70,11 @@ def main() -> int:
     for item in TARGETS:
         rec = dict(title=item['title'], date=item['date'], detail_url=item['url'],
                    adjunct=None, pdf_bytes=None, text=None, fields={}, status='pending')
+        # 批次①v2 烧毁根因：冻结清单里的 URL 含字面空格（announcementTime=... 00:00:00），
+        # http.client 拒绝含控制字符的 URL。统一清洗为 %20，清洗本身零网络。
+        url = clean_url(item['url'])
         try:
-            html = client.fetch_ann_text(item['url'], archive_dir=str(BATCH))
+            html = client.fetch_ann_text(url, archive_dir=str(BATCH))
             adj = find_adjunct(html)
             rec['adjunct'] = adj
             ledger.append(dict(event='detail_ok', title=item['title'][:30],
