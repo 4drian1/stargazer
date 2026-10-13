@@ -51,6 +51,7 @@ class CninfoAnnClient:
         return body
 
     def _request(self, url, data) -> bytes:
+        attempt = 0
         while True:
             self.counter.consume(1)
             wait = self.rate_limit_s - (__import__('time').time() - self._last)

@@ -1,0 +1,35 @@
+{
+ "version": "v2_corrected",
+ "cache_binding": {
+  "path": "..\\opportunity_v2\\gate1c\\feb2026_adjustment_cache_v1\\adj_cache.json",
+  "sha256": "7424dc97cd09f37dc7f2f3b7fedbe2778e22bd5e30c7f98f860afa3619926fcb"
+ },
+ "population_source": {
+  "path": "green_common_profile/gcp_round_b_small_sample_v1/gcp_247_ruleA_trigger_records_v1.json",
+  "unique_codes": 706
+ },
+ "real_status_counts": {
+  "OK": 694,
+  "EMPTY_empty_chain": 11,
+  "MISSING": 1
+ },
+ "strata_sample": {
+  "stratum_OK_cache_chain": [
+   "000002",
+   "002681",
+   "300726",
+   "600810"
+  ],
+  "stratum_EMPTY_empty_chain": [
+   "301292",
+   "688165",
+   "688277",
+   "688520"
+  ],
+  "stratum_MISSING": [
+   "301682"
+  ]
+ },
+ "rule": "按真实复权状态分层;各层按code排序等距取4;不足4只全部保留并如实减少请求数;目标窗口无事件层单独命名(本设计不含),不等同EMPTY空链",
+ "correction_of_v1": "v1 的 B 层\"EMPTY\"实为 OK 码(事实错误,已撤回);EMPTY=空链非无事件"
+}

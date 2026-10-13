@@ -121,3 +121,19 @@ def test_ann_text_uses_get():
     client = CninfoAnnClient(c, b, transport=spy, sleep=lambda s: None)
     client.fetch_ann_text('finalpage/2018-09-26/x.PDF')
     assert seen['data'] is None, f'fetch_ann_text 实际 data={seen["data"]!r}（应为 None=GET）'
+
+
+def test_generic_exception_retry_path():
+    """普通异常重试路径（UnboundLocalError 回归：attempt 必须初始化）。"""
+    c, b = FetchCounter(6), ByteCounter(1024 * 1024)
+    state = {'n': 0}
+
+    def flaky(url, data, timeout, read_cap):
+        state['n'] += 1
+        if state['n'] < 2:
+            raise ConnectionError('boom')
+        return LIST_RESP
+
+    client = CninfoAnnClient(c, b, max_retries=2, transport=flaky, sleep=lambda s: None)
+    out = client.query_ann_list('600733', '2018-01-01~2018-12-31')
+    assert out['totalAnnouncement'] == 2 and c.used == 2 and state['n'] == 2
