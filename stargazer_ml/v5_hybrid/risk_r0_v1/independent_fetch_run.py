@@ -67,7 +67,18 @@ def tencent_rows_to_map(rows: list) -> dict:
 
 def main() -> int:
     BATCH.mkdir(parents=True, exist_ok=True)
-    ledger = []
+    # 批次最终性守卫（REV5 治理修复）：已终结批次拒绝再次运行——
+    # 停止线被触发后，任何续跑须用户书面授权（不得靠重建计数器"重启续抓"）。
+    # 授权续跑方式：用户批准后删除/改名 stop_record.json（留痕），或指定新批次目录。
+    if (BATCH / 'stop_record.json').exists():
+        raise SystemExit(
+            f'批次已终结（{BATCH}/stop_record.json 存在）。'
+            '停止线触发后续跑须用户书面授权：获授权后移走 stop_record.json 留痕，'
+            '或改用新批次目录。额度不随重启重置。')
+    import uuid
+    batch_id = uuid.uuid4().hex[:12]
+    ledger = [dict(event='batch_open', batch_id=batch_id,
+                   note='本批计数器自本进程创建；重启=新进程=须重新授权')]
     stop_reason = 'completed'
     req = FetchCounter(REQ_CAP)
     nbytes = ByteCounter(BYTE_CAP)
@@ -203,10 +214,10 @@ def finalize(ledger, req, nbytes, disk, stop_reason, points=None):
                  response_bytes=nbytes.used, response_bytes_cap=nbytes.hard_cap_bytes,
                  disk_bytes=disk.used, disk_bytes_cap=disk.hard_cap_bytes,
                  note='单次运行账本；额度不随重启重置，本批终结')
-    (BATCH / 'stop_record.json').write_text(
-        json.dumps(final, ensure_ascii=False, indent=1), encoding='utf-8')
-    (BATCH / 'request_ledger.json').write_text(
-        json.dumps(ledger, ensure_ascii=False, indent=1), encoding='utf-8')
+    with (BATCH / 'stop_record.json').open('xb') as f:      # 独占写：终局不可覆盖
+        f.write(json.dumps(final, ensure_ascii=False, indent=1))
+    with (BATCH / 'request_ledger.json').open('xb') as f:   # 独占写：账本不可覆盖
+        f.write(json.dumps(ledger, ensure_ascii=False, indent=1))
     if points is not None:
         write_report(points, final)
     print(json.dumps(final, ensure_ascii=False))
