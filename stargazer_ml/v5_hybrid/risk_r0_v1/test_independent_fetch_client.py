@@ -116,28 +116,64 @@ def test_full_batch_budget_25():
     assert c.used == 20 <= 25
 
 
-if __name__ == '__main__':
-    fns = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
-    for fn in fns:
-        fn()
-        print('PASS', fn.__name__)
-    print(f'== {len(fns)} 项零网络测试全过 ==')
 
 
 # ---------- REV3 反例（字节预算/重定向/原始留证/冒烟零重试） ----------
 
-def test_oversize_response_rejected():
-    """5,000,096 字节响应在 5MB 硬限下必须被拒（用户反例）：超限即 ByteBudgetExceeded。"""
-    big = b'x' * 5_000_096
-    bc = ByteCounter(5 * 1024 * 1024)
-    client = TencentDailyClient(FetchCounter(10), bc,
+ROW = ['2020-01-01', 10, 10, 11, 9.5, 1]
+
+
+def sized_day_payload(target: int) -> bytes:
+    """构造恰好 target 字节的合法 JSON 原始 day 序列（解析式，一次成型）。
+    payload_len(n) = C + n*r + 2*(n-1)（r=单行序列化字节，C=空表结构字节）；
+    余数用末行 volume 位数吸收（+rem 字节 = volume 取 rem+1 位），rem ≤ 40 位远低于 4300 上限。"""
+    C = len(json.dumps({'data': {'sh600000': {'day': []}}}).encode())
+    r = len(json.dumps(ROW).encode())
+    n = (target - C + 2) // (r + 2)
+    base = C + n * r + 2 * (n - 1)
+    rem = target - base
+    assert 0 <= rem <= r + 1, (target, n, rem)
+    rows = [list(ROW) for _ in range(max(n, 1))]
+    if rem:
+        rows[-1][5] = 10 ** rem          # rem+1 位 → 恰好 +rem 字节
+    payload = json.dumps({'data': {'sh600000': {'day': rows}}}).encode()
+    assert len(payload) == target, (len(payload), target)
+    return payload
+
+
+def test_oversize_first_response_rejected():
+    """>5MiB 响应首次即拒（用户反例修正：5,000,096B < 5MiB 会被接受，测试必须用真超限值），
+    且不发生重试（请求计数=1）。"""
+    cap = 5 * 1024 * 1024                       # 5 MiB = 5,242,880 B
+    big = sized_day_payload(cap + 500_000)
+    c, bc = FetchCounter(10), ByteCounter(cap)
+    client = TencentDailyClient(c, bc,
                                 transport=lambda u, t, rc: big, sleep=lambda s: None)
     try:
         client.fetch_raw_daily('600000', '20260101', '20260110')
         raise AssertionError('超字节响应被接受')
     except ByteBudgetExceeded:
         pass
-    assert bc.used == len(big)  # 被拒前已按实际字节计入
+    assert c.used == 1 and bc.used + len(big) > bc.hard_cap_bytes  # 触线即停、未超采、零重试
+
+
+def test_mib_boundary_units():
+    """单位统一为 MiB：5,000,082B（< 5MiB）合法响应必须被接受；5,242,881B（=5MiB+1）首次即拒。"""
+    cap = 5 * 1024 * 1024
+    ok_payload = sized_day_payload(5_000_082)
+    c = TencentDailyClient(FetchCounter(10), ByteCounter(cap),
+                           transport=lambda u, t, rc: ok_payload, sleep=lambda s: None)
+    rows = c.fetch_raw_daily('600000', '20260101', '20260110')
+    assert rows, '5,000,082B（<5MiB）应被接受——单位是 MiB 不是 MB'
+    over = sized_day_payload(cap + 1)
+    c2 = TencentDailyClient(FetchCounter(10), ByteCounter(cap),
+                            transport=lambda u, t, rc: over, sleep=lambda s: None)
+    try:
+        c2.fetch_raw_daily('600000', '20260101', '20260110')
+        raise AssertionError('5MiB+1 未在首次拒绝')
+    except ByteBudgetExceeded:
+        pass
+    assert c2.counter.used == 1
 
 
 def test_cumulative_bytes_trip():
@@ -203,8 +239,8 @@ def test_raw_archive_roundtrip_and_rejected_preserved():
             client2.fetch_raw_daily('600001', '20260101', '20260110', archive_dir=td)
         except RawResponseRejected:
             pass
-        bins = sorted(Path(td).glob('*.bin'))
-        metas = sorted(Path(td).glob('*.json'))
+        bins = sorted(Path(td).glob('run_*/*.bin'))
+        metas = sorted(Path(td).glob('run_*/*.json'))
         assert len(bins) == 2 and len(metas) == 2, f'{len(bins)} bin / {len(metas)} meta'
         for b in bins:
             meta = json.loads(b.with_suffix('.json').read_text(encoding='utf-8'))
@@ -232,3 +268,78 @@ def test_smoke_failure_no_retry():
     except ConnectionError:
         pass
     assert state['n'] == 1 and c.used == 1
+
+
+# ---------- REV4 反例（落盘预检/重启不覆盖） ----------
+
+def test_disk_budget_pre_checked_no_write():
+    """落盘预算先算后写：限额 1 字节时，任何文件都不得落盘（用户反例：曾先写 776B/3 文件才报错）。"""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        c = FetchCounter(10)
+        client = TencentDailyClient(c, transport=lambda u, t, rc: make_payload('sh600000'),
+                                    sleep=lambda s: None, disk_counter=ByteCounter(1))
+        try:
+            client.fetch_raw_daily('600000', '20260101', '20260110', archive_dir=td)
+            raise AssertionError('超落盘预算未被拦截')
+        except ByteBudgetExceeded:
+            pass
+        assert list(Path(td).rglob('*')) == [], '预检失败：仍有文件写入'
+        assert client.disk.used == 0
+
+
+def test_restart_no_overwrite():
+    """重启不覆盖：两个客户端（模拟两次运行）同 archive_dir → 两个 run_* 目录，全部证据可区分保留。"""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        p1 = make_payload('sh600000', n=2)
+        p2 = make_payload('sh600000', n=5)
+        TencentDailyClient(FetchCounter(10),
+                           transport=lambda u, t, rc: p1,
+                           sleep=lambda s: None).fetch_raw_daily(
+            '600000', '20260101', '20260110', archive_dir=td)
+        TencentDailyClient(FetchCounter(10),
+                           transport=lambda u, t, rc: p2,
+                           sleep=lambda s: None).fetch_raw_daily(
+            '600000', '20260101', '20260110', archive_dir=td)
+        runs = sorted(d for d in Path(td).iterdir() if d.is_dir())
+        bins = sorted(Path(td).glob('run_*/*.bin'))
+        assert len(runs) == 2 and len(bins) == 2, f'{len(runs)} runs / {len(bins)} bins'
+        sizes = sorted(b.stat().st_size for b in bins)
+        assert sizes == sorted([len(p1), len(p2)]), '证据内容应可区分保留'
+
+
+def test_evidence_collision_refused():
+    """文件身份碰撞即拒：xb 独占创建，同 seq 重名不可能发生；碰撞路径抛 EvidenceCollision。"""
+    from independent_fetch_client import EvidenceCollision
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        run = Path(td) / 'run_x'
+        run.mkdir()
+        (run / '0001_sh600000.bin').write_bytes(b'old-evidence')
+        client = TencentDailyClient(FetchCounter(10), transport=lambda u, t, rc: make_payload('sh600000'),
+                                    sleep=lambda s: None)
+        client._run_dir = run
+        try:
+            client._archive(td, 'sh600000', 'p', 'u', 't', b'new', 'ok')
+            raise AssertionError('碰撞未被拒绝')
+        except EvidenceCollision:
+            pass
+        assert (run / '0001_sh600000.bin').read_bytes() == b'old-evidence'
+
+
+if __name__ == '__main__':
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent))
+    fns = [v for k, v in sorted(globals().items())
+           if k.startswith('test_') and callable(v)]
+    failed = 0
+    for fn in fns:
+        try:
+            fn()
+            print('PASS', fn.__name__)
+        except Exception as exc:
+            failed += 1
+            print('FAIL', fn.__name__, type(exc).__name__, exc)
+    print(f'== {len(fns) - failed}/{len(fns)} 项零网络测试通过 ==')
+    _sys.exit(1 if failed else 0)

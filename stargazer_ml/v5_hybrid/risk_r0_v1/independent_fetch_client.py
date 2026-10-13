@@ -42,6 +42,10 @@ class RedirectRefused(RuntimeError):
     """遇 3xx 重定向即停，不自动跟随（隐藏请求不入计数器）。"""
 
 
+class EvidenceCollision(RuntimeError):
+    """证据文件身份碰撞：拒绝覆盖旧证据。"""
+
+
 class FetchCounter:
     """每次 HTTP 请求计数；hard cap 含冒烟/重试/全部辅助请求。"""
 
@@ -120,6 +124,7 @@ class TencentDailyClient:
         self._last_ts = 0.0
         self.disk = disk_counter  # 提供时才落盘留证
         self._seq = 0
+        self._run_dir = None      # 每次进程一个独占运行目录，重启不覆盖旧证据
 
     def fetch_raw_daily(self, code6: str, start: str, end: str, *,
                         archive_dir=None, smoke: bool = False) -> list:
@@ -156,25 +161,45 @@ class TencentDailyClient:
                     raise
                 self._sleep(2 ** attempt)
 
+    def _run_archive_dir(self, archive_dir):
+        """每次运行一个独占目录（UTC 时间戳+pid，exist_ok=False），重启/并行互不覆盖。"""
+        if self._run_dir is None:
+            import os
+            ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S_%f')
+            d = Path(archive_dir) / f'run_{ts}_{os.getpid()}'
+            d.mkdir(parents=True, exist_ok=False)
+            self._run_dir = d
+        return self._run_dir
+
     def _archive(self, archive_dir, symbol, param, url, fetched_at, raw: bytes,
                  outcome: str) -> None:
         if archive_dir is None:
             return
-        d = Path(archive_dir)
-        d.mkdir(parents=True, exist_ok=True)
         self._seq += 1
         sha = hashlib.sha256(raw).hexdigest()
         base = f'{self._seq:04d}_{symbol}'
-        blob = d / f'{base}.bin'
-        blob.write_bytes(raw)
-        meta = dict(seq=self._seq, symbol=symbol, param=param, url=url,
-                    fetched_at=fetched_at, sha256=sha, bytes=len(raw), outcome=outcome)
-        (d / f'{base}.json').write_text(
-            json.dumps(meta, ensure_ascii=False, indent=1), encoding='utf-8')
-        with (d / 'index.jsonl').open('a', encoding='utf-8') as f:
-            f.write(json.dumps(meta, ensure_ascii=False) + '\n')
+        meta_obj = dict(seq=self._seq, symbol=symbol, param=param,
+                        url=url, fetched_at=fetched_at, sha256=sha,
+                        bytes=len(raw), outcome=outcome)
+        meta = (json.dumps(meta_obj, ensure_ascii=False, indent=1)
+                + chr(10)).encode('utf-8')
+        index_line = (json.dumps(meta_obj, ensure_ascii=False) + chr(10)).encode('utf-8')
         if self.disk is not None:
-            self.disk.consume(len(raw) + 400)     # 原始+sidecar+索引行近似
+            # 先算后写：按实际增量预检通过后才创建目录/落盘（无估算、无预写）
+            self.disk.consume(len(raw) + len(meta) + len(index_line))
+        d = self._run_archive_dir(archive_dir)
+        meta_obj['run_dir'] = d.name
+        blob = d / f'{base}.bin'
+        try:
+            with blob.open('xb') as f:                # 独占创建，碰撞即拒
+                f.write(raw)
+            with (d / f'{base}.json').open('xb') as f:
+                f.write(meta)
+            with (d / 'index.jsonl').open('ab') as f:
+                f.write(index_line)
+        except FileExistsError as exc:
+            raise EvidenceCollision(f'证据文件碰撞，拒绝覆盖旧证据：{exc.filename}')
+
 
     def _throttle(self) -> None:
         wait = self.rate_limit_s - (time.time() - self._last_ts)
