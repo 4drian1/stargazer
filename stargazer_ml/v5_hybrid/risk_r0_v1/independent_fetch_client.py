@@ -108,7 +108,7 @@ def _default_transport(url: str, timeout: float, read_cap: int) -> bytes:
 
 
 class TencentDailyClient:
-    BASE = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get'
+    BASE = 'https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newfqkline/get'
 
     def __init__(self, counter: FetchCounter, byte_counter: ByteCounter | None = None,
                  *, rate_limit_s: float = 1.0, timeout_s: float = 10.0,
@@ -130,7 +130,8 @@ class TencentDailyClient:
                         archive_dir=None, smoke: bool = False) -> list:
         prefix = 'sh' if code6.startswith('6') else 'sz'
         symbol = f'{prefix}{code6}'
-        param = f'{symbol},day,{start},{end},640,'  # 末位留空 = 原始价
+        dash = lambda s: f'{s[:4]}-{s[4:6]}-{s[6:8]}'   # 腾讯参数要求 YYYY-MM-DD（YYYYMMDD 报 param error，run1 实证）
+        param = f'{symbol},day,{dash(start)},{dash(end)},640,'  # 末位留空 = 原始价
         url = self.BASE + '?' + urllib.parse.urlencode({'param': param})
         attempt_cap = 0 if smoke else self.max_retries
         attempt = 0
