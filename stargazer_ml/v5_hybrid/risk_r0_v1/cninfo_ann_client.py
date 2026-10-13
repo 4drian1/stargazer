@@ -11,9 +11,9 @@ import json
 import urllib.parse
 import urllib.request
 
-from independent_fetch_client import (ByteCounter, FetchCounter, _NoRedirect,
+from independent_fetch_client import (ByteBudgetExceeded, ByteCounter,
+                                      FetchBudgetExceeded, FetchCounter, _NoRedirect,
                                       RedirectRefused)
-
 LIST_URL = 'http://www.cninfo.com.cn/new/hisAnnouncement/query'
 
 
@@ -50,9 +50,7 @@ class CninfoAnnClient:
             raise ByteBudgetExceeded('巨潮响应超剩余字节预算')
         return body
 
-    def _post(self, url, form: dict) -> bytes:
-        attempt = 0
-        data = urllib.parse.urlencode(form).encode('utf-8')
+    def _request(self, url, data) -> bytes:
         while True:
             self.counter.consume(1)
             wait = self.rate_limit_s - (__import__('time').time() - self._last)
@@ -66,6 +64,8 @@ class CninfoAnnClient:
                 return raw
             except RedirectRefused:
                 raise
+            except (FetchBudgetExceeded, ByteBudgetExceeded):
+                raise    # 预算触线即停，绝不重试
             except Exception:
                 attempt += 1
                 if attempt > self.max_retries:
@@ -81,7 +81,8 @@ class CninfoAnnClient:
                     category='', plate='', stock='',
                     searchkey=code6, secid='', sortName='',
                     sortType='', isHLtitle='true', seDate=se_date)
-        raw = self._post(LIST_URL, form)
+        raw = self._request(LIST_URL,
+                            urllib.parse.urlencode(form).encode('utf-8'))
         self._archive(archive_dir, f'list_{code6}_p{page_num}', LIST_URL, form, raw, 'ok')
         return json.loads(raw.decode('utf-8'))
 
@@ -90,8 +91,8 @@ class CninfoAnnClient:
         url = adjunct_url if adjunct_url.startswith('http') \
             else 'http://static.cninfo.com.cn/' + adjunct_url.lstrip('/')
         data = urllib.parse.urlencode({}).encode()
-        raw = self._post(url, {})
-        self._archive(archive_dir, f'ann_{self._seq:03d}', url, {'GET': True}, raw, 'ok')
+        raw = self._request(url, None)   # GET：data=None，与 method 标记一致
+        self._archive(archive_dir, f'ann_{self._seq:03d}', url, {'method': 'GET'}, raw, 'ok')
         return raw
 
     def _archive(self, archive_dir, name, url, form, raw, outcome):

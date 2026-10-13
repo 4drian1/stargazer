@@ -92,3 +92,32 @@ if __name__ == '__main__':
             print('FAIL', fn.__name__, type(exc).__name__, exc)
     print(f'== {len(fns) - bad}/{len(fns)} 项巨潮适配器零网络测试通过 ==')
     sys.exit(1 if bad else 0)
+
+
+def test_budget_exception_no_retry():
+    """预算触线绝不重试：字节预算在首次响应后触线，请求计数不变。"""
+    c, b = FetchCounter(6), ByteCounter(len(LIST_RESP))
+    client = CninfoAnnClient(c, b, max_retries=3,
+                             transport=lambda u, d, t, rc: LIST_RESP,
+                             sleep=lambda s: None)
+    client.query_ann_list('600733', '2018-01-01~2018-12-31')
+    try:
+        client.query_ann_list('300586', '2018-01-01~2018-12-31')
+        raise AssertionError('预算触线未抛')
+    except ByteBudgetExceeded:
+        pass
+    assert c.used == 2, f'预算异常后发生了重试/超额请求：used={c.used}'
+
+
+def test_ann_text_uses_get():
+    """fetch_ann_text 必须是 GET（data=None），与标记一致。"""
+    c, b = FetchCounter(6), ByteCounter(1024 * 1024)
+    seen = {}
+
+    def spy(url, data, timeout, read_cap):
+        seen['data'] = data
+        return b'%PDF-fake'
+
+    client = CninfoAnnClient(c, b, transport=spy, sleep=lambda s: None)
+    client.fetch_ann_text('finalpage/2018-09-26/x.PDF')
+    assert seen['data'] is None, f'fetch_ann_text 实际 data={seen["data"]!r}（应为 None=GET）'
