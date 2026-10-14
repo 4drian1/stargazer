@@ -2,14 +2,27 @@
 const $ = (id) => document.getElementById(id);
 const chatLog = $("chatLog"), input = $("input"), sendBtn = $("sendBtn");
 let busy = false, typingEl = null, curBotEl = null;
+let planMode = false, planDraftId = null;
+let freshPlanSession = false;
 
 marked.setOptions({ breaks: true, gfm: true });
-function md(text) { return marked.parse(text || ""); }
+function md(text) {
+  const doc = new DOMParser().parseFromString(marked.parse(text || ''), 'text/html');
+  doc.querySelectorAll('script,iframe,object,embed,style,link,form,svg,math').forEach(e => e.remove());
+  doc.querySelectorAll('*').forEach(e => {
+    [...e.attributes].forEach(a => {
+      if (a.name.startsWith('on') || a.name === 'style' || a.name === 'srcdoc' ||
+          (['href','src'].includes(a.name) && !/^(https?:\/\/|#)/i.test(a.value))) e.removeAttribute(a.name);
+    });
+  });
+  return doc.body.innerHTML;
+}
 
 /* ---------- 页面切换 ---------- */
 function switchPage(page) {
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
-  ["monitor", "premarket", "plan", "chat", "pentacles"].forEach(p => {
+  if (!["monitor", "context", "chat", "pentacles"].includes(page)) return;
+  ["monitor", "context", "chat", "pentacles"].forEach(p => {
     const el = $("page" + p.charAt(0).toUpperCase() + p.slice(1));
     if (el) el.classList.toggle("active", p === page);
   });
@@ -32,7 +45,7 @@ sideTabs.forEach(b => b.onclick = () => {
 });
 
 /* ---------- 监控战法标签 ---------- */
-const stabs = document.querySelectorAll(".stab");
+const stabs = document.querySelectorAll(".strategy-tabs .stab");
 stabs.forEach(b => b.onclick = () => {
   stabs.forEach(x => x.classList.toggle("active", x === b));
   ["green", "horizontal", "t5"].forEach(k =>
@@ -81,10 +94,12 @@ async function send(text) {
   busy = true; sendBtn.disabled = true;
   addMsg("user", text); input.value = ""; autoGrow(); showTyping();
   try {
-    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
+    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text, mode: planMode ? 'next_day_plan' : 'chat', draft_id: planDraftId }) });
     const d = await r.json();
     hideTyping();
     addMsg("bot", d.reply || "(空回复)", d.error ? "error" : null);
+    if (d.draft) renderPlanDraft(d.draft);
+    if (d.graph?.error) addMsg('bot', d.graph.error, 'error');
   } catch (e) { hideTyping(); addMsg("bot", "请求失败: " + e, "error"); }
   busy = false; sendBtn.disabled = false;
   refreshState();
@@ -95,11 +110,55 @@ function autoGrow() { input.style.height = "auto"; input.style.height = Math.min
 input.addEventListener("input", autoGrow);
 document.querySelectorAll("#quickBar button").forEach((b) => {
   b.onclick = () => {
+    if (b.dataset.plan) { window.beginNextDayPlan(); return; }
+    if (b.dataset.normal) {
+      planMode = false; planDraftId = null;
+      document.querySelector('.chat-sub').textContent = 'DeepSeek · 普通对话';
+      return;
+    }
     if (b.dataset.prompt) { send(b.dataset.prompt); return; }
     const c = b.dataset.cmd;
     if (c.endsWith(" ")) { input.value = c; input.focus(); } else send(c);
   };
 });
+
+function renderPlanDraft(draft) {
+  planDraftId = draft.id;
+  const box = document.createElement('div');
+  box.className = 'msg bot';
+  const info = document.createElement('p');
+  info.textContent = `待确认 · 观察日 ${draft.snapshot.monitor_date} · ${draft.selected_codes.join('、') || '尚未选择股票'}。区域只作到价提醒，不自动买入。`;
+  const button = document.createElement('button');
+  button.className = 'tb-btn'; button.textContent = '确认计划并开启次日提醒';
+  button.onclick = async () => {
+    if (draft.id !== planDraftId || busy) { info.textContent = '请确认最新一版计划'; return; }
+    if (!confirm('确认这份名单并开启次日到价提醒？不自动下单。')) return;
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/assistant/plan/confirm', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:draft.id, confirmed:true})});
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || '确认失败');
+      info.textContent = `已冻结 ${data.count} 只，观察日 ${data.monitor_date}。程序需保持运行；微信需开启推送。`;
+    } catch (error) { info.textContent = error.message; button.disabled = false; }
+  };
+  box.append(info, button); chatLog.appendChild(box);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+window.beginNextDayPlan = async () => {
+  if (busy) return;
+  switchPage('chat'); planMode = true;
+  document.querySelector('.chat-sub').textContent = 'DeepSeek · 次日计划讨论 · 确认前不生效';
+  try {
+    const data = await (await fetch('/api/assistant/state')).json();
+    if (data.plan && data.plan_current && !planDraftId && !freshPlanSession) {
+      addMsg('bot', data.plan.reply); renderPlanDraft(data.plan);
+      input.placeholder = '继续修改这份计划；或输入重新制定'; input.focus(); return;
+    }
+  } catch (_) {}
+  planDraftId = null;
+  freshPlanSession = false;
+  send('请根据当前星币侍从名单制定次日观察计划，说明关注条件、失效条件和未知风险，先给草案供我讨论。');
+};
 
 /* ---------- SSE ---------- */
 function connectEvents() {
@@ -112,7 +171,6 @@ function connectEvents() {
       const badge = document.querySelector('.nav-item[data-page="chat"] .badge');
       if (badge) badge.classList.add("show");
     }
-    else if (ev.type === "plan_dual_list") loadPlanDualState();
   };
   es.onerror = () => { es.close(); setTimeout(connectEvents, 3000); };
 }
@@ -135,7 +193,6 @@ async function refreshState() {
   const p = s.push;
   $("pushEnabled").checked = !!p.enabled;
   // 交易计划页入口：plan.enabled=false 或全链不存在时隐藏（监控机形态）
-  if (s.plan_ui && s.plan_ui.visible) $("navPlan").hidden = false;
   const configured = p.provider === "pushplus" ? p.has_pushplus_token : p.has_sendkey;
   const psb = $("pushStatusBar");
   psb.className = "sb-item" + (configured ? " ok" : "");
@@ -144,7 +201,9 @@ async function refreshState() {
     : "未配置推送 key";
 
   loadTrades();
-  loadModel();
+  $('overviewPositions').textContent = s.positions.length;
+  $('overviewWatches').textContent = s.watch.length;
+  loadShell();
 }
 
 function fmtPrice(v) { return v == null ? "—" : Number(v).toFixed(2); }
@@ -454,18 +513,6 @@ async function loadModel() {
 }
 
 /* ---------- 盘前助手 & 监控板块 ---------- */
-async function loadPremarket() {
-  let d; try { d = await (await fetch("/api/premarket/state")).json(); } catch (e) { return; }
-  $("pmDecision").textContent = d.decision || "待输入";
-  $("pmReason").textContent = d.reason || "";
-  if (d.fields) { $("pmUs").value = d.fields.us_pct || ""; $("pmJp").value = d.fields.jp_pct || ""; $("pmKr").value = d.fields.kr_pct || ""; $("pmImpact").value = d.fields.sector_impact || ""; }
-}
-$("pmSaveBtn").onclick = async () => {
-  const fields = { us_pct: parseFloat($("pmUs").value) || 0, jp_pct: parseFloat($("pmJp").value) || 0, kr_pct: parseFloat($("pmKr").value) || 0, sector_impact: $("pmImpact").value.trim() };
-  const d = await (await fetch("/api/premarket/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields }) })).json();
-  $("pmDecision").textContent = d.decision || "待输入"; $("pmReason").textContent = d.reason || "";
-  addMsg("bot", `盘前助手已保存：${d.decision}。${d.reason || ""}`);
-};
 
 async function loadUserSectors() {
   let d; try { d = await (await fetch("/api/sector_pullback/user_sectors")).json(); }
@@ -652,8 +699,10 @@ $("saveSettings").onclick = async () => {
   const sk = $("cfgSendkey").value.trim(); if (sk) body.serverchan_sendkey = sk;
   const pp = $("cfgPushplus").value.trim(); if (pp) body.pushplus_token = pp;
   const tv = $("cfgTavily").value.trim(); if (tv) body.tavily_key = tv;
+  const ds = $('cfgDeepseek').value.trim(); if (ds) body.deepseek_key = ds;
   const r = await (await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
   $("settingsMsg").textContent = r.ok ? "已保存" : "保存失败";
+  $('cfgDeepseek').value = '';
   refreshState();
 };
 $("pushEnabled").onchange = async () => {
@@ -706,7 +755,7 @@ function waitForState(key, maxPolls = 300, interval = 2000) {
     }, interval);
   });
 }
-$("runModelBtn").onclick = runModel;
+$("runModelBtn").onclick = () => { switchPage('pentacles'); window.refreshPentacles?.(); };
 $("runModelBtnDash").onclick = runModel;
 $("runModelBtnHorizontal").onclick = runModel;
 
@@ -862,7 +911,38 @@ $("planSettleBtn").onclick = async () => {
 if (window.Notification && Notification.permission === "default") Notification.requestPermission();
 connectEvents();
 refreshState();
-loadPremarket();
 loadUserSectors();
-loadPlanDualState();
-loadPlanPool();
+
+async function loadShell() {
+  try {
+    const data = await (await fetch('/api/shell/state')).json();
+    const selected = data.models.selection.payload;
+    const date = selected.data_date || '未知';
+    $('modelStatus').textContent = `数据日 ${date} · ${selected.candidate_count || 0} 只`;
+    $('modelHint').textContent = '规则观察 · 信息/风险未接入';
+    $('navHint').textContent = `观察日 ${selected.monitor_date || '未知'} · 稳定应用外壳`;
+    $('slotSelection').textContent = `规则观察 · 数据日 ${date}`;
+    $('overviewCandidates').textContent = selected.candidate_count ?? '—';
+  } catch (_) { $('slotSelection').textContent = '选股快照不可用 · UNKNOWN'; }
+}
+$('overviewCheck').onclick = () => { switchPage('chat'); send('/check'); };
+$('overviewPicks').onclick = () => { switchPage('pentacles'); window.refreshPentacles?.(); };
+$('overviewPlan').onclick = () => window.beginNextDayPlan();
+$('reviewOpenBtn').onclick = () => { switchPage('pentacles'); $('pentaclesLearning').click(); };
+async function restoreChat(fresh=false) {
+  if (busy) return;
+  if (fresh && !confirm('开始新会话？旧对话保留归档，已确认的提醒计划不改变。')) return;
+  busy = true; sendBtn.disabled = true;
+  try {
+    const response = await fetch('/api/chat/session', {method:fresh ? 'POST' : 'GET'});
+    const data = await response.json();
+    if (!response.ok) throw new Error('对话恢复失败，旧原文仍保留');
+    planMode = false; planDraftId = null; freshPlanSession = fresh; chatLog.replaceChildren();
+    (data.messages || []).forEach(m => addMsg(m.role === 'user' ? 'user' : 'bot', m.content));
+    document.querySelector('.chat-sub').textContent = 'DeepSeek · 最近对话已恢复 · 旧原文留在本地';
+    if (fresh) addMsg('bot', '已开始新会话。切换“制定次日计划”后生成新草案，已确认提醒不自动改变。');
+  } catch (error) { addMsg('bot', error.message, 'error'); }
+  finally { busy = false; sendBtn.disabled = false; }
+}
+$('newChatBtn').onclick = () => restoreChat(true);
+$('restoreChatBtn').onclick = () => restoreChat();

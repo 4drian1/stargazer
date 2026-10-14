@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 import threading
+from pentacles_journal import ObservationJournal
 
 
 def atomic_json(file, data):
@@ -46,6 +47,7 @@ class PriceMonitor:
         self.stop = threading.Event()
         self.thread = None
         self.health = {'status': 'NOT_STARTED', 'rows': {}, 'message': '到价提醒尚未启动'}
+        self.journal = ObservationJournal(lambda: Path(self.directory()) / 'journal')
 
     def _load(self):
         file = Path(self.directory()) / 'monitor.json'
@@ -77,6 +79,19 @@ class PriceMonitor:
                                message='已开启，等待有效名单/交易时段' if value else '次日到价提醒关闭')
 
     def tick(self, plan, cfg, now, quotes, broadcast, send, clock=None):
+        self.journal.register(plan)
+        try:
+            self._tick(plan, cfg, now, quotes, broadcast, send, clock)
+        except Exception:
+            with self.lock:
+                self.health.update(status='MONITOR_ERROR', message='行情/监控失败；日记不记为无触价')
+            raise
+        finally:
+            with self.lock:
+                health = dict(self.health, rows=dict(self.health.get('rows', {})))
+            self.journal.record(plan, health, clock() if clock else now)
+
+    def _tick(self, plan, cfg, now, quotes, broadcast, send, clock=None):
         with self.lock:
             data = self._load()
             self.health = {'status': 'DISABLED', 'message': '次日到价提醒关闭', 'rows': {},

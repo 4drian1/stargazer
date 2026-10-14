@@ -19,6 +19,10 @@
 !/stargazer_desktop/*.spec
 !/stargazer_desktop/*.bat
 !/stargazer_desktop/*.md
+!/stargazer_desktop/requirements-shadow.txt
+!/stargazer_desktop/agent/
+!/stargazer_desktop/agent/__init__.py
+!/stargazer_desktop/agent/brain.py
 !/stargazer_desktop/web/
 !/stargazer_desktop/web/**
 /stargazer_desktop/dist/
@@ -151,4 +155,6 @@
 **/.env*
 **/*.gguf
 **/tokens.yaml
+**/.secrets/
+**/data/assistant/
 **/__pycache__/

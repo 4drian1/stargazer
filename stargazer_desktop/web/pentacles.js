@@ -22,6 +22,7 @@
       `观察日 ${snapshot.monitor_date || '未登记'}`, snapshot.ranking);
     if (state.running) messages.push('本地分析中，保留上一份结果');
     if (state.error) messages.push(`分析不可用：${state.error}`);
+    if (state.journal?.error) messages.push(`日记记录停止：${state.journal.error}`);
     el('pentaclesStatus').textContent = messages.join(' ｜ ');
     const rows = (snapshot?.rows || []).filter(row => pool === 'ALL' || row.setup === pool);
     el('pentaclesCount').textContent = `${rows.length} 只观察候选`;
@@ -58,9 +59,95 @@
     try { await api('/api/pentacles/run', {}); await window.refreshPentacles(); }
     catch (error) { el('pentaclesStatus').textContent = error.message; el('pentaclesRun').disabled = false; }
   };
+  el('pentaclesPlan').onclick = () => window.beginNextDayPlan();
+  let reviewId = null, reviewPoll = null;
+  el('learningDay').onchange = () => {
+    reviewId = null; el('learningConfirm').disabled = true;
+    el('learningStatus').textContent = '日期已改变，请重新生成该观察日的预览。';
+  };
+  el('pentaclesLearning').onclick = async () => {
+    const panel = el('learningPanel'); panel.hidden = !panel.hidden;
+    const now = new Date(), day = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    el('learningDay').value ||= day;
+    if (!panel.hidden) {
+      try {
+        const data = await api('/api/assistant/state');
+        if (data.last_review) {
+          reviewId = data.last_review.id; el('learningPreview').textContent = data.last_review.commentary;
+          el('learningConfirm').disabled = false;
+          el('learningStatus').textContent = `已恢复复盘 ${data.last_review.day}；保存路径 ${data.learning_path}`;
+        }
+      } catch (error) { el('learningStatus').textContent = error.message; }
+    }
+  };
+  async function pollReview() {
+    try {
+      const data = await api('/api/assistant/state'), job = data.review;
+      if (job.running) return;
+      clearInterval(reviewPoll); reviewPoll = null; el('learningGenerate').disabled = false;
+      if (job.error) throw new Error(job.error);
+      if (job.draft) {
+        reviewId = job.draft.id;
+        el('learningPreview').textContent = job.draft.commentary;
+        el('learningConfirm').disabled = false;
+        const s = job.draft.facts.summary;
+        el('learningStatus').textContent = `预览 · 观察日 ${job.draft.day} · 有效日K ${s.valid_daily_rows}/${job.draft.facts.candidate_count} · 事实数字由程序计算，以下解释需人工确认。`;
+      }
+    } catch (error) {
+      clearInterval(reviewPoll); reviewPoll = null;
+      el('learningGenerate').disabled = false; el('learningStatus').textContent = error.message;
+    }
+  }
+  el('learningGenerate').onclick = async () => {
+    const day = Number(el('learningDay').value.replaceAll('-', ''));
+    el('learningGenerate').disabled = true; el('learningConfirm').disabled = true;
+    el('learningStatus').textContent = '正在读取本机行情并请 DeepSeek 整理，提醒监控照常运行…';
+    try {
+      await api('/api/assistant/review', {day});
+      clearInterval(reviewPoll); reviewPoll = setInterval(pollReview, 1500); pollReview();
+    } catch (error) { el('learningStatus').textContent = error.message; el('learningGenerate').disabled = false; }
+  };
+  el('learningConfirm').onclick = async () => {
+    if (!reviewId || !confirm('确认追加这篇复盘？保留旧篇，AI解释不作为训练标签。')) return;
+    el('learningConfirm').disabled = true;
+    try {
+      const data = await api('/api/assistant/review/confirm', {id:reviewId, confirmed:true});
+      el('learningStatus').textContent = `${data.duplicate ? '已保存，不重复追加' : '已追加'}：${data.path}`;
+    } catch (error) { el('learningStatus').textContent = error.message; el('learningConfirm').disabled = false; }
+  };
   el('pentaclesMonitor').onchange = async event => {
     try { state = await api('/api/pentacles/monitor', {enabled:event.target.checked}); render(); }
     catch (error) { event.target.checked = !event.target.checked; el('pentaclesStatus').textContent = error.message; }
+  };
+  async function loadJournal(day) {
+    const report = await api('/api/pentacles/journal' + (day ? `?day=${encodeURIComponent(day)}` : ''));
+    const select = el('pentaclesJournalDay');
+    select.replaceChildren();
+    for (const date of report.days) {
+      const option = document.createElement('option');
+      option.value = date; option.textContent = date; option.selected = date === report.day;
+      select.append(option);
+    }
+    el('pentaclesJournalText').textContent = report.markdown;
+    if (report.error) el('pentaclesStatus').textContent = `日记记录停止：${report.error}`;
+  }
+  el('pentaclesJournal').onclick = async () => {
+    const panel = el('pentaclesJournalPanel');
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) {
+      try { await loadJournal(); }
+      catch (error) { el('pentaclesJournalText').textContent = error.message; }
+    }
+  };
+  el('pentaclesJournalDay').onchange = async event => {
+    try { await loadJournal(event.target.value); }
+    catch (error) { el('pentaclesJournalText').textContent = error.message; }
+  };
+  el('pentaclesJournalDownload').onclick = () => {
+    const blob = new Blob([el('pentaclesJournalText').textContent], {type:'text/markdown;charset=utf-8'});
+    const url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = `星币侍从观察日记_${el('pentaclesJournalDay').value || '空'}.md`;
+    link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   document.querySelectorAll('.pentacles-filters button').forEach(button => button.onclick = () => {
     pool = button.dataset.pool;

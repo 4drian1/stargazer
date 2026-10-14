@@ -1,0 +1,39 @@
+{
+  "status": "DRAFT",
+  "fit_authorized": false,
+  "thresholds_frozen_before_t0": false,
+  "t0_ts": null,
+  "branch_scope": ["DIP_REPAIR", "BASE_HOLD"],
+  "executor_sha256": null,
+  "inputs": {
+    "dataset": {"path": null, "sha256": null},
+    "labels": {"path": null, "sha256": null},
+    "population": {"path": null, "sha256": null},
+    "source_acceptance": {"path": null, "sha256": null},
+    "protocol": {"path": null, "sha256": null},
+    "fit_contract": {"path": null, "sha256": null}
+  },
+  "code_hashes": {},
+  "windows": {
+    "train": {"start": null, "end": null},
+    "val": {"start": null, "end": null}
+  },
+  "gates": {
+    "train": {"events": null, "positive": null, "nonpositive": null, "dates": null,
+              "C_det": null, "F_int": null, "L3_avl": null},
+    "val": {"events": null, "positive": null, "nonpositive": null, "dates": null,
+            "C_det": null, "F_int": null, "L3_avl": null}
+  },
+  "branch_gates": {
+    "train": {
+      "DIP_REPAIR": {"events": null, "positive": null, "nonpositive": null, "dates": null},
+      "BASE_HOLD": {"events": null, "positive": null, "nonpositive": null, "dates": null}
+    },
+    "val": {
+      "DIP_REPAIR": {"events": null, "positive": null, "nonpositive": null, "dates": null},
+      "BASE_HOLD": {"events": null, "positive": null, "nonpositive": null, "dates": null}
+    }
+  },
+  "model": {"C": 0.1, "threshold": 0.5, "seed": 20261008},
+  "note": "工程配置草案，不是已签合同；不得通过填 true 或补造证据绕过真实验收与样本门。模型配置须另签；本入口是同批研究对照，不能宣称模型冻结后的独立前瞻验证。"
+}

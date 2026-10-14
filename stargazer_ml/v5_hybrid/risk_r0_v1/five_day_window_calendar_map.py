@@ -6,7 +6,7 @@ v1 盲点修正（用户 2026-10-13 复核）：
 - 每窗显式校验：恰好 5 个交易日 / P-E 关系 / 日历截止（截断标记）/ 输入哈希，
   不再无条件写 in_calendar=True。
 - 结论表述收窄为"已检查记录中未检出窗口内公司行为"，不写"窗内事件为0/覆盖通过"。
-产物：batch_d_mainpop_30/five_day_window_map_v2.json（保留 v1）。
+产物：batch_d_mainpop_30/five_day_window_map_v3.json（保留 v1/v2；v3 含修正后的截断检查）。
 """
 from __future__ import annotations
 
@@ -78,7 +78,11 @@ def main():
             n_pe_ok += checks['E_is_first_trading_day_after_P']
             win_str = [f'{d // 10000:04d}-{d % 10000 // 100:02d}-{d % 100:02d}'
                        for d in win]
-            checks['truncated_at_calendar_end'] = any(w > cal_end for w in win_str)
+            # 日历截断：P 临近日历末，无法取满 5 交易日（win 由 CAL 推导，故不会超过 cal_end）
+            checks['truncated_at_calendar_end'] = (len(win) < 5)
+            # 日历映射与日历来源核销分离：本处只做 P→窗映射；CAL 来源未与交易所官方核验（独立门）
+            checks['calendar_source_verification'] = (
+                'SEPARATE_GATE: 日历映射由 load_calendar() 推导；CAL 来源未与交易所官方核验')
             n_trunc += checks['truncated_at_calendar_end']
             checks['in_calendar'] = all(
                 w <= cal_end for w in win_str) and checks['five_trading_days']
@@ -117,13 +121,13 @@ def main():
         narrow_conclusion='已检查记录（缓存事件+外部成熟记录）中，44 窗均未检出窗内公司行为'
                           if n_with_evt == 0 else f'{n_with_evt} 窗检出事件，须逐窗裁决',
         codes=out)
-    (BASE / 'five_day_window_map_v2.json').write_text(
+    (BASE / 'five_day_window_map_v3.json').write_text(
         json.dumps(result, ensure_ascii=False, indent=1), encoding='utf-8')
     print(f'hash_check={"PASS" if ok else "FAIL"} 窗总数={n_win} '
           f'恰好5交易日={n_full5} E=P+1交易日={n_pe_ok} 截断={n_trunc} '
           f'已检查记录窗内有事件={n_with_evt}')
     print('2023-12-29 落入窗口:', special_in_win if special_in_win else '无')
-    print('written five_day_window_map_v2.json')
+    print('written five_day_window_map_v3.json')
 
 
 if __name__ == '__main__':

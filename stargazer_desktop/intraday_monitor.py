@@ -161,7 +161,8 @@ class IntradayMonitor(threading.Thread):
         cfg = self.get_cfg()
         from tools import market
         import services
-        payload = ml_bridge.advice(cfg, limit=(cfg.get("model") or {}).get("monitor_top_n", 20))
+        payload = ({} if cfg.get('stable_shell') else
+                   ml_bridge.advice(cfg, limit=(cfg.get("model") or {}).get("monitor_top_n", 20)))
         model_rows = ((payload.get("horizontal") or [])
                       + (payload.get("g0_shadow") or [])
                       + (payload.get("t5_shadow") or []))

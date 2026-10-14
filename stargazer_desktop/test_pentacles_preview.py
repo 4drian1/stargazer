@@ -10,7 +10,7 @@ app = Flask('pentacles-preview')
 @app.route('/')
 def index():
     html = (WEB / 'index.html').read_text(encoding='utf-8')
-    return html.replace('</body>', "<script>window.addEventListener('load',()=>{switchPage('pentacles');refreshPentacles();});</script></body>")
+    return html.replace('</body>', "<script>window.addEventListener('load',()=>{switchPage('pentacles');refreshPentacles();if(new URLSearchParams(location.search).has('journal'))document.getElementById('pentaclesJournal').click();});</script></body>")
 
 
 @app.route('/api/pentacles/state')
@@ -21,6 +21,11 @@ def state():
 @app.route('/api/<path:path>', methods=['GET', 'POST'])
 def placeholder(path):
     return jsonify({})
+
+
+@app.route('/api/pentacles/journal')
+def journal():
+    return jsonify(pentacles_demo.monitor.journal.report())
 
 
 @app.route('/<path:path>')
