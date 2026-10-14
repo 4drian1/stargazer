@@ -4,11 +4,14 @@ from datetime import datetime
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import pandas as pd
 from gcp_round_b_engine import build_atr_ref, build_zones, target_zone
-from gcp_v0_1_pools import process_code
+from gcp_demo_pools import process_latest_code
 
 
 def calendar_file():
@@ -27,6 +30,32 @@ def plan_dates(days, now):
     if following is None or today > max(days):
         raise ValueError('交易日历已到期，请更新日历')
     return previous, following
+
+
+def ensure_daily_current(daily_dir, now=None):
+    """CLI 前置同步；旧版桌面 exe 调用同一外部脚本也能生效。"""
+    import pyarrow.dataset as ds
+
+    now = now or datetime.now()
+    days = sorted(int(day) for day in json.loads(calendar_file().read_text(encoding='utf-8')))
+    expected, _ = plan_dates(days, now)
+    parts = sorted(daily_dir.glob('part_*.parquet'))
+    if not parts:
+        raise ValueError('本地日线历史分片不存在；请先完成首次数据同步')
+    latest = ds.dataset([str(p) for p in parts], format='parquet').to_table(
+        columns=['date']).column('date').to_numpy().max()
+    if int(latest) >= expected:
+        return
+    refresh = Path(__file__).resolve().parent.parent / 'green_v2/refresh_pool.py'
+    print(f'日线 {latest} 落后于 {expected}，正在从 stockdb 同步……', file=sys.stderr)
+    proc = subprocess.run(
+        [sys.executable, '-B', '-X', 'utf8', str(refresh), '--daily-only',
+         '--through-date', str(expected)], capture_output=True, timeout=900,
+        env=dict(os.environ, STARGAZER_DAILY_PARTS=str(daily_dir), PYTHONIOENCODING='utf-8'),
+        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    if proc.returncode:
+        detail = (proc.stderr or proc.stdout).decode('utf-8', errors='replace')[-600:]
+        raise ValueError('日线自动同步失败，保留旧名单；请检查 stockdb 数据更新与引擎：' + detail)
 
 
 def build(daily_dir, now=None):
@@ -63,7 +92,7 @@ def build(daily_dir, now=None):
         if int(g.date.iloc[-1]) != date:
             continue
         g = g.reset_index(drop=True)
-        a, b = process_code(g)
+        a, b = process_latest_code(g)
         members = pd.concat([p[p.date == date] for p in (a, b) if not p.empty], ignore_index=True) if not a.empty or not b.empty else pd.DataFrame()
         if members.empty:
             continue
@@ -92,11 +121,14 @@ def build(daily_dir, now=None):
             'ranking': '关注区域距离（ATR），不是盈利评分',
             'model_status': '共性规则＋区域研究参考；逐股个性预测未验收',
             'inputs': [{'path': str(p), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
-                       for p in [*parts, calendar, Path(__file__).with_name('gcp_v0_1_spec.py')]]}
+                       for p in [*parts, calendar, Path(__file__),
+                                 Path(__file__).with_name('gcp_demo_pools.py'),
+                                 Path(__file__).with_name('gcp_v0_1_spec.py')]]}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--daily-dir', type=Path, required=True)
     args = parser.parse_args()
+    ensure_daily_current(args.daily_dir)
     print(json.dumps(build(args.daily_dir), ensure_ascii=False, allow_nan=False))

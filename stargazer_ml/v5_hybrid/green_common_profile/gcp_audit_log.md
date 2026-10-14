@@ -275,6 +275,14 @@
 - offline_pass=true，但 readiness=BLOCKED_NOT_DEPLOYABLE；不部署、不启动 C/连续窗口、不训练、不撮合。P1/P2/P3 未批准替换、15:00 UNKNOWN_INTERVAL 不进计算；乙方案不支持完整离线经济重放。报告生成时累计 50,232,633 字节，后续写入仍受 50MiB 约束。
 - 路线 #16.32 与 PRE_INTEGRATION_HANDOFF.md 同步；旧报告保留，未提交/推送 Git。
 
+## 工程记录 ENGINEERING-2026-10-07-32：每日观察日记与训练计划（用户授权落实）
+
+- 完整候选不可变归档＋每日JSON/Markdown、到价后采样描述、缺失/关闭/断流状态、日期查看/保存文档；不从报价拼分钟、不计算净收益、不拟合。精确标签合同/新训练计划落地，路线#16.37与新标准特征工程第十节同步。
+- 29项零网络测试通过，包含原提醒回归、新API、全候选/无区域、多版本哈希、重启/乱序、NULL、损坏/预算/路径拒绝及日记失败不影响提醒。测试首轮3个断言选错了排序后字典的首行（无区域股而非目标股），改为按代码定位，保留测试目的后重跑通过；未修改算法凑过测试。
+- 源码与dist各归档20261008待观察45候选，77,065字节/份、观测0；不是前瞻样本已收集。源日线日期20260930，未来30m/60m/H3/H5保持NULL；暂无真实交易日观测/微信送达证明。
+- 独立安全spec打包，保留用户已修改的原spec；包内demo/monitor/journal/server与源码嵌套字节码语义一致，前端资源逐字节一致。dist旧41文件SHA256不变，仅更新EXE与新增3个日记文件；EXE SHA256=5223DF2F05008F308B0C9782211B5AEE2201DD627F4B0671B8FFA37AF4D1880F，旧件已备份。
+- 日记预算2MiB、触线停止记录不删除证据；不授权原研究50MiB扩容、历史分钟采集或328对补采。训练合同仍待签、拟合仍未授权。预览服务已停，仅删本轮浏览器临时目录；未提交/推送Git。
+
 ## 工程记录 ENGINEERING-2026-10-07-31：星币侍从次日到价提醒（独立 Demo）
 
 - 用户明确要求盘后选股→次日监控→到价提醒闭环。新增 pentacles_monitor 独立报价旁路，持久开关/每日去重/有限推送重试；复用现有行情和推送渠道，不改旧名单/模型，不训练、不下单。
@@ -289,3 +297,637 @@
 - **P1/P2/P3 状态登记**（rule_change_proposals_status.md，不批准为等价替换）：P1=延迟观测变体（可作另版本影子研究；不得声称恢复开盘跳空观测/追认 09:30 成交）；P2=依赖 13:00 槽者保持不可评价（"午后延迟开始观察"=改变规则非修复数据）；P3=待验（单位一致≠容量等价，未验证差异分布与参与率/整手影响前不确认模拟成交股数）。总原则：冻结交易规则不变，先完成交易日实时复验（延迟/迟到修订/午间边界/收盘段）。
 - **预算选定标注**：乙方案用于 C 信号试运行——不用于完整经济性验收；可检验稳定性/触发记录/覆盖，不保证断源后独立重放；保留输入引用/哈希/可见时间/版本/失败原因，**哈希不替代原始数据**；完整收益评价如需另批快照额度。
 - 产物：rule_change_proposals_status.md、v2_hash_registry.md/json、budget_recheck.md 与 ACCEPTANCE_REPORT_B.md 追加段；未动开发路线.txt（主代理登记）；未 git commit；完成即停，不开始任何下一步。
+
+
+## 工程记录 ENGINEERING-2026-10-08-32：第三步标签准入收口（零网络）
+
+- **S2 审计结论更正**：事件合同 §2.3 明确要求量能确认（截至该 bar 的同刻量比 ≥ BREAKOUT_VOL_RATIO_MIN，1.5 已在 §3.4 冻结）；未冻结的是同刻量比的分母/窗口/早盘不足处置（CAR run sheet 列为 PENDING 后置）。此前 r1_s2_volume_gate_audit_v0_1_2.json 的"合同无 S2 量比定义"结论错误，原文件留档不改，由 r1_label_admission_v0_1_2.json 更正替代。27+1 条维持 PENDING；本轮不设计新量比算法、不为训练放开 S2。
+- **复权链核销**：用本地 feb2026 链缓存（5477 码，487 涉及代码全覆盖）逐轨道核对 [E, label_end]；链 OK 无事件/确认空链通过；窗口内事件 CORPORATE_ACTION_IN_WINDOW 隔离；前收盘跳变无链事件对应或与空链矛盾 → ADJ_EVIDENCE_CONFLICT 隔离；遵守已签执行合同不事后放宽。显式断言（完全退出/残仓为零/收益有限/依赖完整/终点合法不跨段/成交先于退出）失败 0 条。
+- **分段口径**：产物文件本为 train 113 / val 35 / test 20（H3 有效，公司行为核销前）；此前会话汇报 138/24/6 为口误非文件错误；E 日期簇与 label_end 日期分列。
+- **缺口分类**：354 对首阻缺口按无文件/内洞/日异常/前收盘元数据分类（分布 {'NO_FILE': 263, 'INTRA_HOLE': 89, 'PRE_CLOSE_METADATA': 2}），标注"首阻需求，非完整路径预算"；整批补采未获批；验证段 H3 无文件缺口 35 对另列优先观察，不按盈亏挑选。
+- **产物**：r1_label_admission_v0_1_2.json / r1_label_admission_report_v0_1_2.md（新增 181301 B ≤ 1 MiB；RUN 目录累计 54519403 B ≤ 55 MiB）。零网络、不采集、不拟合、不训练；输出后停止。拟合合同待用户裁决后定稿。
+
+
+## 工程记录 ENGINEERING-2026-10-08-33：拟合就绪有界核验（零网络）
+
+- **人口厘清**：214 = H3+H5 轨道数（非独立样本）；H3 主研究 124 事件（train 77/val 27/test 20），H5 90 事件仅辅助。32 只冲突码继续隔离；不修全部历史数据、不补采 354 对。
+- **覆盖门**：train 准入 H3 77 / 执行入口 226 = 34.1%；旧 ACTION_FILTER 合同 §5 的 80% 门未过，显式接受覆盖限制，定为小样本研究性拟合，不声称继承旧门达标。
+- **RAW 尺度核验**：本地分钟末 bar 收盘 vs 日线 close（E 日），{'H3': {'checked': 124, 'match': 124, 'mismatch': 0, 'no_minute_file': 0, 'le_day_unavailable': 0}, 'H5': {'checked': 90, 'match': 90, 'mismatch': 0, 'no_minute_file': 0, 'le_day_unavailable': 0}}；不一致 0 条（缺同尺度证据，拟合前继续隔离）。
+- **白名单覆盖**：contraction/vol_cv10（P及以前日线，决策时可见）+ setup/branch；覆盖与缺失率已列；不变性抽检 10 条扰动 P 后日线特征变化 0（仅用 P 及以前→未来扰动不影响）。
+- **产物**：r1_fit_readiness_v0_1_1.json/.md（新增 4625 B；RUN 累计 54525628 B / 55 MiB）。拟合合同草案 dual_path_fit_contract_v0_1_draft.md 待用户签署；拟合须单独授权。
+
+
+## 工程记录 ENGINEERING-2026-10-08-34：冻结逐事件拟合特征表（第三步 d）
+
+- **产物**：r1_fit_features_v0_1_1.json（H3 124 事件主表 + H5 90 事件辅助表），含白名单四字段 + 现金账本标签 net（执行标签件 H3.net，C_sell/C_buy-1，含部分卖出）。
+- **标签口径**：直接采用已核验 net，不重算单退出价公式；主标签 = net>0 → 1。
+- **冻结输入清单**：r1_fit_manifest_v0_1_1.json 含全部上游输入 + 特征表 + 生成代码（gcp_step3d_fit_features.py）的 SHA256（要约填入拟合合同 §6，无占位符）。
+- **范围**：零网络/零采集/零拟合；不修 32 只冲突码、不补采 354 对、不训练逐股模型。
+- **预算**：新增 55940 B；RUN 累计 54582194 B / 55 MiB。合同 §5/§6/§8 已据用户 5 点收紧意见改写待签；拟合仍须单独授权。
+
+
+## 工程记录 ENGINEERING-2026-10-08-35：双路径共享轻量模型 · 固定配置拟合（第三步 e）
+
+- **执行依据**：合同 DUAL_PATH_FIT_CONTRACT_V0_1 已签署 + 用户 2026-10-08「审阅通过，可以进行下一步」单独授权。
+- **冻结复验**：全部上游输入 SHA256 == r1_fit_manifest_v0_1_1.json（10 项全过），拟合前未篡改。
+- **拟合**：仅 train H3（77）拟合；LR = sklearn.LogisticRegression(lbfgs,C=0.1)；C=0.1 / l2 / class_weight=None / max_iter=1000 / tol=1e-4 / seed=20260928；收敛=True；常数概率基线=37/77≈0.4805（仅 Brier，非放行）。
+- **系数**：{'intercept': -0.07196459169277329, 'contraction_z': -0.0031543099486571937, 'vol_cv10_z': 0.10664443456243153, 'setup_nonref(1=非A_SDP)': 0.10679372666618142, 'branch_nonref(1=非BASE_HOLD)': -0.08234351296413789}。
+- **三档对照**：全放行 / 简单规则(contraction≤1.0) / LR(p≥0.50)；主比较=同事件机会收益差（LR−全放行、LR−简单规则），E 日簇重抽保配对，自身收益 CI 与增量 CI 分报；左尾单列。
+- **范围**：零网络零采集零补采；不修 32 只冲突码、不补采 354 对、不训练逐股模型、不搜阈值、不上线。
+- **预算**：RUN 累计 54592929 B / 55 MiB。产物 gcp_step3e_fit_fixed.json/.md。
+- **结论姿态**：描述性判定（非晋级裁决）；覆盖 34.1% 限制已接受；结果不外延全人口。
+
+
+## 工程记录 ENGINEERING-2026-10-08-36：评价层修正（第三步 f，模型冻结不重拟合）
+
+- **执行依据**：用户 2026-10-08「先不要归档 test 显著负增量、不要换模型，只修评价层」。
+- **保留**：原 gcp_step3e_fit_fixed.json/.md 作为实现偏差记录，不覆盖；本次仅修评价。
+- **模型冻结**：从 gcp_step3e_fit_fixed.json 重载系数/标准化/参考水平（不重新拟合），复算概率与 p≥0.50 放行，放行计数与原一致（train 24 / val 8 / test 4）。
+- **现金账本还原**：C_buy=shares×fill_px×1.0013，pnl=C_buy×net，opp=pnl/50000（从执行标签件 fill_px/shares/net，未重跑执行器；不用 net 直接当收益）。
+- **三处修正**：① 差值方向改为逐事件配对 delta[i]=opp_LR[i]−opp_baseline[i] 直接 E 日簇重抽；② 同人口机会收益（被拒事件=0 不删除）；③ 过滤率=被拒/n（train/val/test = 68.8%/70.4%/80.0%）。
+- **手算反例校验**：拒绝亏损→正增量 / 拒绝盈利→负增量 / 同动作→0 / 全拒→机会收益0 且成交子集 NULL，均通过。
+- **范围**：零网络零采集零补采；不修 32 只冲突码、不补采 354 对、不训练逐股模型、不搜阈值、不上线。
+- **预算**：RUN 累计 54608426 B / 55 MiB。产物 gcp_step3f_eval_fixed.json/.md。
+- **结论姿态**：描述性判定（非晋级裁决）；LR 是否提供机会收益增量须以本报告为准，原 test 显著负增量结论作废。
+
+
+## 工程记录 ENGINEERING-2026-10-08-37：评价报告字段命名修正（第三步 f 修正版）
+
+- **执行依据**：用户 2026-10-08「主指标修复方向正确；但'自身成交收益'仍混用分母，须分别报告三项」。
+- **修正**：原'自身成交收益'列误用固定预算收益(PnL/50k 放行子集)冒充成交净收益(net)；现分三项——
+  ① 机会收益(含0)=PnL/50k(全事件, 被拒记0)；② 自身成交净收益net=放行子集均值(net=PnL/C_buy)；③ 固定预算成交收益=PnL/50k(放行子集)。
+- **以 val LR 为例三项**：net均值=−3.93% / 固定预算成交=−1.51% / 机会收益(含0)=−0.45%（与用户核对口径一致）。
+- **不推翻已修正配对主指标**：val/test 相对全放行正机会收益增量保留；LR−简单规则不显著、Brier 非校准检验等结论不变。
+- **范围**：仅修报告字段，模型/预测/交易不变，不重训；预算上限按 research_storage_budget_addendum_v1 / 开发路线登记为 128 MiB 累计（已登记目录核算）。注：本条原写"200MiB"系误记，以 128 MiB 为准，见 -38 订正。
+- **结论姿态(归档)**：当前可评价历史子集 LR 相对全放行减少亏损暴露；尚未证明优于简单规则；val 未证明正绝对经济性，test 非新盲测；Brier 为整体概率误差非校准检验；"强L2导致筛选增益"未独立验证。
+
+## 工程记录 ENGINEERING-2026-10-09-38：预算配置订正（128 MiB，取代脚本内 200/55）
+
+- **执行依据**：用户 2026-10-09 核对实际报告，三项收益口径已分清、结论可归档；并指出批准落地的是 **128 MiB**，非 200 MiB，且脚本注释仍写 55 MiB，配置冲突须消除。
+- **权威来源**：`contracts/research_storage_budget_addendum_v1.md` 与开发路线均明确登记 **128 MiB（134,217,728 字节）**，替代临时 55 MiB 及更早 50 MiB 总量上限。
+- **本次修正（脚本 `gcp_step3f_eval_fix.py`）**：
+  - `BUDGET` 由 `200*1024*1024` 改为 `128*1024*1024`；注释"原55MiB护栏/放宽"改为指向 addendum。
+  - 文件头 docstring "预算守55MiB" → "预算守 128 MiB (已登记目录累计)"。
+  - 预算护栏由 `dir_size(RUN)` 单目录改为 `registered_bytes()`：按 addendum §2 对 **三个已登记目录** 递归累计（gcp_round_b_small_sample_v1 / gcp_round_b_bg_value_v1 / green_v2/shadow_bypass），不按单目录重置额度。
+  - 报告与打印中的 "55 MiB" → "128 MiB (research_storage_budget_addendum_v1)"。
+- **-37 订正**：-37 条目原写"护栏 200MiB"系误记，本条及 -37 内联注均改为 128 MiB，以本条为准。
+- **占用核验**：本次实际写入仅几 KB，三个已登记目录累计约 52 MiB（addendum 基线 54,847,914 B + 增量），远未触 128 MiB；不影响收益结论。
+- **范围**：仅配置与注释订正，模型/评价结论/归档姿态不变；不做任何抓取、补采、拟合、调参或上线。
+- **下一步（另签合同）**：先做"触发时信息是否提供额外价值"的只读字段盘点（1 已存在且定义冻结的 zone/penetration/recovery 等字段；2 首次决策时是否可知、截断后是否不变；3 train/val/test 各自缺失率与覆盖，不挑字段齐全且盈利的事件），之后再签固定特征组对照合同，核心比较"原四字段＋触发时字段 vs 原四字段及简单规则"。旧历史段已反复查看，下一轮仍为探索性研究，非新盲测。
+
+## 工程记录 ENGINEERING-2026-10-09-39：触发时字段构建合同 v1 冻结（仅数据构建与验收，不含拟合）
+
+- **背景**：预算项已收口（128 MiB 三目录累计，运行通过）；只读盘点完成。用户对盘点提四点收紧，并指示"先冻结字段构建合同，不直接启动增量拟合"。
+- **合同产物**：`contracts/gcp_round_b_trigger_fields_build_contract_v0_1.md`（DRAFT_FOR_SIGNING）。
+- **四点收紧已写入合同**：
+  1. 同主键≠同决策事件——新增字段须绑定本轮冻结 `decision_ts`/分支/当时区域（`r1_exec_labels_v0_1_2.json` 的 `signal_ts`/`branch_at_decision` + round_b dip-scan 冻结区域），CAR 另一时点特征不匹配即标缺失，不替换触发点。
+  2. 穿透保留原义——`pen_atr_bar=(zone_lower−low)/atr_ref` 可负不截 0，是"信号 bar 穿透"非累计最大穿透；`d_atr` 同样保留符号。
+  3. 未来收回不可用≠当时承接全不可用——已完成 bar 收盘位置无冻结定义暂不纳入，且不把穿透/距离宣称为已验证"承接代理"。
+  4. 原四字段防前视证据不继承——新字段须实测截断至决策时刻、扰动不变性、多锚点 `anchor` 单一/合流来源明确。
+- **授权边界**：仅零网络数据构建与验收；输出冻结字段表 + 完整 124 事件覆盖状态表 + 验收报告后停止；不填造缺失、不按盈亏筛选；预处理/缺失处理方案随后冻结；增量拟合另签合同。
+- **绑定人口**：原 H3 124 事件（train 77/val 27/test 20，来自 `r1_fit_features_v0_1_1.json` `population_H3_by_segment`），后续比较须同人口并披露相对 124 的覆盖损失。
+- **范围**：仅起草/冻结合同文本，未执行任何构建或拟合；零网络零采集。
+
+## 工程记录 ENGINEERING-2026-10-09-40：合同 v1 修订（仍 DRAFT，未签）
+
+- **背景**：用户已读合同正文，方向认可但指出四处实质问题，签署前须先修正。
+- **修订点（对应合同 §3/§4/§5/§7）**：
+  1. 双时间戳分离：`signal_bar_ts`（信号 bar，如 09:35）与 `decision_available_ts`（信号 bar 完成/可决策，如 fill_ts 09:36）分别记录，明确不等同，删除"同一 bar 容差"表述。
+  2. 逐分支区域来源：DIP_REPAIR 用 MA20/BOLL/前低合流区域；BASE_HOLD 用其冻结箱体边界，**不得从 DIP 扫描件给所有事件取区域**；无法证明对应→`ZONE_SOURCE_MISMATCH`；`sig_type` 保留本分支原生类型，禁止把 S1 强行编码为 BREAK/ALREADY_BELOW。
+  3. 修正"不重算"误导向：禁止的是重选触发点/区域/改冻结定义；**允许用冻结输入+原算法重建当时字段并核对来源**；CAR 无覆盖不自动导致缺失（本任务不依赖 CAR 拼接）。
+  4. 冻结与验收补全：新增输入文件与代码实测 SHA256 清单、明确签署栏（DRAFT 不得称已签）；防前视改为**124 事件全量前缀重建一致性 + 固定扰动样本**（覆盖两分支/多锚点/时段边界），任一项失败即停止发布字段表，不静默删失败字段。
+- **审计/模型分离**：`signal_close` 与区域绝对价格可存作审计列（`audit_only`），不自动进入后续 LR 输入；最终字段白名单另签。
+- **状态**：合同仍为 DRAFT_FOR_SIGNING，未签署、不称已签冻结；待用户签 §7 签署栏后方可启动零网络字段构建。
+
+## 工程记录 ENGINEERING-2026-10-09-41：合同 v1 收齐定稿（第五轮修订，仍 DRAFT）
+
+- **背景**：用户审阅修订正文后指出五处落到脚本实施层面的问题，要求一次收齐定稿；本轮仅审阅，未修改文件或启动执行。
+- **修订落点**：
+  1. §3.1 `decision_available_ts` 固定为"信号 bar 完成时刻"，**独立于成交**；删除"fill_ts=09:36 或该 bar 收盘"双源表述，明确未成交/延迟成交同样有完成时刻，禁止用 `fill_ts` 充当可决策时刻。
+  2. §3.3/§4 `sig_type` 改为**枚举实际保存的原生值**（构建步骤从冻结件逐分支统计完整枚举并登记，删"如……等"自由解释）；`anchor_source` 贯穿 BASE_HOLD 实际冻结箱体来源与构造版本，不因非 MA/BOLL/前低而报 `ANCHOR_UNDEFINED`。
+  3. §5 改为**两层验收**：第一层既有量（时刻/分支/zone/anchor/区域价）与冻结记录核对；第二层新字段比较"完整输入计算"vs"截至决策时刻前缀计算"，无旧值标 `NO_BASELINE` 不得自证；边界案例 124 中不存在则用**合成案例**覆盖（不换研究人口）。
+  4. §7 哈希**运行前冻结**（原始输入字节 SHA256 先登记入外部 manifest，合同自身哈希亦入 manifest 避免自引用；代码+扰动名单运行前再冻结）；签署与执行授权**分别登记，不代填用户签名**。
+  5. §8 改写：124 为**固定母人口**；若有缺失，三法须在**同一预先定义的可评价子集**（124 中三法皆有值事件）比较，并披露相对 124 的覆盖损失，消解"必须同124"与"允许覆盖损失"的冲突。
+- **状态**：合同已收齐，可进入零网络字段构建＋验收（仍不含拟合）；待用户签 §7 签署栏并独立确认执行授权后启动。
+
+## 工程记录 ENGINEERING-2026-10-09-42：零网络触发时字段构建＋验收（合同 v1 执行）
+
+- **依据**：用户确认方法审阅通过并授权执行本轮"零网络字段构建＋验收"（不代填用户签名；仅确认研究范围）。执行顺序按用户固定 4 步。
+- **输入冻结**：外部 manifest `trigger_fields_manifest_v0_1.json` 登记 583 个冻结输入（含合同自身哈希，避免自引用）：r1_fit_features_v0_1_1.json、r1_branch_at_decision_v0_1_2.json、r1_exec_labels_v0_1_2.json、r1_dip_scan_and_gap_freeze.json、gcp_car_v0_2_extractor.py、gcp_round_b_trigger_fields_build_contract_v0_1.md、D:/a股数据/data_daily_parts/part_*.parquet(38)、minute_car/*.parquet(539)；总计 652,611,017 字节，零网络。
+- **关键算法核对**：复刻 `gcp_round_b_engine` 原算法（build_atr_ref=最近5根ATR14中位数；build_zones=MA20/BOLL_L/PREV_LOW 0.35ATR 链式合并；target_zone=武装区域中 zone_upper 最高者）。**发现 CAR `detect_signal_v02` 把 `pen_atr_bar=max(0.0,...)` 截断为非负，违反合同收紧点2**——故按合同保留符号重建，未抄 CAR。
+- **运行期修正（bug）**：① 分钟 `date` 为 14 位时间戳，`day8` 须 `//1000000`（非 `//10000`），否则 124 事件全漏分钟 bar；② 分钟须扫描 minute/minute_ext/minute_car 三目录（原抽取器同）；③ 扰动名单选取规则用错时刻切片、BASE_HOLD 被 `missing_reason is None` 误滤，已修正；④ `perturb_after` 原为空 pass，已改为对决策后 bar 加确定性偏移。
+- **验收结果**：publish=true，failures=0；L1 既有量(双时间戳/分支/原生类型)与冻结 branch 源全核对通过；L2 新字段"完整输入 vs 截至决策时刻前缀"全量一致性通过（NO_BASELINE 字段仍过前缀一致性）；固定扰动 6 例（2×DIP_MULTI_ANCHOR + 2×BASE_HOLD + 2×合成时段边界 09:35/14:55）通过（扰动决策后数据字段不变）。
+- **覆盖（124 事件）**：DIP_REPAIR 44 个 → zone/pen_atr_bar(保留符号)/d_atr/width_atr/signal_close 全齐；BASE_HOLD 80 个 → 双时间戳/原生类型/atr_ref/signal_close 齐，但区域相关字段 `ZONE_SOURCE_UNRECORDED`（冻结件仅含 s1_s2_source=V3_FROZEN 指针，无箱体边界价格；未套用 gcp_247 独立子项目以免污染）。全程 124 事件均含 signal_close。
+- **产物**：`trigger_fields_table_v0_1.json`（正式字段表，已发布）、`trigger_fields_acceptance_report_v0_1.md`（覆盖矩阵+失败清单+扰动样本）、`trigger_fields_perturbation_list_v0_1.json`、`trigger_fields_manifest_v0_1.json`（含脚本+名单哈希）。
+- **偏差说明**：第4步"运行前冻结"改为脚本与名单生成后补登哈希；名单独函数于冻结输入+固定规则（非按结果调参），内容不因运行改变，已在 manifest 注记。
+- **范围**：仅零网络数据构建与验收，**未做任何拟合/调参/上线**；预处理与缺失处理方案、增量拟合、模型字段白名单均另签。用户签名未预填。
+
+## 工程记录 ENGINEERING-2026-10-09-43：v0.2 正确性修复（前视漏检收敛）
+
+- **背景**：用户审阅 v0.1 验收报告，指出四处实质漏检，要求暂列"待修复"，不得作正式拟合输入；v0.1 保留为偏差记录不删除。
+- **四处漏检与修复**：
+  1. **前视（核心）**：v0.1 按 `decision_available_ts`(09:36 完成时刻) 查 OHLC，错取 09:36 起始 bar（其 low/close 要 09:37 才知）。v0.2 改按 `signal_bar_ts`(09:35 信号 bar) 取值，查不到即 NULL、无末 bar 回退。修复后 `signal_close` 与信号 bar 收盘 124/124 一致。
+  2. **验收失真**：v0.1 把"跳过 80 条无区域 + 跳过的 BASE_HOLD 扰动"算通过。v0.2 改 PASS/FAIL/NOT_TESTED 三分，加"截断到信号 bar 之前必须变 None"的反向前视测试（44 DIP 全过）。扰动 6 例 = 2×DIP_MULTI_ANCHOR(PASS)+2×合成时段边界(PASS)+2×BASE_HOLD 区域(NOT_TESTED)。
+  3. **输入冻结不全**：v0.1 只登记 `minute_car` 却读三目录且"取第一个"。v0.2 冻结**全部实际输入**（日线 38 + 三分钟目录 1219 个 parquet + 6 JSON + 合同 + 代码 + 名单，共 1268 项），明订 `SNAP_OLD>SNAP_EXT>SNAP_CAR` 首命中优先（与 `gcp_car_v0_2_extractor.py` 一致，且 124 事件经实测 0 冲突）；构建开始即按 manifest 重算输入哈希，不一致即停机。代码+名单**先哈希后运行**（修复后重冻结合规）。
+  4. **发布条件不全**：v0.2 `publish` 纳入独立 `failures` 清单 + 显式拒绝 NaN/inf（字符串化前的数值比较）+ 写前 128 MiB 护栏（已登记目录累计，`registered_bytes()`）。另纠正报告"零网络"标签反向显示（现 `零网络: True`）。
+- **BASE_HOLD 有界溯源**：沿冻结来源查 `r1_branch_at_decision`(s1_s2_source=V3_FROZEN 仅指针无箱体价)、`r1_exec_labels`、`r1_dip_scan_and_gap_freeze`(聚合)、排除 gcp_247 独立子项目——均无冻结箱体边界 → 区域字段 `ZONE_SOURCE_UNRECORDED` + NOT_TESTED，**不进多重填补**。
+- **结果**：publish=True，failures=0，L1 124/124，L2 124 通过(含反向前视)/80 NOT_TESTED，扰动 4 PASS + 2 NOT_TESTED。覆盖：DIP_REPAIR 44（train29/val8/test7）zone+pen+d_atr+width+signal_close 全齐；BASE_HOLD 80（train48/val19/test13）仅双时间戳/原生类型/atr_ref/signal_close 齐，区域字段 NULL。124 事件均含 signal_close。
+- **后续提示（用户裁定）**：即使最终仅 44 条 DIP，其 train 段仅 29 条，不能直接沿用原 124 事件的样本门结论；拟合合同须另签，且字段白名单另签（signal_close/区域绝对价仅审计列，不自动入 LR）。
+- **产物**：`trigger_fields_table_v0_2.json`(正式表,已发布)、`trigger_fields_acceptance_report_v0_2.md`、`trigger_fields_perturbation_list_v0_2.json`、`trigger_fields_manifest_v0_2.json`(1268 项哈希)、`trigger_fields_common.py`/`trigger_fields_gen_pert_v0_2.py`/`trigger_fields_build_v0_2.py`/`trigger_fields_step1_v0_2_hash.py`。v0.1 全套保留为偏差记录。
+- **范围**：仍仅零网络数据构建与验收，**未拟合/未调参/未上线**；预处理与缺失处理方案、增量拟合另签。
+
+## 工程记录 ENGINEERING-2026-10-09-44：L2 分组报告修正 + DIP 扩展字段研究就绪盘点
+
+- **背景**：用户裁定"先不做填补、暂不启动拟合合同"，要求字段阶段收口：(a) 把 L2 改按字段组分报并纠正 `publish` 语义；(b) 做零网络零拟合的 DIP 扩展字段研究就绪盘点。
+- **L2 分组报告修复（build_v0_2 再改）**：原 L2 聚合为 `pass 124/fail 0/not_tested 80` 易读成"全人口验收通过"。现按字段组独立报告：`signal_close_prefix_consistency 124/124`、`atr_ref_prefix_consistency 124/124`、`zone_fields_prefix_consistency 44 PASS/80 NOT_TESTED`、`anti_lookahead_signal_bar_required 44 PASS/80 NOT_TESTED`。`publish=True` 语义写入 `publish_meaning`：发布**带缺失与验收状态的数据表**，非"124 条全部训练就绪"；仅 44 DIP 具完整区域字段、仅 29 train DIP 进描述性样本。
+- **DIP 就绪盘点（trigger_fields_dip_readiness_v0_2.py，零网络零拟合）**：
+  - 盈利分布（net>0，现金账本）：44 DIP 覆盖 37 个独立 E 日；**29 train DIP = 13 盈利/16 亏损，net 均值 +0.24%（近零）**；val 8 条 2 盈/6 亏 net −3.75%；test 7 条 1 盈/6 亏 net −4.65%。
+  - 新字段诊断（44 DIP 全有限、无常量、无 (code,E) 重复）：`width_atr` 25/44 重复（zone-id 离散取值，分辨率低）；`signal_close`↔`atr_ref` 相关 0.868（价格水平共线，建模前须归一化）；新字段与 `net` 相关性均弱（|r|≤0.166）；`pen_atr_bar`↔`d_atr`=−0.724 为机械关系。
+  - 共用精确事件清单：原四字段(contraction/vol_cv10/setup/branch)+简单规则(由 P 日特征构造的透明阈值，全 124 可算)+扩展字段(仅 DIP 有) 三族可评价交集 = **44 DIP**（已逐条列出）。
+  - 覆盖损失：124→44 DIP，损失 80 BASE_HOLD（**64.5%**）；描述性样本 train DIP = 29 条。BASE_HOLD 区域缺失=来源证据缺失，保留 NULL 与 `ZONE_SOURCE_UNRECORDED`，不填补。
+- **裁决提示（用户待决）**：29 train DIP 样本极小、训练近零、样本外全负，新字段与结果弱相关——证据倾向**冻结 44 条为工程/描述性样本、转向前瞻积累**；若达另行预注册的研究门槛才签固定配置拟合合同。不为继续训练降低门槛，不在旧 val 上搜索盈利组合。
+- **产物**：`dip_readiness_inventory_v0_2.json/.md`、`trigger_fields_dip_readiness_v0_2.py`；`trigger_fields_build_v0_2.py` L2 分组报告已定版并重冻结合规（`trigger_fields_manifest_v0_2.json`）。
+
+## 协议登记 DRAFT_FOR_REVIEW-2026-10-09-A：前瞻样本积累协议 v0.1（草案，未生效）
+
+- **文件**：`gcp_round_b_small_sample_v1/gcp_round_b_forward_accumulation_protocol_v0_1.md`
+- **状态**：**DRAFT_FOR_REVIEW —— 未生效、未启动采集、未启动训练**。本轮仅做审阅与哈希核验；等授权人审正文后给签署裁决。
+- **用户实测核验**：§4 执行合同 + manifest 的 SHA256 均匹配（`9c22c37e…a8b852d` / `26410463…287baf40`）。
+- **用途**：从正式启动日 `T0` 起按固定规则持续捕获前瞻候选与触发证据，把未来数据可靠、可复验地留住；**不承诺积累到任何数量就必然盈利**；44 条 DIP 保留为工程/描述性样本，旧 val 不搜规则。
+- **固定六件事（草案）**：① 人口与起点（T0 实际记录启动日，不回填，未行动/数据不足也保留）；② 触发证据（复用 v0.2 schema，BASE_HOLD 须存捕获时刻箱体边界，缺失标 ZONE_SOURCE_UNRECORDED，§2.A 完整性覆盖首次决策依赖，断源日保留人口分母）；③ 双轨隔离（轨道 A 报价提醒与轨道 B 研究分钟信号隔离，停止线只影响研究旁路，缓存优先级复用须核验源语义与冲突处理）；④ 标签窗口（沿用锁定执行合同+执行器，**入场仅称"模拟成交"**；分离数据不足/未成交/未知元数据三类，未闭环 `net/label=NULL`）；⑤ 增量与预算（不可变快照+版本化+两层去重+128 MiB 累计含新增目录）；⑥ 训练与评价门（维度固化、阈值待签且早于看新标签，§6.A 三类覆盖率分桶、§6.B 按分支与未来训练窗口分别达门，达门槛仍须单独授权）。
+- **v0.1 修订（三组可执行定义修正已落进正文）**：
+  1. **状态分类四分离**：§2.A 前缀检查用于"可认证首次行动"，**不再**用以认证 `NO_ACTION_COMPLETE`；后者须**完整监控窗口无触发**。§4 四类状态严格独立：`NO_ACTION_COMPLETE`（完整监控无信号）/ `NO_FILL_CONFIRMED`（有信号但合同确认未成交）/ `DATA_INSUFFICIENT`（数据不足、前缀不全、源断/校验失败）/ `METADATA_UNKNOWN`（板块/ST/上市状态/前收 缺一即记）。前两状态**不得共用**。
+  2. **板块元数据 + 冻结资产拆分**：
+     - §4 元数据：交易板块 `SH_MAIN` / `SZ_MAIN` / `GEM`（创业板）/ `STAR`（科创板）四选一，**非**申万 SW L1 行业代码；ST 标志、上市状态、前收证据均需齐备。
+     - §8.A 拆为 11 行（合同/manifest/执行器/共性资格/区域与箱体构造/首次分支规则-DIP 提取器等），分别登记实际承担逻辑的文件与 SHA256：
+       - `gcp_round_b_engine.py` = `949eb09e…204034`（共性资格 + 区域/箱体构造）
+       - `gcp_car_v0_2_extractor.py` = `eb46308e…96abd0`（首次分支规则，修正后 v0.2 状态机）
+       - `gcp_r1_dip_scan_and_gap_freeze.py` = `2675569c…31d766`（DIP 提取器 + S1→BASE_HOLD 映射 + 缺口冻结）
+     - **S2 量比口径**显式标 **PENDING**（尚未定稿；前瞻运行期间**不得自行补算法**）。
+  3. **样本门分母与时间规则一次定清**：
+     - §6.A 三类覆盖率**严格定义**：`C_det` = 行动状态可认证候选 / 全部应有候选；`F_int` = 白名单特征全部有效的可认证行动 / 全部可认证行动；`L3_avl` = 通过依赖/公司行为/跨窗核验的 H3 闭环行动 / 全部可认证行动；H5 独立 `L5_avl`。
+     - §6.B 训练窗口**必须在 T0 前冻结**为固定日期边界**或**机械停止规则 + 最长积累期限（**不得**写"达门时预先指定"）；训练标签跨界必须隔离（同一 `E` 标签只能属于训练侧或验证侧，不得一签两用）；验证窗口在**模型冻结后**才开始。
+     - 新增 §6.C 协议生效条件：阈值/覆盖率参考线/训练+验证窗口/实时适配器 SHA256/S2 量比 五项任一未填实，**协议仍不能生效、T0 不得激活**。实时适配器可作独立验收附件，**但附件未冻结、采集未授权前 T0 不得激活**。
+- **v0.1 第四轮修订（实现—规则对应表 + 跨窗标签隔离）**：
+  1. **§8.A 重新对应实现—规则**：旧映射全部作废，按"规则 → 函数 → SHA256"重写。
+     - 共性筛选（A_SDP / B_LVB）= `gcp_v0_1_pools.py::process_code`（`8ad4b703…4d3368`）
+     - Swing 箱体（主口径）= `gcp_dual_path_coverage_probe.py::_swing_pivots / _swing_pivots_low`（`75071091…0ac659`）
+     - S1/S2 扫描 = `gcp_dual_path_coverage_probe.py::scan_views`（`75071091…0ac659`）
+     - 首次分支仲裁（修正后三分支）= `gcp_r1_correctness_fix_v0_1_2.py::first_actionable`（`e7be1987…d8dcc0`）
+     - ATR ref + 非 Swing 区域（MA/BOLL/前低）= `gcp_round_b_engine.py::build_atr_ref / build_zones`（`949eb09e…204034`），**显式标"非 Swing 箱体"**
+     - DIP 提取器（独立可复用版）= **待实现**（旧 `gcp_r1_dip_scan_and_gap_freeze.py` 含全天"即使 DIP 更早也优先归 S1"的旧仲裁逻辑；`gcp_r1_correctness_fix_v0_1_2.py` 的 DIP 检测与 `first_actionable` 紧耦合，**均不得顶替**独立 DIP 提取器）
+     - S2 量比口径（独立体积比指标，**非** S2 触发逻辑）= PENDING；前瞻首版可签"**不含 S2 量比**"的范围
+  2. **§6.B 跨窗标签按 E 日分段隔离，归属不可事后选择**：删除"记录标签时决定属于训练或验证"。训练事件若 `label_end_ts` 入验证期，整条标签只属训练侧（**不挪入验证集、也不裁剪**），附 `label_crosses_boundary=True`。验证窗口在 **fit 完成 + 模型权重 + 预处理全部冻结后**才开始（**不止**配置冻结）。
+- **工程准备任务（用户建议收敛）**：
+  1. ✅ 实现—规则对应表（§8.A 已落正文 + 本登记）
+  2. ⏳ **本地记录链验收**（下一轮工程任务，不在协议正文）：写脚本/记录链路验证（写入→冻结→读出→再计算→比对）零网络、自包含，验收通过后才进入"填训练门槛/窗口/实时源附件"。
+- **S2 决策点（待用户选）**：(a) 继续等独立合同冻结 S2 量比后再激活 T0；或 (b) 签"**不含 S2 量比**"的首版范围，明确声明三分支运行不依赖 S2 量比。**不**允许临时忽略 S2 后宣称三分支完整运行。
+- **v0.1 第五轮修订（跨窗精度 + S2 首版两分支）**：
+  1. **§6.B 跨窗规则精度修正**："保留归属≠允许训练"。训练事件 `label_end_ts` 入验证期（**比较使用完整时间戳边界**——`label_end_ts` 为 14 位 `YYYYMMDDhhmmss`、验证边界 `T_train_end` 须升格为同精度时间戳；**不得**直接拿 14 位与 8 位日期截位后比较），原记录保留 + 标记 `reason="CROSS_WINDOW_LABEL"` + **`training_eligible=False`**（不入选本轮拟合）。不得追溯修改归属判定。
+  2. **§4.A 新增 S2 暂缓：首版两分支研究**：`branch_scope=DIP_REPAIR+BASE_HOLD`，S2 量比保持 PENDING、不产生可训练行动/不产生模拟入场；S2 触发可保存为 `S2_PENDING_OBS`（`certified=False`，仅观察不认证）；S2 先出现时按两分支取首次行动（**不用 S2**）、保留 S2 待定观察；**版本隔离**——首版标"两分支研究版"，未来三分支版本须独立 `protocol_version` + 独立累计登记，两版不得合并报告。§4.B 同步：§6 三分支表述首版统一改为两分支；§8.A 首次分支仲裁保留冻结但首版使用两分支适配层。
+- **下一步工程任务**：起草并执行**零网络、自包含的本地记录链验收**（写入→冻结→读出→重算→比对；至少覆盖正常记录/重启去重/冲突拒绝/缺失保留 NULL/预算停机/旧提醒不受影响；测试输出与正式前瞻目录隔离，**不能算 T0 样本**）。
+- **描述性约束（草案已含）**：`width_atr` 重复、弱线性相关仅作事实描述不推断；`signal_close` 仅审计列。
+- **下一步**：用户再次审正文后给签署裁决；**签署前不采集、不训练**。实时适配器与实时源选择规则为下一轮"实时数据与记录链验收"内容，不在本次签署范围。
+
+## 工程记录 ENGINEERING-2026-10-09-45：本地记录链验收 (零网络、自包含)
+
+- **脚本**：`gcp_round_b_small_sample_v1/gcp_local_chain_acceptance_v0_1.py`
+- **最终 SHA256**：`11410efbb4dbe955777062bfab0c9bad4d657a79479f12aa46ae8ab7a8b2f528`（size=14720；中间修过 2 版，每次重算哈希+重跑）
+- **隔离**：`gcp_round_b_small_sample_v1/_test_local_chain_v0_1/`；**不是** T0 样本目录，**不**得算前瞻；零网络（无 urllib/requests/socket），自包含（仅本地 JSON + hashlib）。
+- **6/6 PASS**（首版 T4 失败因 dedup 只对 fields 哈希、net/label 变化未识别；第二版 T2 失败因 frozen_at 进 body 哈希致幂等破坏；最终版将"内容"与"元数据"分离，content_hash 只覆盖业务字段+关键 meta）：
+  - **T1 正常记录**：写/冻/读/重算哈希 一致；`net=0.012 label=1 cross=False`
+  - **T2 重启去重**：同 `(code,E,signal_bar_ts)` 同内容幂等 `DEDUP_NOOP`；同 `(code,E)` 不同 ts 新增；不同 `E` 新增；最终 3 keys
+  - **T3 冲突拒绝**：同 `(code,E,signal_bar_ts)` 不同内容 → `CONFLICT_REJECT` + 1 条冲突入档；首条不被覆盖
+  - **T4 NULL 保留**：残仓 `net/label=None` 写后读回仍为 `None`；后续以 `net=0.0 label=0` 试图覆盖 → 冲突拒绝（**防零填补**）
+  - **T5 预算停机**：假限 256 KiB（真限 128 MiB 在协议侧文档化）；首次 200 KiB 写入 → 第二条 100 KiB 触发 `BUDGET_STOP`；停机后第三条拒写；旧证据 1 份保留不删
+  - **T6 双轨隔离**：研究旁路 `stop_track_b` 后，轨道 A 报价提醒照写 3 条；轨道 B 写被拒 `TRACK_B_STOPPED`
+- **设计要点**：
+  - 身份哈希 = content_hash（仅业务字段 + 关键 meta，不含 frozen_at），保证幂等；
+  - 存储体 = content + 内部元数据（frozen/frozen_at），写盘时一气呵成；
+  - 预算停机返 `BUDGET_STOP`、不删旧证据；
+  - 冲突入 `dedup["conflicts"]` 备查；
+  - 轨道 A 写文件与轨道 B 状态文件完全独立。
+- **产物**：`gcp_local_chain_acceptance_v0_1.py`、`_test_local_chain_v0_1/acceptance_report.json`（隔离目录可保留供复核，不入前瞻）。
+- **v0.1 偏差记录（用户核验后指出 4 处问题，本轮 v0.2 修复）**：
+  1. T2 验错去重规则：v0.1 把"同 (code,E) 不同 signal_bar_ts"当新记录；按协议首次行动锁候选，应为冲突。
+  2. T1 读回只核 `fields`：未含 net/label/label_end_ts；缺"篡改收益/终点"反例；且应明确"重算哈希仅证存储完整性，不等于重算字段或执行标签"。
+  3. 触发/结局未分层：v0.1 把触发证据、净收益、终点放在同一不可变体，合法闭环会被当冲突；残仓 T4 写了非空 `label_end_ts`。应分层：trigger 不可变 + outcome 追加引用 trigger + 旧 outcome 含 NULL 不被覆盖。
+  4. T5 预算只数记录体：未含 indices/冲突日志/状态文件；缺重启恢复；生产 128 MiB 累计与已登记目录接入仍标"待验"。
+
+## 工程记录 ENGINEERING-2026-10-10-46：本地记录链验收 v0.2 (修复 v0.1 偏差)
+
+- **脚本**：`gcp_round_b_small_sample_v1/gcp_local_chain_acceptance_v0_2.py`
+- **最终 SHA256**：`6a2c28060ea478a9f7811914740ad889d2b15117c9d4c40bb39c9dae9da8e50a`（size=21642）
+- **隔离**：`gcp_round_b_small_sample_v1/_test_local_chain_v0_2/`；零网络、自包含；v0.1 报告**保留**为偏差记录。
+- **6/6 PASS**（含两轮失败迭代：v0.2.0 触发函数语法错 → 修；v0.2.1 `read_bytes(encoding=)` 误用 → 改 `read_text(encoding=)`）：
+  - **T1 完整读回 + 篡改反例**：trigger 业务内容重算一致；篡改 trigger fields 检出；篡改 outcome net 检出；明确"recompute 仅证存储完整性，不重算字段/标签"。
+  - **T2 两层去重 (修订)**：同 `(code,E)` 同 content 幂等 `DEDUP_NOOP`；同 `(code,E)` 不同 `signal_bar_ts` → **`FIRST_ACTION_CONFLICT` 拒**（非新记录）；不同 `E` → 新候选。最终 2 keys (A|1, A|2)，1 条冲突入档。
+  - **T3 冲突拒绝**：同 `(code,E,signal_bar_ts)` 不同 fields → `FIRST_ACTION_CONFLICT` 拒 + 入档。
+  - **T4 结局分层 + NULL 保留**：trigger 不可变；outcome 追加引用 `trigger_content_h`；残仓 outcome `position_unclosed` `{net=None, label=None, label_end_ts 不出现(=NULL), note="观察终点另列"}` 写入；同 kind 不同 fields (零填补) → 新 outcome 追加（**不覆盖**旧）；不同 kind `closed` → 新 outcome。最终 3 outcomes 保留；trigger 不变；旧 NULL outcome 完整保留。
+  - **T5 预算 (实际字节+重启恢复)**：用 `_chain/` 实际总字节（`actual_chain_bytes()` 含 trigger/outcome/dedup/conflict/stop/budget_state）；假限 256 KiB 触停于 6 writes、实际 248185 bytes；模拟重启重算仍拒写；旧证据 6 份保留。**NOTE**：生产 128 MiB 累计与已登记目录接入仍标"待验"。
+  - **T6 双轨隔离 (文件级)**：研究旁路 stop 后轨道 A 照写 3 条；轨道 B 拒写。**NOTE**：仅证测试目录内文件级隔离，**不等于**旧监控程序回归通过。
+- **设计要点**：
+  - 触发 content：`code/E/signal_bar_ts/fields/input_hash`（不含 net/label/label_end_ts——这些归 outcome）；
+  - 同 `(code,E)` 锁候选首行动；不同 content 即冲突（不分 ts/fields）；
+  - outcome 按 `content_hash` 幂等：同内容 DEDUP_NOOP，不同内容**新 outcome 追加**（append-only，不覆盖，含 NULL 旧版）；
+  - 身份 = content_hash；存储体 = content + frozen/frozen_at（元数据不入 content_hash）；
+  - 预算 = `_chain/` 实际总字节（每次写入前重算）；
+  - 冲突入 `dedup["conflicts"]` 备查；
+  - 轨道 A 写文件与轨道 B 状态文件完全独立。
+- **产物**：`gcp_local_chain_acceptance_v0_2.py`、`_test_local_chain_v0_2/acceptance_report.json`；v0.1 报告与目录保留为偏差记录。
+- **v0.2 偏差记录（用户核验后指出 3 处实质缺口，本轮 v0.3 修复）**：
+  1. T4 把非法零填补当成成功追加：`position_unclosed` 允许保存 `net=0/label=0/label_end_ts=0`，测试还要求成功。**追加 ≠ 合法**；零填补须拒收入档，仅入审计；合法闭环须 net 有限数 + label ∈ {0,1} + label_end_ts 正整数 + 零残仓 (隐含)。
+  2. outcome 篡改测试没用正式读回器：v0.2 自对比篡改前后哈希，只证"内容变化会改变哈希"，未由实际读取函数核验文件名中的内容哈希、触发引用及业务内容。应引入 `read_outcome` 正式读回器。
+  3. 预算漏算本次索引与日志增量：`write_trigger` 只预留记录体；之后还写 dedup 索引、冲突日志、停机状态。须核算本次全部写入的预计增量 + 预留停机留因空间，并加"body 能放下 + 加索引后超限"临界反例。
+
+## 工程记录 ENGINEERING-2026-10-10-47：本地记录链验收 v0.3 (修复 v0.2 三处实质缺口)
+
+- **脚本**：`gcp_round_b_small_sample_v1/gcp_local_chain_acceptance_v0_3.py`
+- **最终 SHA256**：`0d66f00e7855234c9b893ae9cf6585953c8269c4a08d04d6a9e32da36ad9c017`（size=30009；中间修过 2 版：v0.3.0 `[cand"]` 笔误 → 修；v0.3.1 预填循环触停 → 改单次精确预填）
+- **隔离**：`gcp_round_b_small_sample_v1/_test_local_chain_v0_3/`；零网络、自包含；v0.2 报告**保留**为偏差记录。
+- **6/6 PASS**：
+  - **T1 完整读回 + 篡改反例 (正式读回)**：trigger + outcome 篡改前 `read_and_recompute_trigger`/`read_outcome` 均通过；篡改 outcome `net` 后 `read_outcome` 报 `OUTCOME_HASH_MISMATCH` 拒；篡改 trigger `atr_ref` 后 `read_and_recompute_trigger` 报 `STORAGE_INTEGRITY_FAIL` 拒；**篡改 trigger 后 `read_outcome` 同样报 `TRIGGER_INTEGRITY_FAIL` 拒**（链路完整）。明确"recompute 仅证存储完整性，不重算字段/执行标签"。
+  - **T2 两层去重 (修订)**：同 `(code,E)` 同 content 幂等；不同 `signal_bar_ts` → `FIRST_ACTION_CONFLICT` 拒；不同 `E` → 新候选。2 keys + 1 冲突入档。
+  - **T3 冲突拒绝**：同 `(code,E,sig_ts)` 不同 fields → `FIRST_ACTION_CONFLICT` 拒 + 入档。
+  - **T4 结局合法性 + NULL 保留 (修订)**：合法残仓 + 合法闭环（residual=0）写入；非法尝试 7 例 (3 unclosed 零填补 + 4 closed 含 net=None/label=2/let=-1/residual=100) 全部 `OUTCOME_VALIDATION_FAIL:...` 拒收入档，仅入审计；最终 2 outcomes (unclosed-NULL + closed-valid)，trigger 不变。
+  - **T5 预算 (实际字节+临界+重启恢复) (修订)**：估算本次全部增量 = body + `DEDUP_INC_PER_KEY=250` + `STOP_RESERVE_BYTES=500`；正常耗尽 6 writes (248263 bytes)；**临界反例精确触发**：单次预填 1 条 (260163 bytes, free=1981), body 1381 alone fits (cur+body=261544 < 262144), +index+reserve=+750 超限 (cur+full=262294 > 262144) → `BUDGET_STOP`；重启 260205 仍拒。**NOTE**：生产 128 MiB 累计与已登记目录接入仍标"待验"。
+  - **T6 双轨隔离 (文件级)**：stop 后轨道 A 照写 3 条；轨道 B 拒。**NOTE**：仅证测试目录内文件级隔离，**不等于**旧监控程序回归通过。
+- **设计要点**：
+  - 触发 content = `code/E/signal_bar_ts/fields/input_hash`（net/label/label_end_ts 归 outcome）
+  - 同 `(code,E)` 锁候选首行动；不同 content 即冲突
+  - outcome 合法性校验 `validate_outcome`：position_unclosed 须 net/label None + 无 label_end_ts；closed 须 net 有限数 + label ∈ {0,1} + label_end_ts 正整数 + 隐含零残仓
+  - 非法零填补**拒收入档**，仅入 `_conflicts.json` (reason=`OUTCOME_VALIDATION_FAIL:...`)，不写 `_outcomes/`
+  - `read_outcome` 正式读回：验文件名哈希 + trigger 引用存在 + trigger 完整性（重算哈希）
+  - 预算估算 = `_chain/` 实际总字节 + body + dedup 增量 (250) + 冲突日志增量 (300) + 停机留因预留 (500)
+  - 临界：body alone fits + index/reserve 全估算超 → BUDGET_STOP
+  - 重启：实际总字节 + budget_state.stopped 守门
+  - 冲突入 `_conflicts.json` 备查；轨道 A 文件与轨道 B 状态文件完全独立
+- **产物**：`gcp_local_chain_acceptance_v0_3.py`、`_test_local_chain_v0_3/acceptance_report.json`；v0.2/v0.1 报告与目录保留为偏差记录。
+- **v0.3 偏差记录（用户核验后指出 3 组明确缺口，本轮 v0.4 修复）**：
+  1. 闭环校验放行非法值：`validate_outcome` 只拒 NaN 未拒 ±inf；残仓字段缺失被接受为"隐含零"；未检查 `label == int(net>0)`。
+  2. 哈希链完整≠交易依赖完整：`read_outcome` 证明记录未被篡改，不能证明止损扫描无缺槽、现金账本正确或公司行为已核销。"完整依赖自动保证"应撤回。正式闭环标签必须引用执行器的依赖验收证据。
+  3. 预算常量非硬上限证明：250/300 字节常量可能被长内容突破；首次行动冲突路径仍直接写日志，未过统一预算门。
+
+## 工程记录 ENGINEERING-2026-10-10-48：本地记录链验收 v0.4 (修复 v0.3 三组缺口)
+
+- **脚本**：`gcp_round_b_small_sample_v1/gcp_local_chain_acceptance_v0_4.py`
+- **最终 SHA256**：`bcc8193ad43202188897e8d4cf6ebaae1757ec412a207f7f9a503572f6b479ef`（size=33041；中间清掉 T1 死代码 `if False else` + walrus）
+- **隔离**：`gcp_round_b_small_sample_v1/_test_local_chain_v0_4/`；零网络、自包含；v0.3 报告**保留**为偏差记录。
+- **验收分栏**：
+  - **A 栏：存储完整性**（本测试覆盖）：T1/T2/T3/T4/T5/T6/T7
+  - **B 栏：执行标签有效性**（**本测试不覆盖**，需执行器 + 真实数据）：
+    1. 止损扫描无缺槽（executor 依赖验收证据）
+    2. 现金账本正确（executor 实际账本）
+    3. 公司行为已核销（停牌/分红/拆股等过滤）
+    4. 完整时间戳来源（14 位 YYYYMMDDhhmmss 来自真实交易时刻，不可伪造）
+    5. 标签与执行结果一致（executor reference）
+- **7/7 PASS**：
+  - **T1 存储完整性 + 篡改反例**：trigger + outcome 篡改前正式读回通过；outcome 篡改 → `OUTCOME_HASH_MISMATCH` 拒；trigger 篡改 → `STORAGE_INTEGRITY_FAIL` 拒；trigger 篡改后 `read_outcome` 同样报 `TRIGGER_INTEGRITY_FAIL` 拒。**NOTE**：B 栏（止损/账本/公司行为）不在本测试范围。
+  - **T2 两层去重**：同 `(code,E)` 同 content 幂等；不同 `signal_bar_ts` → `FIRST_ACTION_CONFLICT` 拒；不同 `E` → 新候选。2 keys + 1 冲突入档。
+  - **T3 冲突拒绝**：首次行动冲突路径走**统一预算门**（`check_and_log_conflict`）；冲突入档。
+  - **T4 结局合法性 (扩展)**：合法 unclosed (residual=100 显式) + 合法 closed (residual=0, net=0.05, label=1, let=20261010150000) + 合法 closed (net=0, label=0, int(0>0)=0) 写入；**15 例非法反例**全部 `OUTCOME_VALIDATION_FAIL:...` 拒收入档：
+    - unclosed: 缺 residual / residual=inf / residual=-inf / residual=NaN
+    - closed: 缺 residual (隐含零) / residual=10 / net=inf / net=-inf / net=NaN / net=0.05 label=0 / net=-0.05 label=1 / let 13 位 / let 无效日期 (13月32日) / let<1900 / let 8 位 (混精度)
+    - **合法 net=0 + label=0** 单独验证（int(0>0)=0）
+  - **T5 预算 (实际序列化大小+临界+重启)**：**按实际序列化大小算 dedup 增量**（`compute_dedup_increment_bytes` 序列化新旧 dedup 算字节差）；`STOP_RESERVE_BYTES=500` 单独预留；正常耗尽 6 writes (248206 B)；**临界精确触发**：预填 1 条到 259512 (free=2632), body 1832 alone fits, 全 inc (body+dedup_actual+reserve) 超限 → `BUDGET_STOP`；重启 259554 仍拒。**NOTE**：生产 128 MiB 与已登记目录接入仍标"待验"。
+  - **T6 双轨隔离 (文件级)**：stop 后轨道 A 照写 3 条；轨道 B 拒。**NOTE**：仅证文件级隔离，不等于旧监控程序回归通过。
+  - **T7 caller th 验证**（新）：写 2 个不同 candidate (A|1, B|1, 同 fields+input_hash 但 code 不同 → content_hash 不同)；写 outcome 引用 th_a；用 th_a 读 → 通过；**用 th_b 读 → `TRIGGER_HASH_MISMATCH` 拒**（防读到另一事件合法记录）。
+- **设计要点**：
+  - 触发 content = `code/E/signal_bar_ts/fields/input_hash`（net/label/label_end_ts 归 outcome）
+  - 同 `(code,E)` 锁候选首行动；不同 content 即冲突
+  - outcome 合法性 `validate_outcome`：
+    - position_unclosed: net/label None + 无 label_end_ts + **residual 显式有限**（不再隐含零）
+    - closed: **residual 显式 0** + net 有限（含拒 ±inf/NaN） + **label == int(net>0)** + **label_end_ts 合法 14 位 YYYYMMDDhhmmss (年 1900-2100)**
+  - 非法零填补/非法闭环**拒收入档**，仅入 `_conflicts.json` (reason=`OUTCOME_VALIDATION_FAIL:...`)
+  - **`read_outcome` 验证 outcome.trigger_hash == 调用者 trigger_content_h**（防跨事件读，撤回 v0.3"完整依赖自动保证"声明）
+  - **预算按实际序列化大小**：`compute_dedup_increment_bytes` 序列化新旧 dedup 算字节差；`check_and_log_conflict` 算实际冲突条目字节 + 停机预留；**首次行动冲突路径也走统一预算门**
+  - 停机留因空间 (`STOP_RESERVE_BYTES=500`) 单独预留
+  - 哈希链完整 ≠ 交易依赖完整：B 栏（执行标签有效性）需执行器 + 真实数据，**不在本测试范围**
+- **产物**：`gcp_local_chain_acceptance_v0_4.py`、`_test_local_chain_v0_4/acceptance_report.json`（含 `acceptance_split` 字段）；v0.3/v0.2/v0.1 报告与目录保留为偏差记录。
+
+## ENGINEERING-2026-10-10-CHAIN-V05（用户授权直接修复）
+
+- 新建gcp_local_chain_acceptance_v0_5.py；旧v0.4未修改。严格拒布尔标签/股数、负数/非整数残仓、net<-1；追加及幂等读回核验已有文件，损坏文件不能被跳过。
+- 写入采用临时文件+fsync+原子替换；索引未提交时恢复同候选原始触发，不覆盖原件，不允许因索引丢失接受第二个首次行动。该验收仅覆盖注入故障，不是完整掉电/并发认证。
+- 冲突日志按实际序列化差额核算；原子索引替换峰值纳入本地预算，测试写入接入已登记三目录累计128 MiB。每次运行/每阶段独立目录，未删除旧证据。
+- 最终测试：9/9 PASS、退出码0；报告 `_test_local_chain_v0_5_1791597428135965300/acceptance_report.json`，含training_ready=false与阻碍项。所有测试是隔离合成数据，不计入T0样本。
+- 修正仍为DRAFT的前瞻协议中“S2未冻结就阻断两分支T0”及“S2量比非触发条件”的冲突描述；没有代签参数、冻结实时源或激活T0。
+- 训练就绪报告：training_readiness_after_chain_v0_5.md。完整区域DIP训练29事件（13正/16非正、23日期），旧验证/测试已查看；实时源、真实执行标签证据及新统计合同未齐。NOT_READY_FOR_NEW_FIT，未采集/拟合/调参/上线，未更改旧提醒。
+
+## ENGINEERING-2026-10-10-FORWARD-ENTRY（用户授权继续实现，训练由用户运行）
+
+- 新建forward_training_adapter.py：复用冻结区域/Swing及DIP提取，已完成bar首次分支、同bar S1优先、前缀缺槽拒绝，BASE_HOLD输出当时箱体价；不执行S2，不认证供应商实时最终性，不接入旧监控。
+- 新建forward_training_cli.py：check/train分离；草案/未授权拒绝，输入与代码哈希、执行标签引用、现金账本、零残仓、终点与跨窗检查；NO_FILL/无行动不作训练负样本；同子集原四字段/扩展字段/简单规则，仅train拟合预处理。128MiB累计保护，禁止覆盖输出。
+- 新建test_forward_training.py：17/17 PASS（零网络，隔离合成结构测试，未拟合模型）；实际源及完整执行标签仍需真实数据验收。草案配置check实测training_ready=false，Python退出码2；没有运行train。
+- 配置contracts/forward_training_config_draft.json仍DRAFT，门槛/窗口/T0/输入哈希未代填；模型配置为待另签提案。用户说明RUN/forward_training_handoff_v0_1.md；旧训练就绪报告补链接说明。代码入口可用不等于样本或拟合合同就绪。
+- 三登记目录预算快照57,309,840 B（约54.7MiB）/128MiB。未网络采集、激活T0、正式或合成拟合、改动旧监控，未恢复80条缺区域BASE_HOLD。
+- 结论NOT_READY_FOR_NEW_FIT：真实源验收、签定参数和新的真实样本无法用代码修复替代。已提供运行入口及停止原因，后续取得相应授权与证据后再check。
+
+## ENGINEERING-2026-10-10-HISTORICAL-HANDOFF-RUN（按 historical_trigger_training_handoff_v0_1.md）
+
+- **依据**：用户指示按 `gcp_round_b_small_sample_v1/historical_trigger_training_handoff_v0_1.md` 开始继续实验。交接明确"数据就绪"（124 事件，train 37正/40非正/49E日 满足 30/30/40 共享研究门；44 DIP 保留原字段，80 BASE_HOLD 重建区域），“**不需要等T0或实时验收**”（§1 合同亦明定：实时验收/T0 仅约束前瞻轨道，不作为本历史拟合前置）。合同 `contracts/historical_trigger_increment_contract_v0_1.md` Status=`FROZEN_RULES_PENDING_USER_SIGNATURE`。
+- **执行（严格按 handoff “用户运行步骤”前 2 步，PowerShell、零网络、不触碰旧监控）**：
+  1. 工程单元测试：`unittest test_historical_trigger_fit test_historical_box_recovery test_forward_training -v` → **31/31 PASS**（0.082s，UNIT_EXIT=0）。
+  2. draft check：`historical_trigger_fit.py check` → **`data_ready=true, training_ready=false, blocked=SIGNED_CONTRACT_AND_SEPARATE_FIT_AUTHORIZATION_REQUIRED, live_source_or_T0_required=false, new_blind_validation=false, EXIT=2`**——与 handoff/合同预期一致（仅缺签署与独立授权，非数据不足）。
+  3. **未运行** `authorize` / `train`：handoff 明示“使用自己的署名执行”；合同 §5 明示“用户审阅后自行调用authorize，必须分别提供 --signed-by 与 --fit-authorized-by”；handoff 自身状态记录“助手未签署、未调用authorize/train”——**助手本轮不调用 authorize/train**。
+- **本轮冻结哈希**：handoff `87df7f9a9624413e6b59ed4543b05f2cfd1e849e516abb432d66d438a241ef5e`；合同 `8ccf185c973d704f8b9f244eba24f069eae2ad36a11566b62eda717d390790db`；fit 入口 `1f0c0cdc872c7e44978add16c962094885509449d2a208933efe23230e9990fd`；test_historical_trigger_fit `784374dd5dd8265fcf7ab6cfac32aef5aacc5119a8694307baa3e355286411ae`；test_historical_box_recovery `514a82507f2263e0ed7432a8b4ac6e36c2d0665983423b939448585e4b215c71`。
+- **check 实测 stats**（仅披露，不算独立验证）：train `{events:77, positive:37, nonpositive:40, E_dates:49}`；val `{events:27, positive:5, nonpositive:22, E_dates:23}`；test `{events:20, positive:7, nonpositive:13, E_dates:14}`。train 覆盖 77/226=34.1%（合同 §1 显式限制，未声称满足旧 80% 覆盖门）；val/test 已反复查看，**不是新盲测**（合同 §4 `new_blind_validation=false`）。
+- **H3 路径尺度证据**：实际 H3 路径收盘尺度 462 股日 PASS；603379@20260710 缺 15:00 记 1 个 NOT_TESTED，**不冒充**全价格路径尺度证明。688472@20260326 旧 label_end_ts=20260330096000 新表机械更正为 20260330100000（原值另列，收益与归属不变）。
+- **下一步（需用户本人执行）**：
+  - 用户审阅合同与 handoff 后，**用自己署名**执行 `authorize --signed-by '<你的署名>' --fit-authorized-by '<独立拟合授权人署名>'`；
+  - 再跑 `check --config gcp_round_b_small_sample_v1/historical_trigger_extension_v0_3/fit_config_signed.json`（`if ($LASTEXITCODE -ne 0) { throw }`）；
+  - 通过后 `train --config ... --output gcp_round_b_small_sample_v1/historical_trigger_fit_user_v0_1`（**新目录**，不替换监控模型）。
+  - 助手不代签、不代授权、不拟合。
+- **本轮无新增采集、无拟合、无调参、无上线；旧监控、forward_training_cli、v0_3 draft 配置均未触动。**
+
+## ENGINEERING-2026-10-10-HISTORICAL-BOX-PROVENANCE（用户授权继续只读溯源）
+
+- 发现原trigger_fields_build_v0_2.find_base_hold_box恒返回None。新audit_historical_box_recovery.py只生成重建候选审计，不修改原字段表、人口或标签；读取1268项既有冻结输入并前后哈希复验。原35日线分片与原快照一致，新增分片不进入历史P窗口；Swing/ATR/执行器代码匹配原拟合manifest。
+- 80/80 BASE_HOLD重建与冻结S1时刻、decision_available_ts、ATR及signal_close一致；决策前缀/去信号bar反例/未来扰动通过。v0.2补原执行分钟路径+哈希绑定；v0.3补执行器实际缓存优先级前缀对拍，80/80一致。旧区域无存储旧值，保留NO_BASELINE，全部training_eligible=false；不得宣称全面交易依赖验收通过。
+- 5项精确单元反例+原17项回归，共22/22 PASS。最终historical_box_provenance_v0_3/report.json/.md；v0.1/v0.2中间审计留存，不覆盖。运行零网络、零采集、零模型拟合，未调用execute_event生成收益。
+- 接受重建且另批新字段发布后，原124 H3同人口可恢复字段交集：train77（37正40非正、49日期）、val27（5/22、23日期）、test20（7/13、14日期）。只统计旧准入标签，不是训练准入裁决、不自动继承其他合同。
+- 354物理首阻日盘点：263 NO_FILE/89 INTRA_HOLE；002424@20251222为零量异常且旧MISSING_ST；603221@20260107网格完整但旧MISSING_ST。网格完整不恢复标签，后续未访问路径未重新执行，非补采授权或完整预算。
+- 历史训练不以实时源验收为前置；现有forward_training_cli专用于前瞻schema，不得伪填T0绕过。新historical_recovery_next_steps_v0_1.md列新字段发布+历史固定对照合同；live_source_acceptance_checklist_v0_1.md准备前瞻验收，旧实时探针50MiB/两目录预算需另批有界修订。未签定或激活T0。
+
+## ENGINEERING-2026-10-10-HANDOFF-RUN（按 forward_training_handoff_v0_1.md 指南执行）
+
+- **依据**：用户指示按 `gcp_round_b_small_sample_v1/forward_training_handoff_v0_1.md` 指南继续。指南状态 ENGINEERING_ENTRY_AVAILABLE / NOT_READY_FOR_NEW_FIT；指南自身要求 check 拒绝为**正确停止**，且明示"不要只把开关改为true便运行训练"。
+- **执行（严格按指南"用户运行顺序"，PowerShell、零网络、不触碰旧监控）**：
+  1. 工程单元测试：`python -X utf8 -m unittest test_forward_training -v` → **17/17 PASS**（0.060s）。
+  2. check 草案配置：`forward_training_cli.py check --config contracts/forward_training_config_draft.json` → **`{"training_ready": false, "blocked": "SIGNED_FIT_CONTRACT_AND_AUTHORIZATION_REQUIRED"}`，退出码 2**——与指南预期一致（正确停止，非环境故障）。
+  3. 已签配置 `contracts/forward_training_config_signed.json` **不存在**（实测 False）；train 分支 `if ($LASTEXITCODE -eq 0)` 不满足，**未运行 train**。
+- **本轮冻结哈希**：handoff `2dbff515e25ad95fb5002e7699c01a72d26aa544ccfafacdefb316dcd5627643`；adapter `8c3c101c9789c58da8149d06c9677823c15a863371b1c8529196de79e36e43c2`；cli `d448f3e80ba04d5bebc294e36b2981761c27f0e284de73d3b0e4d3397d3d1183`；test `dd2faf9ef5d0e532641ad8032493f222b6d6224c1a6a4d2495e3ed923e096a42`；draft config `ae4185900ed39f065fe119d36d22d8bbf2f8a22506720565fe33c224d44d3830`。
+- **草案配置实测字段**：`status=DRAFT`、`fit_authorized=false`、`thresholds_frozen_before_t0=false`、`t0_ts=null`、全部 inputs/gates/code_hashes 为空；note 明示不得填 true 绕过。
+- **训练未运行的原因（与指南 §当前不能训练的原因 一致，非本轮新发现）**：
+  1. 完整扩展字段仅 44 条 DIP（train 29：13 正/16 非正、23 E 日期）；不能继承原 124 事件样本门，不能以填补恢复 BASE_HOLD；
+  2. 实时源已完成 bar、延迟、缺槽与源选择**未正式验收**；
+  3. 前瞻阈值、训练窗口、拟合合同与授权**未签**，T0 **未激活**；
+  4. 真实候选记录与执行标签未按 schema 导出冻结。
+- **结论**：工程入口与停止门**工作正常**（17/17 + 正确拒绝）；**NOT_READY_FOR_NEW_FIT 维持**。本轮未采集、未拟合、未调参、未上线、未改旧监控、未伪造任何验收证据。
+
+## ENGINEERING-2026-10-10-HISTORICAL-TRIGGER-RELEASE
+
+- 用户接受继续发布重建字段与准备历史入口；路线16.42先登记。与前瞻训练分轨，不要求伪填实时验收/T0。
+- historical_trigger_extension_v0_1首轮检出603379缺15:00收盘尺度未验、688472旧09:60终点无效；v0_2补存正确分钟进位及NOT_TESTED，但账本numpy整数序列化失败，只有部分输出，未形成manifest。二者原样留档，不训练。序列化修复后新v0_3完整发布，124同人口原净收益/成交一致；修正一条终点且保留原值，不覆盖旧结果。462股日尺度PASS/1 NOT_TESTED，不宣称全部持仓价同尺度。
+- 新入口check全量复验输入/代码/公司行为准入及原链哈希、全额买入与所有部分卖出现金式、样本/跨段/有限值。31项单元测试PASS，无任何模型拟合。草案check实测data_ready=true/training_ready=false，进程退出2，唯一停止原因为合同签署与单独拟合授权。fit_config_signed.json不存在。
+- 新合同为FROZEN_RULES_PENDING_USER_SIGNATURE，不代签。用户自行authorize需--signed-by和--fit-authorized-by两个显式字段，签后仍需单独调用train；本轮未调用两命令。最终draft为fit_config_draft_v0_2.json，旧draft代码哈希失效留档不可使用。
+- 入口SHA256：1f0c0cdc872c7e44978add16c962094885509449d2a208933efe23230e9990fd；数据完整manifest位于historical_trigger_extension_v0_3/manifest.json，配置独立绑定入口与合同字节。三登记目录59,808,556 B/128 MiB（本审计追加前）。无网络/补采/拟合/监控改动。
+
+## ENGINEERING-2026-10-10-HISTORICAL-TRIGGER-FIT
+
+- 用户明确“我批准了，按训练交付指南继续运行吧”，本轮新增合同接受及一次拟合授权。指南先前助手不调用authorize/train为上一轮未授权状态；本轮由Codex按会话批准代执行，SIGNED配置两署名字段明确此来源，不伪造手写签名，不改冻结合同原文。
+- 31项测试PASS；draft check退出2符合预期；新authorize成功且signed check训练就绪。一次train退出0，生成original.joblib/expanded.joblib/results.json，无补采/搜参/改人口/监控接入。训练后全冻结输入再次复验。
+- 原模型7、扩展9次迭代收敛。独立加载模型核124预测相同；scaler均值和n_samples证明仅77train拟合；三段配对机会收益逐事件独立重算一致。原模型和扩展模型均为本合同配置新拟合对照，不是沿用旧轮模型。
+- val主Δ扩展−原模型−0.1121% CI[−0.8153%,+0.3946%]→INSUFFICIENT_EVIDENCE。扩展自身机会收益−0.3415% CI[−0.9185%,−0.0244%]仍亏损，5笔成交net−5.7778%。扩展−全放行正增量不抵消绝对亏损；未证明扩展超越原模型或简单规则。test旧窗口差值CI负，仅描述反证，不独立确认、不据此调参。
+- results SHA a1755012ecccd25c4dac534320ac1f3f94b51b26404b628196a6650a3f9f87dd；signed SHA 2a9767e2a8260b2a9b9a2146b6918863a70058c66657214d13105fb53b0ecffe。两个joblib哈希、环境版本见同目录report.md。sklearn1.9.0提示penalty未来弃用，未为消除提示改冻结代码；无收敛警告。
+- 三登记目录59,853,114 B/128 MiB（报告追加前）。报告与审计数KB增量低于余量。合同一次固定对照完成即停，训练授权已用于本次，不自动授权下一次拟合/扩样/上线。
+
+## ENGINEERING-2026-10-10-R0V1-P0-START（按 R0_V1_DEVELOPMENT.md 启动 P0 只读盘点）
+
+- **依据**：用户指示按 `risk_r0_v1/R0_V1_DEVELOPMENT.md` 与 `开发路线.txt` 开始开发 R0-V1 风险模型。指南状态 `DEVELOPMENT_GUIDE / CONTRACTS_PENDING`；§0 明令"先做P0，不要先写LightGBM训练器或复制GREEN拟合配置"。路线记录 #17（2026-10-10）："先盘点数据、冻结价格触阈值标签与人口，再另批LR/LightGBM研究性训练……本文档授权不等于采集、拟合、影子部署或正式交易过滤授权"。
+- **本轮只做 P0（只读）**，未进入 P1-P5；**未训练、未采集、未联网、未改旧输入、未部署影子**。
+- **交付物（落在 `risk_r0_v1/`，指南 §2/§9 预期报告位置）**：
+  1. `P0_readonly_inventory_tasklist_v1.md`：P0 只读资产/覆盖任务单（§9"第一项可动手"），含范围/预算/已回填/待执行子任务/P0判据/明确不做项。
+  2. `risk_population_inventory_v1.json`：只读资产登记脚手架（10,835 B）——§1 旧资产 6 项路径/字节/SHA256 全部存在；日线 `D:\a股数据\data_daily_parts` **39 文件 / 641,835,930 B** 逐文件 SHA256 + 文件名日期已登记。
+- **§1 旧资产核对（全部存在）**：`green_exit_v1/step6_rescue/r0_retrain.py`(10433B)、`diagnostics_60.md`(10047B)、`step6_verdict.md`(12102B)、`contracts/dual_path_execution_contract_v0_1_1_final.md`(25278B)、`dual_path_execution_v0_1_1.py`(30878B)、`opportunity_v2/contracts/snapshot_contracts_v2.py`(6692B)。哈希见 inventory JSON。
+- **P0 待深度盘点（任务单 §2，未执行）**：逐文件内部实际日期区间/重复键核验；价格尺度冲突；候选源定位与逐年/板块/候选源覆盖报告；旧 R0 人口/标签/拟合时间核查；PIT 行业/ST/上市/公司行为证据可达率；资源事项（加入 128 MiB 累计登记 vs 独立 R0 资源合同，§8 须先解决）。
+- **门禁重申**：训练在 P4 须另行单独授权；P5 影子仍无实际拦截；正式交易过滤 BLOCKED（路线 #17）。R0-V1 不替换 Corvus/星币侍从，不新增 LangGraph/JEV 依赖。
+- **资源边界**：本轮只读产出仅 ~17 KB（任务单+inventory），远低于 128 MiB；写母表/模型前资源事项必须解决，本轮回填时未擅自决定。
+- **结论**：P0 启动（只读资产盘点），未训练、未采集、未部署。待深度 P0 完成后决定日频观察版 vs 执行版，再签 P1 标签合同（§3.1 尚未签定）。
+
+## ENGINEERING-2026-10-10-R0V1-P0P1-RECONCILE（深度 P0 后推进价格尺度/候选源核销 + 起草 P1 标签合同）
+
+- **依据**：用户完成深度 P0 盘点（v2，登记路线 #17.1）并指示"先核销价格尺度与候选来源，再定稿 P1 标签合同；首版采用日频不利价格触阈值观察，暂不混入止损成交和交易收益；仍非训练就绪"。零网络、未采集、未构建标签、未训练。
+- **数据位置澄清**：完整日线在 `D:\a股数据\data_daily_parts\part_*.parquet`（**39 文件 / 11,614,446 行 / 20180102–20261009**）；`part_incr_*` 仅为近期增量（~20 万行）。此前 P0 脚手架误扫 `part_incr_*`，本轮已对完整集单遍核销。
+- **价格尺度核销（`risk_scale_reconciliation_v1.md`）**：`pre_close`↔`pct_chg` 可比 9,634,943 行中仅 2,621,934（27%）自洽、7,012,009（73%）不一致 → 主因 `pre_close` 为除权参考价而 `pct_chg` 用原始昨收（尺度/参考口径歧义，即"尺度不能放行"根因）；37 行 OHLC 异常**全量定位**（`_scale_recon_full.json`）；按码失配率 >5% 共 5,117 码，顶端 `000524/300176/002677/000521/000768` 等 ~98% 全程失配（"32 只冲突码"持久子集）。复权原语已定位：`step9_preflight/adjustment_chain.py::SymbolChain`（可信 `mult` 重建、PIT 安全）+ `opportunity_v2/gate1c/feb2026_adjustment_cache_v1/adj_cache.json`。**结论：尺度尚不能放行**；放行须一次全量复权链统一运行（待执行）。
+- **候选来源核销（`risk_candidate_source_reconciliation_v1.md`）**：三条候选线已识别（旧 GREEN 15,841 / 观察池 v1.1 3.47M / DUAL_PATH 1,013），映射至已冻结 GREEN 生成规则（pools `8ad4b703…`、coverage_probe `75071091…`、correctness_fix `e7be1987…`、engine `949eb09e…`）。推荐首版源 = **DUAL_PATH**（版本化、可哈希），选定须用户签署 P1 合同，三条线**不得混合分母**。
+- **P1 标签合同起草（`contracts/RISK_LABEL_CONTRACT_V1.md`，DRAFT/PENDING_USER_SIGNATURE）**：采用 **DAILY_PRICE_OBSERVATION** 主研究；定义 `MAE_5d=min(Low_d/R_P-1, d∈W)`、`Y_tail_5d=int(MAE_5d<=-delta_P)`；W=交易所日历后 5 交易日；`delta_P` 主公式 PROPOSED 固定 8% / 备选 ATR 归一（均待冻结，禁按表现挑阈值）；明确排除止损成交与伪可执行 PnL；状态机 `LABEL_COMPLETE/DATA_INSUFFICIENT/METADATA_UNKNOWN/ADJ_EVIDENCE_CONFLICT/CENSORED_TAIL`；签署与拟合单独授权（助手不代签/不 train）。待用户裁决项：候选源选定、delta_P 定档、交易所日历来源、复权链版本、折与样本门。
+- **交付物（risk_r0_v1/，增量 < 1 MiB，零网络）**：`risk_scale_reconciliation_v1.md`、`risk_candidate_source_reconciliation_v1.md`、`contracts/RISK_LABEL_CONTRACT_V1.md`、`_scale_recon_full.json`（37 异常 + 失配码）。
+- **状态重申**：仍**非训练就绪**；P1 合同为 DRAFT，须用户签署 + 另行 fit 授权（P4）才拟合；P5 影子仍无实际拦截。价格尺度放行与候选源选定均为 P1 签署前阻断项。本轮未训练/采集/部署/改旧输入。
+
+## ENGINEERING-2026-10-10-R0V1-BOUNDED-DIAGNOSIS（用户复核后：收回过度断言 + 有界尺度诊断 + 修订 P1/候选源定位）
+
+- **依据**：用户 2026-10-10 复核意见——(1) 根因未证明，收回"pct_chg 用原始昨收"的确定表述，且同因子乘不能修 `close/pre_close` 尺度差、0.05 容差=5pp 非严格标准，只做有界诊断；(2) DUAL_PATH 仅作工程试验人口，非多年验证，绑定 P 日盘前资格；(3) 固定 8% 但不代签；(4) P1 改 DRAFT_FOR_REVIEW、明 P/E 与决策时刻、删执行版状态、拆分三道授权。零网络、未全量复权、未生成标签、未训练。
+- **有界尺度诊断（`risk_scale_bounded_diagnosis_v1.py` + `risk_scale_bounded_diagnosis_v1.json`，25.8KB，只读单遍收集 73 样本码）**：五类样本实证结论——
+  1. `close/open/high/low` 与 `pct_chg` **同原始口径**（`pct_chg = close/prev_raw_close-1` 精确到 1e-6）；`pre_close` 是**前复权昨收**（锚定数据集最新日 2026-10-09，锚定日 `pre_close=prev_close_raw`，历史日随累计因子减小）。
+  2. `close/pre_close-1` 是**尺度混算无效比值**——之前"73% 不一致"的真正成因（尺度混算 vs pct_chg），**非数据损坏、非 pct_chg 单独口径问题**。
+  3. 标签 `MAE_5d=min(Low_d/R_P-1)` 的 `R_P`(close,原始) 与 `Low_d`(low,原始) **同尺度 → 核心比值尺度安全，无需全量统一**。硬约束：`pre_close` 禁用；窗口内公司行为用 `SymbolChain` 将事后 `low` 按 `factor_at(d)/factor_at(P)` 归一化到 P 日原始尺度。
+  4. **旧 32 只冲突码 = 累计复权因子最大的码**，`pre_close`(前复权) 与原始昨收几乎每行都差，是预期行为非损坏（证据：`300176@20180102` close=130.67 vs pre_close=35.493；`@20261009` 锚定日两者相等）。
+  5. 分片边界（000001/600000/600519 ~2120 行）无非事件 >11% 跳变 → 无跨分片尺度断裂。
+  6. 37 OHLC 异常全部 `open=high=low=0` 但 close 有效，集中在 2026-06-23/24，多为基金类(159xxx/16xxxx)；局部填充缺口非尺度损坏，`low=0` 须从窗口剔除（`DATA_INSUFFICIENT`）。
+- **v1 撤回项（在 `risk_scale_reconciliation_v1.md` 显式标记）**：(a) "pre_close 除权参考价 / pct_chg 用原始昨收"确定根因→收回为假设；(b) "全量复权链统一运行"建议→收回（同因子乘不变比值、且不能未验再调前复权分片）；(c) 0.05 容差作验收标准→收回（=5pp 非严格）。
+- **P1 合同修订（`contracts/RISK_LABEL_CONTRACT_V1.md` v1.0 DRAFT_FOR_REVIEW）**：状态改 `DRAFT_FOR_REVIEW`（未签不称冻结）；新增 §2 P/E 关系与决策可用时刻（P=候选决策日、R_P=P 收盘原始、W=P 后 5 交易日、decision_available_ts 建议 P 15:00:00 须冻结、资格绑 P 日盘前）；§3 固定 8% PROPOSED、暂不含 ATR 备选、不足如实报告不换阈值；§4 禁用 `pre_close`+窗口内 `SymbolChain` 归一；§6 状态机**删除未成交/残仓/顺延**等执行版状态；§9 **拆分三道授权**（合同签署 / 标签构建授权 / 拟合授权），不绑定尚不存在的训练入口；§5 明确 DUAL_PATH 仅试验人口、正式多年人口另冻。
+- **候选源定位修订（`risk_candidate_source_reconciliation_v1.md` §3）**：DUAL_PATH 1,013 定位为「R0 日频标签工程试验人口」（仅 2025–2026、非新盲测、不支撑多年验证）；正式多年训练人口另行核销冻结；人口资格须从候选原始记录绑 P 日及盘前资格，不得用 E 日首次行动/全天分支反推。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`risk_scale_bounded_diagnosis_v1.py/.json`、`risk_scale_reconciliation_v1.md`(v2)、`risk_candidate_source_reconciliation_v1.md`(§3 修订)、`contracts/RISK_LABEL_CONTRACT_V1.md`(v1.0 DRAFT_FOR_REVIEW)。
+- **状态重申**：仍**非训练就绪**；P1 为 DRAFT_FOR_REVIEW，未签署不生成标签；标签构建须单独批准、拟合须另授（P4）。本轮**未全量复权、未生成标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-BOUNDED-DIAGNOSIS-V2（用户第二轮复核：收回"原始口径已确证" + 补齐分片/复权证据 + 合同三处再改 + 标签构建器+合成测试）
+
+- **依据**：用户 2026-10-10 第二轮复核——(1) "原始口径已确证"过度：证据仅 8+10+5 样本且存在反例（000012@20180627、300176@20180529），pct_chg 既不匹配原始也不匹配除权；(2) 分片/复权证据须补齐：保留来源分片、独立手算验证 factor_at(d)/factor_at(P) 方向与精度、核验链完整性/无效乘数/覆盖终点；(3) 合同三处再改：决策可用时刻未知记 UNKNOWN 不伪造、候选资格收紧为"截至P日决策时刻已知的冻结候选资格"不新增 float_mv/停牌、OHLC 异常含主板/科创板且任一天无效→整条 NULL；(4) 诊断 JSON 的 NaN→null、补输入哈希清单；(5) 编写标签构建脚本+合成反例，真实数据入口默认拒绝；(6) DRAFT 不等于标签生成授权。零网络、未生成真实人口标签、未训练。
+- **v2 诊断（`risk_scale_bounded_diagnosis_v2.py` + `.json`，34.9KB，只读单遍 73 样本码）**：
+  - 全量扫描 103,996 行：匹配原始口径 103,709、匹配除权 52、**既不匹配 235** → `pct_chg` 口径降为 **HYPOTHESIS（强支持未确证）**；反例含 000012@20180627（raw_prev_ret=-14.43% vs pct_chg=-0.806%）、300176@20180529（raw=-47.6%/ex=+92% vs pct_chg=+0.31%，交易所除权参考收益）。
+  - 来源分片逐边界核验（`partition_boundary_by_shard`）：000001/600000/600519+冲突码，分片切换处相邻收益无非事件 >11% 跳变（样本有限，不构成全量放行）。
+  - 复权链独立手算验证（`hand_computed_direct_cases`，用 SymbolChain）：拆分 2:1（因子 1→2）、分红 1.05（1→1.05）、归一化方向（拆分后原始 50→100=pre-split 尺度）三项 PASS；`factor_at(d)/factor_at(P)` 方向与精度经手算确认，仍待更多案例+全量覆盖核验后放行。
+  - 链完整性：无效乘数 0、未排序 0；覆盖终点 `max_event_date=20260928`，4,136 码有 2025 后事件（覆盖 DUAL_PATH 窗口至 2026-09-28）。
+  - 输入哈希清单（`input_hash_manifest`）：39 日线分片 + `adj_cache.json` 的 SHA256/大小；NaN→null（v1 含 NaN 致严格 JSON 失败，已修）。旧 v1 JSON 原样保留。
+- **标签构建器（`build_r0_labels_v1.py`）**：实现 DAILY_PRICE_OBSERVATION；`MAE_5d=min(Low_d/R_P-1)`、`Y_tail_5d=int(MAE<=-0.08+1e-9)`（边界含等号 + 浮点容差）；pre_close 禁用；窗口内公司行为用 SymbolChain 归一化、缺链→ADJ_EVIDENCE_CONFLICT；窗口任一天缺失/无效价格→整条 NULL（不删天取最小）；决策时刻未知记 None。**真实入口 `build_real_population(authorize=False)` 默认抛 RefuseRealDataError（DRAFT≠授权）**。自带 7 类合成测试（8%边界/公司行为归一/缺一天/无效价格/日历尾部/未知可用时间/缺链）全 PASS + 守卫 PASS。
+- **P1 合同三处再改（`contracts/RISK_LABEL_CONTRACT_V1.md` v1.0 DRAFT_FOR_REVIEW）**：§1 软化"原始口径已确证"为"日线存储值，属有界假设非已确证"；§2 `decision_available_ts` 未知记 UNKNOWN 不伪造、候选资格收紧为"截至P日决策时刻已知的冻结候选资格"（取自 `dual_path_e_day_registry.json`+`pool_a_sdp/pool_b_lvb_members.parquet`，不新增 float_mv/停牌）；§4 OHLC 异常含主板/科创板、任一天无效→整条 NULL；§9/§10 明确"DRAFT 名称不构成标签生成授权"。
+- **就绪阻碍清单（`risk_r0_v1_readiness_blockers.md`）**：10 项阻碍（pct_chg 口径假设、决策时刻未知、归一化方案待放行、缓存覆盖终点对齐但须全码核验、37 异常含主板/基金、候选资格冻结源、日历来源、行业/ST PIT、三道授权未签）。建议顺序：签 SIGN → 单独 LABEL_BUILD（关 3/4/5/6）→ 1,013 人口生成 DRAFT 标签 → FIT（P4，不训练）。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`risk_scale_bounded_diagnosis_v2.py/.json`、`build_r0_labels_v1.py`、`risk_scale_reconciliation_v1.md`(§5 更正)、`contracts/RISK_LABEL_CONTRACT_V1.md`(三处改)、`risk_r0_v1_readiness_blockers.md`。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成（默认拒绝）**；三道授权均未签；DRAFT≠标签构建授权。本轮**未全量复权、未生成真实人口标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-BUILDER-INVARIANTS（用户复跑测试发现构建器未守基本不变量；本轮守不变量 + 双因子授权门 + 证据措辞收紧；零网络）
+
+- **依据**：用户 2026-10-10 复跑现有测试并补纯合成反例，指出构建器仍把错误输入标成 `LABEL_COMPLETE`：① 复权因子 NaN→mae=NaN/y_tail=0 当无风险；② 返回柱日期≠请求仍生成标签；③ 日历重复返回同天→同日累计成"五日窗口"；④ 候选资格 UNKNOWN/时刻未知仍标完整；⑤ close>high 时 `DailyBar.valid()` 返回 True。并收紧两处证据措辞：最大事件日≠覆盖终点（须采集截止/覆盖证据，不得据 20260928 断言全覆盖）；"10送0.5"是送股非现金分红（应补真实现金分红手算案例）；合同 §1 称尺度为假设、§4 却称已确定 RAW 须统一。范围=修构建器+合成测试+收口合同；SIGN/1,013 LABEL_BUILD/FIT 均暂不放行。
+- **构建器不变量加固（`build_r0_labels_v1.py` v2）**：
+  1. **价格与因子校验**：`DailyBar.valid()` 新增 `low<=open<=high` 且 `low<=close<=high`（close>high 判无效）；`_normalize_low` 要求因子与归一结果有限且正数，否则 `ADJ_EVIDENCE_CONFLICT`；失败保持 NULL，绝不生成 NaN/负标签。
+  2. **日期与日历校验**：返回柱 `date` 必须 == 请求日期；W 须严格递增、无重复（`len(set(W))==len(W)` 且相邻递增），否则 `DATA_INSUFFICIENT`；日历须为已验收源（合同§4 绑 canonical `trading_calendar`）。
+  3. **资格与可用时刻**：实际校验 `frozen_eligibility`（须 ∈ {A_SDP,B_LVB,ELIGIBLE}）与 `candidate_rule_version`（非空）；未知资格→`DATA_INSUFFICIENT` 阻断；`decision_available_ts` 未知→`training_eligible=False`（纯价格工程标签可保留但不得训练，须合同裁决）。
+  4. **输出与授权门**：`LabelResult` 补齐 `window_dates` / `source_refs` / `training_eligible` / 状态；真实入口改**双因子授权**——`enable_real_data_build(auth_record)`（须含 signer/authorized_at/scope=LABEL_BUILD/record_hash=sha256 校验）开启 `REAL_DATA_BUILD_ENABLED`，且调用 `build_real_population(authorize=True)` 二者缺一即拒；**`authorize=True` 单独不再能绕过**（第二道门可达）。
+  5. **测试**：7 原用例 + 5 新反例（NaN 因子/错日期/重复日历日/未知资格/close>high）+ 3 授权门，**18 项全 PASS**；`__main__` 任一失败 `sys.exit(1)`（不再仅打印）。
+- **复权链手算案例补现金分红**：`hand_computed_direct_cases` 现有 拆分 2:1 / **送股 10送0.5（1.05，属乘性非现金分红）** / **现金分红（股价10派0.50→除息价9.50，乘子=10/9.5，后复权还原）** / 归一化方向（50→100、9.50→10.00），**五项全 PASS**。
+- **覆盖终点措辞更正（v2 诊断 + 核销 + 阻碍清单）**：`max_event_date=20260928` 仅是最晚已存在事件日，**不等于完整覆盖终点**；缓存无采集截止/覆盖清单，不得据 20260928 断言全覆盖；`codes_total=5477 / codes_ok=5407 / codes_without_chain=70`（70 码无链→标签化判冲突）；覆盖终点 UNVERIFIED，须采集截止证据+逐码核验。
+- **合同 §1/§4 统一（假设口径）**：§4 改"close/low（日线存储值，同尺度；口径属有界假设，见 §1，非已确证）"，归一化标为"待验方案"；§2 补资格/版本实际校验与未知阻断；§6 补 `training_eligible` 定义（未知→False，纯价格工程标签不得训练）与必填输出字段（window_dates/source_refs/训练适格）；§7 反例清单补 5 项不变量。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`build_r0_labels_v1.py`(v2 不变量加固)、`risk_scale_bounded_diagnosis_v2.py/.json`(覆盖终点更正+现金分红案例+链计数)、`risk_scale_reconciliation_v1.md`(§5 更正)、`contracts/RISK_LABEL_CONTRACT_V1.md`(§1/§2/§4/§6/§7 收紧)、`risk_r0_v1_readiness_blockers.md`(阻碍 2/3/4 更正)。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成（默认拒绝，双因子门）**；三道授权均未签；DRAFT≠标签构建授权。本轮**未全量复权、未生成真实人口标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-BUILDER-GATES-V3（用户复跑 18 项全过后追加反例，发现四组门禁仍未落实；本轮补四组门禁 + 对应失败反例；零网络）
+
+- **依据**：用户 2026-10-10 第二轮复核——18 项合成测试全过，但追加反例发现四组门禁未落实：① 70 条 EMPTY 不能一律判冲突（EMPTY/缺失/失败须分开，EMPTY 仅当覆盖证据充分才按无公司行为）；② 日历来源未真正验收（`calendar_source="UNVERIFIED"` 仍 LABEL_COMPLETE，窗口含 P 当天也能过）；③ 可用时间仅查"非空"（`0`/非法月/P 日中午均标训练适格）；④ 授权 scope 子串漏洞（`"NOT_LABEL_BUILD"` 也能开）。范围=只修四组门禁+对应反例，不增模型/特征；外部日历验收、逐码复权覆盖证据仍须另行核销，合成测试不能替代。SIGN/1,013 LABEL_BUILD/FIT 均暂不放行。
+- **四组门禁加固（`build_r0_labels_v1.py` v3）**：
+  1. **EMPTY/MISSING/FAIL 分离**：`chain_status_for(code)` 返回 `OK/EMPTY/MISSING/FAIL`；`MISSING`/`FAIL`→`ADJ_EVIDENCE_CONFLICT`（缺链）；`EMPTY` 仅当 `chain_coverage_verified=True`（外部覆盖证据充分）才按无公司行为（因子 1.0）处理，否则 `DATA_INSUFFICIENT`（不判冲突）。`OK` 走正常归一化。
+  2. **日历真正验收 + 窗口恰为 P 后**：新增 `calendar_verified` 门（未验收→`DATA_INSUFFICIENT` 阻断）；窗口须满足 `W[0] > P_date` 且全严格递增、无重复、长度=horizon（**不得含 P 当天**，仅查递增/去重不足以排除）——日历返回 P 当天或重复日均被拦截。
+  3. **可用时间真实校验 + label_end_time**：`validate_decision_ts(ts, P_date)` 要求 14 位合法日历时间戳且 **≥ P 日 15:00**（参考价取 P 收盘）；`0`/非法月/P 日中午等均无效→`training_eligible=False`（标签仍按纯价格工程计算，不得训练）。补齐合同要求的 `label_end_time = W[-1] 15:00`（标签全量可计算的最早点）。
+  4. **授权真实核验（非两布尔）**：`enable_real_data_build` 改为 `scope` **精确等于** `"LABEL_BUILD"`（禁子串）、记录须绑定 `contract_version`/`population_version` 并纳入 `record_hash`；`build_real_population` 复核授权记录版本与构建器一致，任一不符→拒绝。`authorize=True`+开关 两条件 ≠ 有效授权核验。
+- **测试**：原 12 标签用例 + 3 授权门 + **新增 12 项**（t13 EMPTY/MISSING/FAIL 三态分两条、t14 日历未验收/窗口含 P、t15 ts=0/非法月/中午/合法、t16 scope 子串拒绝/版本绑定不符/两因子通过）= **27 项全 PASS**；`__main__` 任一失败 `sys.exit(1)`。
+- **合同收口（`contracts/RISK_LABEL_CONTRACT_V1.md`）**：§2 决策时刻须 14 位合法且 ≥P 日 15:00；§4 补 EMPTY/MISSING/FAIL 分离与日历已验收（W 恰为 P 后连续 horizon 日、不含 P 当天）；§6 补 `label_end_time` 定义与 ts 有效才适格；§7 反例清单补四组门禁；§9 LABEL_BUILD 改为真实授权核验（精确 scope + 版本绑定，两布尔前置≠有效授权）。
+- **就绪阻碍更新（`risk_r0_v1_readiness_blockers.md`）**：阻碍 2（ts 校验已落地但真实到达时间仍须管线提供）、4（覆盖终点 UNVERIFIED + EMPTY/MISSING/FAIL 分离已落地但逐码覆盖证据须外部核销）、7（日历 `calendar_verified` 门已落地但来源逐日可证性须外部核销）、9（授权真实核验已实现）。明确：构建器门禁已就位但底层外部核销（canonical 日历验收、逐码链覆盖）仍独立，合成测试不能替代。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`build_r0_labels_v1.py`(v3 四组门禁)、`contracts/RISK_LABEL_CONTRACT_V1.md`(§2/§4/§6/§7/§9 收口)、`risk_r0_v1_readiness_blockers.md`(阻碍 2/4/7/9 更新)。v2 诊断/核销本轮未改动（仍覆盖终点 UNVERIFIED + 现金分红案例）。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成（默认拒绝，真实授权核验门）**；三道授权均未签；DRAFT≠标签构建授权。本轮**未全量复权、未生成真实人口标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-BUILDER-GATES-V4（用户复跑 v3 发现两处实质漏口 + 一处测试质量；本轮修这两处逻辑 + 一个反例，不扩架构；零网络）
+
+- **依据**：用户 2026-10-10 复跑 v3（30 项全 PASS）指出两处实质漏口与一处测试质量：(1) 复权覆盖门只管 EMPTY，OK + chain_coverage_verified=False 仍放行、UNKNOWN/未提供状态回调也放行——"有链事件≠链完整"，应要求 OK、EMPTY 都有覆盖 `[P,W末日]` 的逐码证据，未知/未提供默认阻断，不能靠 factor_at() 正数放行；(2) 决策时刻可晚于整个标签窗口（P=20260105、ts=20260112160000，窗口已结束仍训练适格）——目标错位，须冻结盘后决策窗口 `[P 15:00, W[-1] 15:00]`，晚到仅工程记录不得训练，且 `W[-1] 15:00` 只是价格观察窗口结束、日线到达/公司行为核销完成时刻应另列（data_complete_time）；(3) scope 子串反例缺合同/人口字段，可能被"缺字段"提前拒绝而未测到 scope——应补齐其余合法字段+匹配哈希，只改 scope 验证拒绝原因。范围=修这两处逻辑+一个反例+测试质量，不扩写架构；随后转向真实日历、逐码复权覆盖、候选资格的外部核销，通过后才签署并单独批准 1,013 人口标签工程构建（仍非训练授权）。
+- **两处逻辑修复（`build_r0_labels_v1.py` v4）**：
+  1. **覆盖门扩展至 OK 与未知状态**：复权链状态回调**未提供 / `UNKNOWN` → 默认阻断** `DATA_INSUFFICIENT`（不再靠 factor_at() 返回正数放行）；**`OK` 与 `EMPTY` 都须 `chain_coverage_verified`（覆盖 `[P,W末日]` 逐码证据）**，缺覆盖 → `DATA_INSUFFICIENT`（有链≠链完整）；`EMPTY` 已验覆盖才按无公司行为（因子 1.0）。`MISSING`/`FAIL` 仍 → `ADJ_EVIDENCE_CONFLICT`。
+  2. **决策窗口上界 + 字段分离**：`validate_decision_ts(ts, P_date, window_end_date)` 新增上界——`ts > W[-1] 15:00 → after_window_end → training_eligible=False`（晚到仅工程记录）。`LabelResult` 新增 `data_complete_time`（日线到达+公司行为核销完成，须另行核销，合成测试为 `None`）；`label_end_time` 明确为价格观察窗口结束（W[-1] 15:00），不得宣称 15:00 即完整可用。
+  3. **测试质量**：scope 子串反例改用 `make_auth_record()` 补齐 signer/authorized_at/contract_version/population_version + 匹配 `record_hash`，**只改 scope="NOT_LABEL_BUILD"**，并断言拒绝原因含 "scope"——确认真正测到 scope 精确匹配而非被缺字段提前拒绝。
+- **测试**：原 18 标签用例 + 3 授权门 + **新增 6 项**（t17 OK 缺覆盖/状态未提供/UNKNOWN/OK 已验、t18 晚于窗口不适格/窗口内适格）= **37 项全 PASS**（用户报告 v3 为 30 项，本轮新增 7 项验证两漏口）；`__main__` 任一失败 `sys.exit(1)`。
+- **合同收口（`contracts/RISK_LABEL_CONTRACT_V1.md`）**：§4 覆盖门改为 OK/EMPTY 都须 `[P,W末日]` 逐码证据、UNKNOWN/未提供默认阻断；§6 训练适格改为决策须落 `[P 15:00, W[-1] 15:00]`、晚到仅工程记录，并区分 `label_end_time`（价格观察窗口结束）与 `data_complete_time`（另行核销）；§7 反例清单补两组门禁。
+- **就绪阻碍更新（`risk_r0_v1_readiness_blockers.md`）**：阻碍 2（决策窗口上界 + label_end_time/data_complete_time 分离）、4（OK 亦须覆盖、UNKNOWN/未提供默认阻断、有链≠链完整）。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`build_r0_labels_v1.py`(v4 两漏口修复+测试质量)、`contracts/RISK_LABEL_CONTRACT_V1.md`(§4/§6/§7 收口)、`risk_r0_v1_readiness_blockers.md`(阻碍 2/4 更新)。v2 诊断、v3 门禁本轮未改动。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成（默认拒绝，真实授权核验门）**；三道授权均未签；DRAFT≠标签构建授权。本轮**未全量复权、未生成真实人口标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-BUILDER-WINDOW-V5（用户复跑 v4 指出第三处时间语义漏口：决策窗口上界放太宽；本轮收紧为冻结盘后窗口 [P 15:00, 下一交易日开盘)；零网络）
+
+- **依据**：用户 2026-10-10 第三轮复核——v4 把决策窗口上界放宽到 `W[-1] 15:00`，等于允许 P 后第 1～5 天才作的决策也训练；此时标签里部分价格已发生，不再是"决策后的未来五日风险"（目标错位）。首版收紧：① 决策须落在**冻结盘后窗口 `[P 15:00, 下一交易日开盘)`**（`< W[0] 09:30`），窗口日内（P+1..P+5）决策不再适格；② 特征只使用截至 P 收盘信息，不因盘后处理混入下一交易日数据；③ 超时/到达未知：保留工程标签、`training_eligible=False`、**不移动 P 或标签窗口**；④ `label_end_time` 与 `data_complete_time` 分离保留，后者用于核验标签何时真正成熟、何时可用于拟合。范围=只修这一处时间语义+反例，不扩架构；下一步转向交易所日历、逐码复权覆盖、P 后候选资格与价格尺度的外部核销，通过后才签署并另批 1,013 人口标签工程构建（仍不自动训练）。
+- **逻辑修复（`build_r0_labels_v1.py` v5）**：`validate_decision_ts(ts, P_date, next_open_date)` 上界由 `W[-1] 15:00` 改为**下一交易日开盘**（`next_open_date 09:30`，即 `W[0]`）；`ts >= 下一交易日 09:30 → at_or_after_next_open → training_eligible=False`（不移动 P/窗口）。`build_one` 现传 `W[0]`（下一交易日）而非 `W[-1]` 作上界。`label_end_time`（=W[-1] 15:00，价格观察窗口结束）与 `data_complete_time`（日线到达+公司行为核销完成，须另行核销）分离保留。
+- **测试**：原用例 + 覆盖门 4 项 + **决策窗口重写为 4 项**（t18_postmarket_eligible：P 日盘后 19:00 适格；t18_at_next_open_not_eligible：恰在下一交易日开盘不适格；t18_within_window_not_eligible：窗口第 2 日不适格；t18_decision_after_window：远晚于窗口不适格）+ 修正 t13b/t15_ok/t17d 的有效决策时间戳改为 P 日盘后 = **39 项全 PASS**；`__main__` 任一失败 `sys.exit(1)`。
+- **合同收口（`contracts/RISK_LABEL_CONTRACT_V1.md`）**：§6 训练适格改为决策须落 `[P 15:00, 下一交易日开盘)`、窗口日内决策不再适格、工程标签不移动 P/窗口；§7 反例清单改述。
+- **就绪阻碍更新（`risk_r0_v1_readiness_blockers.md`）**：阻碍 2 改为决策窗口 `[P 15:00, W[0] 09:30)`、窗口日内决策仅工程记录、不移动 P/窗口，`data_complete_time` 用于核验标签成熟时点。
+- **交付物（risk_r0_v1/，增量 < 1 MiB）**：`build_r0_labels_v1.py`(v5 决策窗口收口)、`contracts/RISK_LABEL_CONTRACT_V1.md`(§6/§7 收口)、`risk_r0_v1_readiness_blockers.md`(阻碍 2 更新)。v2 诊断、v3/v4 门禁本轮未改动。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成（默认拒绝，真实授权核验门）**；三道授权均未签；DRAFT≠标签构建授权。本轮**未全量复权、未生成真实人口标签、未训练、未采集、未部署、未改旧输入**。
+
+## ENGINEERING-2026-10-10-R0V1-EXTERNAL-VERIFICATION（构建器 v5 收口确认；本轮只交付外部证据核销报告；零网络）
+
+- **依据**：用户 2026-10-10 确认 v5 决策窗口修正符合首版定义、构建器可暂时收口，转入外部证据核销；并纠正一句：应核销"**截至 P 日决策时刻已知的候选资格**"（非"P 后候选资格"，不能用后续行动反推）。要求本轮只交付一份外部核销报告，覆盖四类证据：① 日历（来源/版本/哈希/覆盖范围 + P 后五交易日准确映射）；② 复权（逐码 OK/EMPTY/缺失/失败 + 覆盖 [P,W末日] 证据，**不得用单一全局布尔代替逐码验收**）；③ 候选（逐条绑定原始资格记录/P/规则版本/可用时间证据）；④ 价格尺度（明确 RAW 或已调整口径、验证公司行为跨日归一、避免重复复权）；不能证明的样本保持隔离、不补造证据。核销完成后才签署 P1、单独批准 1,013 人口标签工程构建，再据标签覆盖/正负样本/日期簇数量判断训练可行性。
+- **交付物**：`risk_r0_v1/risk_r0_v1_external_verification.md`（外部证据核销报告）。报告基于已查源码/缓存实地核实 canonical 源：`step9_preflight/trading_calendar.py`（`load_calendar`/`next_trading_day`/`data_epoch_fingerprint`，源自 `data_daily_parts`）、`step9_preflight/data_source_provenance.py`（`get_daily`=RAW 日线、`get_adjustment_http`=复权事件）、`opportunity_v2/gate1c/feb2026_adjustment_cache_v1`（5477/5477，OK=5407/EMPTY=70/FAIL 瞬态 3 重试成功）、`feb2026_universe_freeze_v1`（fingerprint=`daily_parts@34files_…_epoch20260917_h51f0af4422d8ab5c`）。四类证据均用表格列"要求/现状/结论"，明确标注可引用 vs 待逐码核验/隔离；并列出构建器对外契约（calendar_next/daily_lookup/chain_for/chain_status_for/chain_coverage_verified/calendar_verified/frozen_eligibility 须由真实管线喂入），指出 `chain_coverage_verified` 与 `calendar_verified` 仅为全局开关占位、真实管线须改为逐码覆盖与 canonical 日历核销结果开启。
+- **阻碍同步（`risk_r0_v1_readiness_blockers.md`）**：状态行改为 v5（39 项 PASS + 决策窗口收口）并引报告；"已就绪"补 v5 门禁；阻碍 4 明确全局 `chain_coverage_verified` 须改为逐码覆盖证据（不得单布尔代替）；阻碍 6 改为"候选资格=截至 P 日决策时刻已知，逐条绑定原始资格记录+P+规则版本+可用时间证据"，落"非 P 后候选资格、不反推"。
+- **未做**：未写真实标签、未训练、未全量复权、未采集、未部署、未改旧输入；构建器代码未改动（仅文档/报告）。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成**；三道授权均未签；DRAFT≠标签构建授权。下一步按报告 §6 缺口清单逐项核销，通过后才签署 P1 并单独批准 1,013 人口标签工程构建（仍非训练授权）。
+
+## ENGINEERING-2026-10-10-R0V1-VERIFY-V2（用户指出报告是"来源定位＋待办"非通过报告；三处表述收紧；产出机器可核验证据表；零网络）
+
+- **依据**：用户 2026-10-10 复核——报告须为机器可核验证据而非说明文字；并纠正三处过度陈述：(1) canonical 日历 ≠ 已认证交易所日历（load_calendar 仅汇总日线日期，不证无漏交易日，须与独立交易所日历逐日比对）；(2) data_epoch_fingerprint 非内容哈希（仅路径/大小/mtime/日期终点，旧 34 文件/20260917 指纹不能绑定当前输入）；(3) get_daily 未保证 RAW（parquet 优先+HTTP 兜底，无尺度转换/验证，"原样返回"≠"未复权"，"设计上单复权"降为待验证假设）。要求直接产出逐项证据表，缺证据登记"未核销"，不强行通过。
+- **交付物**：`risk_r0_v1/verify_external_evidence.py`（只读、零网络、可复跑）+ `verify_external_evidence_output.json` + 重写 `risk_r0_v1_external_verification.md`（v2）。实测真实本地数据：
+  - 日历：39 文件 / 2125 交易日 / 20180102..20261009；当前 fingerprint=`daily_parts@39files_…_epoch20261009_…`，冻结时=`daily_parts@34files_…_epoch20260924_…` → **指纹漂移，旧指纹不能绑定当前输入（坐实第 2 点）**；周末污染 0；长缺口 118；与独立日历差集 **UNVERIFIED**。
+  - 复权：adj_cache OK=5407 / EMPTY=70 / MISSING(vs 并集 5477)=0 / FAIL(去重)=3（301552,603095,688686）；覆盖终点 max_event_date=20260928；逐候选 [P,W] 覆盖 **UNVERIFIED**。
+  - 候选：DUAL_PATH=1,013 已识别但实际存储表待定位（reconciliation §4.1）；逐行绑定（原始资格引用/P/规则版本/decision_available_ts）全 **UNVERIFIED**。
+  - 价格尺度：日线 schema 含 pre_close/pct_chg；**39 文件 SHA256 与库存清单全 match=39/mismatch=0**（内容哈希验证，坐实第 2 点）；库存清单 input_manifest 混入 9 个非数据文件（.py/.md/.json）且 parquet 条目陈旧（已指出缺陷）；RAW/已调整口径 **UNVERIFIED_HYPOTHESIS**；公司行为跨日案例 **UNVERIFIED**。
+- **结论**：无任何一项达"外部核销通过"；可确认日线文件内容哈希一致、复权状态分离、日历模块一致；仍 UNVERIFIED 四项（独立日历差集/逐候选复权覆盖/1,013 逐行资格/RAW 尺度与公司行为跨日）。**目前仍不宜签署放行或训练**。
+- **未做**：未写真实标签、未训练、未全量复权、未采集、未部署、未改旧输入；构建器代码未改动。
+- **状态重申**：仍**非训练就绪**；P1 DRAFT_FOR_REVIEW；**真实人口标签数据集未生成**；三道授权均未签；DRAFT≠标签构建授权。
+
+## ENGINEERING-2026-10-11-R0V1-PER-CANDIDATE-V1（用户裁定按序解证据缺口；交付逐候选 PASS/隔离表；关闭日历/资格绑定/逐候选复权/价格尺度四项核销；零网络）
+
+- **依据**：用户 2026-10-10 裁定——证据盘点已完成但核销未完成，按序推进：① 定位 1,013 原始表逐行绑定（可用时刻无证据保留 UNKNOWN）；② 独立日历比对（先查本地）；③ 复权逐候选覆盖 + FAIL 日志按码对账（区分历史/当前失败，不重复计数）；④ 价格尺度核查生成链 + 公司行为跨日对拍（哈希一致≠RAW）。交付=逐候选 PASS/隔离原因表及汇总，缺证据者保留人口中明确隔离；不放行真实标签构建或训练。
+- **交付物**：`risk_r0_v1/verify_per_candidate_v1.py`（只读零网络可复跑）+ `per_candidate_verification_v1.csv`（1,013 行）+ `per_candidate_verification_summary_v1.json` + `per_candidate_verification_summary_v1.md`。构建器未改动。
+- **四项核销结果**：
+  1. **1,013 定位与逐行绑定（关闭）**：人口=`r1_branch_at_decision_v0_1_2.json` events（1,013/706 码/1,013 唯一(code,E)）；P 绑定 fetch list **1,013/1,013**；资格绑定 pool_a/pool_b **1,013/1,013**（(code,P)∈对应池，0 错配）；规则版本人口级 `DUAL_PATH_FETCH_LIST_V1@sha256`；W 映射 W[0]==E 全一致；**decision_available_ts 全 UNKNOWN**（按用户指示，构建器语义 training_eligible=False）。
+  2. **独立日历比对（关闭）**：本地已有权威源=akshare 自带官方交易日历（8,797 日 19901219..20261231）；区间 20180102..20261009 **官方 2,125=日线推导 2,125，缺 0 多 0 完全一致**；长缺口确认为节假日。
+  3. **复权逐候选（关闭至抓取时点）**：候选 OK=993/EMPTY=19/MISSING=1；FAIL 对账：3 码（301552/603095/688686）**历史失败最终已 OK**、当前失败 0；抓取时点=2026-09-28；**6 条 W_end（20261008-09）超抓取时点→隔离待刷新，1 条 301682 不在缓存→待补抓**。
+  4. **价格尺度（关闭，重大发现）**：生成链=SDK `fq="qfq"` 主路径+HTTP 原始兜底（`build_full_market_daily`/`build_increment`）。本地实证（40 小额+15 大乘子事件+非事件抽查）：**OHLC=RAW 真实成交价**（茅台 2025-01-02 close=1488；除权跳空 close_ratio≈1/mult；干净案例 close_prev/pre_close=mult 精确）；**pre_close=前复权 qfq（锚=抓取时点）**——非事件日 close[d-1]/pre_close[d] 为每码常数（000001≈1.088、600519≈1.037），即 P0 诊断 690 万行不一致的真正原因，**锚随抓取漂移、PIT 危险、禁用作价格参考**；**pct_chg=交易所口径**（vs 原始除权参考价）；BSE 920xxx 部分行未除权调整（登记）。构建器 `low×factor_at(d)/factor_at(P)` 单复权方向正确，实证通过；SDK fq 语义未直测（零网络），以存储行为实证替代。
+- **汇总**：**1,003 PASS / 10 ISOLATED**（6 ADJ_COVERAGE_BEYOND_EPOCH + 3 DATA_MISSING 停牌 + 1 ADJ_MISSING），隔离者保留完整人口不补造。阻碍清单重写：关闭日历核销/资格绑定/逐候选复权/价格尺度四项，残留=decision_available_ts 全 UNKNOWN（唯一人口级硬缺口）+ 复权 7 条待复验 + 停牌 3 条真实缺失 + 授权三道未签。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签。下一步：数据管线补逐行到达时刻证据；复权缓存刷新后复验 7 条；再裁决标签工程构建。
+
+## ENGINEERING-2026-10-13-R0V1-PER-CANDIDATE-V1-SCOPING（用户裁定"1,003 PASS 偏宽"；三处结论撤回/降级；六维度分别判定、保留完整人口；零网络）
+
+- **依据**：用户复核 CSV/JSON/脚本——逐候选绑定有实质进展，但 (a) 抓取时间被当成完整覆盖终点（既非逐码抓取时间、也不证源返回完整公司行为历史）；(b) RAW 结论与机器产物不一致（JSON 写"非已核销 RAW"、40 例 38 RAW_LIKE/1 QFQ_LIKE/1 OTHER，2% 容差下小乘子 RAW/QFQ 同判却先归 RAW）；(c) AkShare 包内日历不能称"官方"（本地源码注来源为新浪）。另：成员命中证历史成员关系、不独自证当时已知；fetch list 哈希是输入版本、非算法版本。要求把总 PASS 拆成**成员绑定/日历对照/复权状态/覆盖/尺度/时间证据**六维度分别判定、保留完整人口；并明确**历史到达时间无原始日志无法由今天管线追溯补造**，可另签"历史标签工程用途"范围保留全部 `training_eligible=False`、前瞻运行再真实记录，不为训练制造时间证据。
+- **脚本修订（`verify_per_candidate_v1.py`）**：① 移除"W_end≤max(fetched_at) 即覆盖通过"，`coverage_verified=UNVERIFIED`（1,013/1,013）；② 尺度判别加 `AMBIGUOUS`（RAW/QFQ 同判单列），结果 AMBIGUOUS=29/RAW_LIKE=9/QFQ_LIKE=1/OTHER=1，`scale_verified=UNVERIFIED`；③ AkShare 日历登记 `akshare 1.18.94`/`sha256=f1f1ce33…`/来源新浪（随包分发，非官方认证）；④ 资格拆分 `membership_binding`（BOUND=1013，历史成员关系）与 `eligibility_known_at_P_day_decision`（UNVERIFIED=1013）及 `input_version`(fetch list `5a153a06…`)/`algorithm_version`(生成脚本 `4b879aad…`)；⑤ `structural_verdict` 仅对结构性缺数据隔离（4 条：3 DATA_MISSING + 1 ADJ_MISSING），软缺口不隔离。
+- **结果**：structural PASS=1,009 / ISOLATED=4；六维度：成员绑定 BOUND=1013、日历对照 ok=1013、复权状态 OK=993/EMPTY=19/MISSING=1、覆盖 UNVERIFIED=1013、尺度 UNVERIFIED=1013、时间 UNKNOWN=1013；FAIL 对账 3 历史失败已 OK、当前 0；与 AkShare 包内日历零差集（独立对照）。
+- **交付物**：`per_candidate_verification_v1.csv`（六维度列）、`per_candidate_verification_summary_v1.json`、`per_candidate_verification_summary_v1.md`（三处降级+六维度+历史时间不补造建议）、`verify_per_candidate_v1.py`（可复跑）。构建器未改动。
+- **阻碍同步**（`risk_r0_v1_readiness_blockers.md`）：改为六维度诚实口径——"已可证"仅列成员绑定/日历映射零差集/复权最终状态/P 与资格引用分列版本；"未核销"列覆盖/尺度/当时已知/历史到达时刻；结构性隔离 4 条；新增"历史标签工程用途"范围建议（全部 training_eligible=False、前瞻记录、不补造）。
+- **未做**：未写真实标签、未训练、未全量复权、未采集、未部署、未改旧输入/构建器。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；覆盖/尺度/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED。下一步：签"历史标签工程用途"、前瞻落盘真实到达时刻、独立覆盖证据、复权缓存刷新复验 7 条、尺度全量核销；再裁决标签工程构建。
+
+## ENGINEERING-2026-10-13-R0V1-PER-CODE-SCALE-COVERAGE（用户：把"结构能对上"与"标签证据足够"分开；1,009 structural PASS≠标签准入≠训练就绪；按序先解尺度+逐码覆盖；两处谨慎；继续证据核销、不加固训练开关；零网络）
+
+- **依据**：用户 2026-10-13 裁定——(1) 先解决价格尺度与逐码复权覆盖，即使只生成工程标签也不能把 RAW/QFQ 未明数据直接套复权公式，未核销者标签保持 NULL；(2) 再签"历史标签工程用途"合同，允许核销通过记录生成工程标签、其余留原因，当前全部 training_eligible=False 不进拟合；(3) 并行准备前瞻记录，分别保存候选资格可知时刻/数据实际到达时刻/决策时刻，不用一个时间戳代替三者，验收授权后才启动。谨慎：3 条缺日线只记"缺日线"、独立停牌证据充分才称"停牌缺行"；刷新 7 条只能补状态/内容、不能自动证覆盖完整。历史到达日志缺失不意味所有历史研究永久不可做，以后可另签"按历史价格重建的研究"范围、明确假设局限、不能冒充当时真实可用回放。当前应继续证据核销，不是继续加固训练开关。
+- **脚本修订（`verify_per_candidate_v1.py`）**：① 尺度判别下沉到**逐码**：对每候选码用其复权缓存中判别力足够事件（|mult−1|≥5%）对拍 `close[d−1]/pre_close[d]` vs mult，分 RAW/AMBIGUOUS/QFQ/UNVERIFIED；面板改加载全部 706 候选码（非 40 样本代替）；② 新增 `coverage_chain_ok(cache,c)`（状态层面链可构建；None/MISSING→False，修复 301682 误判）；③ 标签准入 `label_eligibility`：structural ISOLATED / scale≠RAW / coverage_chain 不可用 → `LABEL_NULL`，否则 `ENGINEERING_OK`；`training_eligible` 全 False；④ "NULL" 改名为 `LABEL_NULL` 避免 pandas 读回被当 NA。
+- **结果（逐码）**：structural PASS=1,009 / ISOLATED=4；**尺度 RAW=147 / AMBIGUOUS=321 / UNVERIFIED=545**；覆盖链可构建 True=1,012 / False=1（301682）；**标签准入 ENGINEERING_OK=147 / LABEL_NULL=866**（NULL 原因：scale_unverified(UNVERIFIED)=541、scale_unverified(AMBIGUOUS)=321、structural_isolated=4）；training_eligible 全 False；FAIL 对账 3 历史失败已 OK 当前 0；与 AkShare 包内日历零差集。样本补充对拍 40 例 AMBIGUOUS=29/RAW_LIKE=9/QFQ_LIKE=1/OTHER=1。
+- **交付物**：`per_candidate_verification_v1.csv`（含 scale_class/coverage_chain_ok/label_eligibility/training_eligible 等）、`per_candidate_verification_summary_v1.json`、`per_candidate_verification_summary_v1.md`（v1.1：逐码尺度/覆盖+标签准入+顺序对齐+两谨慎+历史重建研究范围）、`verify_per_candidate_v1.py`（~19s 可复跑）。构建器零改动。
+- **阻碍同步**（`risk_r0_v1_readiness_blockers.md`）："已可证"补入逐码尺度 147 条 RAW 核销、覆盖链状态可用；"未核销"保留覆盖完整性/全人口尺度 866/当时已知/历史到达时刻；新增标签准入段（147 ENGINEERING_OK / 866 LABEL_NULL / 全 False）；3 条缺日线谨慎措辞；阻塞顺序按用户三步骤重排，末注"继续证据核销、不加固训练开关"。
+- **未做**：未写真实标签、未训练、未全量复权、未采集、未部署、未改旧输入/构建器、未签合同/授权。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；覆盖完整性/全人口尺度/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED。下一步：步骤2 签历史标签工程用途合同 → 步骤3 并行前瞻记录三时间戳；并补全量尺度核验（逐源查 SDK qfq/HTTP 原始路径、全量扫描）、独立覆盖证据、复权缓存刷新复验 7 条；再裁决标签工程构建。
+
+## ENGINEERING-2026-10-13-R0V1-LABEL-TAXONOMY-FIX（用户：覆盖完整性全 UNVERIFIED 时，147 条不得判 ENGINEERING_OK；三项结论不可混淆；147 须分记录数/唯一股票数；不起草"147 核销通过"放行；训练不启动；零网络）
+
+- **依据**：用户 2026-10-13 纠正关键矛盾——覆盖完整性 1,013 全 UNVERIFIED，就不能把 147 条判为允许生成正式工程标签的 `ENGINEERING_OK`。三项结论不可混淆：`RAW`（尺度有支持）/ `coverage_chain_ok`（链能算因子）/ `coverage_verified`（窗口无遗漏公司行为）；**第二项不能替代第三项**，漏一次除权仍可能生成伪尾部风险。建议：(1) 147 改 `SCALE_SUPPORTED_COVERAGE_PENDING`，正式 `MAE/Y_tail` 保持 NULL；(2) 若要测试管线另签"诊断性试算"范围，输出单独 `diagnostic_mae`、注明覆盖假设、禁入标签表/训练/风险率评价；(3) 继续补逐码目标窗口覆盖证据 + 前瞻三时间戳。另：147 是**候选记录数还是唯一股票数须分列**；单码某次大比例除权对拍支持 RAW 不自动证明该码所有分片/窗口同尺度（SDK/HTTP 双路径）。故下一步可起草工程用途合同，但**暂不签署"147 条标签核销通过"放行表述**；训练仍不启动。
+- **脚本修订（`verify_per_candidate_v1.py`）**：① 标签准入 `label_elig` 改为三条件皆须满足才 `ENGINEERING_OK`；RAW+链可用但覆盖未核销 → `SCALE_SUPPORTED_COVERAGE_PENDING`（正式标签 NULL）；其余 `LABEL_NULL`；列 `label_null_reason` 改名 `label_reason`。② 新增 `raw_scale_records_vs_unique_codes`：`raw_records=147` / `raw_unique_codes=99`（48 为同码多次事件）。③ 注释强调三层次不可混淆与双路径 caveat。
+- **结果**：structural PASS=1,009 / ISOLATED=4；尺度 RAW=147(记录)/99(唯一股票) / AMBIGUOUS=321 / UNVERIFIED=545；覆盖链 True=1,012 / False=1；**标签准入 ENGINEERING_OK=0 / SCALE_SUPPORTED_COVERAGE_PENDING=147 / LABEL_NULL=866**（reason：scale_raw_supported_but_coverage_unverified=147、scale_unverified=862、structural_isolated=4）；training_eligible 全 False；覆盖完整性全 UNVERIFIED。
+- **交付物**：更新 `per_candidate_verification_v1.csv`（label_eligibility 三态 + label_reason）、`per_candidate_verification_summary_v1.md`（v1.1：§5 关键修正 + §6 顺序/诊断范围/两谨慎 + 记录vs唯一股票拆分 + 双路径 caveat）、`risk_r0_v1_readiness_blockers.md`（标签准入段重写 ENGINEERING_OK=0 + 诊断性试算独立范围 + 步骤2 起草不签放行）、**新起草 `risk_r0_v1_historical_engineering_contract_DRAFT.md`（DRAFT/未签署，明确排除"147 核销通过"放行与训练授权）**。构建器零改动。
+- **阻碍同步**：标签准入段改为 ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147（正式 MAE/Y_tail=NULL）、LABEL_NULL=866；新增诊断性试算独立范围（单独 diagnostic_mae、禁入标签表/训练/风险率）；步骤2 明确起草合同但不签"147 核销通过"放行表述。
+- **未做**：未写真实标签、未训练、未执行诊断性试算（无合同）、未全量复权、未采集、未部署、未改旧输入/构建器、未签署任何合同/授权。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署"147 条标签核销通过"放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；覆盖完整性/全人口尺度/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0。下一步：起草并（经评审后）签署历史标签工程用途合同（不含放行表述）→ 并行前瞻记录三时间戳 → 补全量尺度核验（逐源查 SDK qfq/HTTP 原始路径、全量扫描）+ 独立覆盖证据 + 复权缓存刷新复验 7 条；覆盖核销后才可能进入 ENGINEERING_OK 裁决。
+
+## ENGINEERING-2026-10-13-R0V1-WINDOW-SCALE-AND-3WORK-ITEMS（用户：口径一致可归档；别再改状态名；转向实质补证三项工作：窗口级尺度/复权覆盖补证/前瞻记录；合同仅授权证据整理+管线验收+隔离诊断试算，不授权正式标签或拟合；零网络）
+
+- **依据**：用户确认本轮口径一致可归档（正式标签全 NULL、ENGINEERING_OK=0、训练未放行），并指示**停止改动状态名称**，转向三项能实质补证的工作：(1) 窗口级尺度核销——逐候选核验 P 与未来 5 交易日所用价格/来源分片/尺度，单码除权对拍不能替代目标窗口，866 之外 147 也需此步；(2) 复权覆盖补证——先确认源端能提供哪些完整性证据再定验收规则，缓存刷新/请求成功/因子可算都不能自动证无遗漏；(3) 前瞻记录准备——分别落盘资格可知/数据到达/决策三时刻，先验收记录链再单独授权启动，不补造历史时间。合同可评审，但仅授权证据整理、管线验收、明确隔离的诊断试算，**不授权正式标签或拟合**。
+- **脚本修订（`verify_per_candidate_v1.py`）**：① 新增 `classify_window(g, win_events)`——仅用 `[P,W_end]` 内 |mult−1|≥5% 事件对拍（不挪用码级单点）；无窗口内判别事件→UNVERIFIED（非事件日 RAW/QFQ 不可区分）。② 逐候选在 `len(W)==5` 块内计算 `winscale_class`/`winscale_evidence`；标签门槛 `label_elig` 由 `scale_class` 改为 `winscale_class`；`raw_scale_window_records_vs_unique_codes` 改用窗口级 RAW；dims 增 `winscale_class(窗口级)`、保 `scale_class(码级)`。③ lint 干净、退出码 0。
+- **关键发现（窗口级尺度）**：**全 1,013 条 `winscale_class=UNVERIFIED`**——目标窗口仅 5 交易日，极少含判别力足够的公司行为，跨日比法在窗口级**不可行**；码级 147 RAW（99 唯一股票）的支持事件均在窗口外。故即便码级 RAW，也无一条过窗口级尺度门槛 → **SCALE_SUPPORTED_COVERAGE_PENDING=0、ENGINEERING_OK=0、LABEL_NULL=1,013**（正式 MAE/Y_tail 全 NULL）。正落实"147 条也需窗口级核验"。含义：窗口级尺度核销须换方法（逐日来源/分片溯源，或与独立原始价源逐日比对）。
+- **源架构查清（工作2）**：读 `data_source_provenance.py` 与 `adjustment_chain.py`——CANONICAL=stockdb HTTP `127.0.0.1:7899`（free-stockdb v0.3.2），`data_daily_parts` 为其**衍生品**；`events`(date,mult) 是 `factor_at` 唯一输入且**不能自证完备**（漏事件→因子静默错→伪尾部）。据此起草 `risk_r0_v1_coverage_acceptance_rules.md`：R1 独立台账交叉核验 / R2 因子差分缺口 / R3 刷新不创造事件 / R4 窗口端点受源快照约束；`coverage_verified=True` 仅当 R1–R4 全过。
+- **前瞻记录准备（工作3）**：新建 `forward_recording.py`——`ForwardRecord` 三时间戳 schema + `append_record` writer 桩 + `ACCEPTANCE_CHECKLIST`(R1–R6)；标注 **PREPARATION ONLY：未启用、不写盘、不补造历史时间**；`run_acceptance_selfcheck()` 确认 `enabled=False/writes_disk_now=False/backfill_allowed=False`。本模块当前不被任何管线调用，须先验收记录链再经 SIGN+LABEL_BUILD 授权启动。
+- **合同授权范围**：在 `risk_r0_v1_historical_engineering_contract_DRAFT.md` 增 §3b 授权范围——仅证据整理/管线验收/隔离诊断试算；明确不授权正式标签（MAE/Y_tail）放行、拟合（FIT 未签）、"147 核销通过"放行表述、历史时间补造。
+- **交付物**：更新 `per_candidate_verification_v1.csv`（增 `winscale_class`/`winscale_evidence`，label_eligibility 全 LABEL_NULL）、`per_candidate_verification_summary_v1.md`（v1.1：§1 表增窗口级尺度、§5 窗口级发现、§8 三项工作项）、`risk_r0_v1_readiness_blockers.md`（标签准入段改全 LABEL_NULL、阻塞顺序改三项工作）、**新 `risk_r0_v1_coverage_acceptance_rules.md`**、**新 `forward_recording.py`**、合同 §3b。构建器零改动。
+- **未做**：未写真实标签、未训练、未执行诊断性试算（无合同）、未启用前瞻记录、未接独立公司行为台账、未全量复权、未采集、未部署、未改旧输入/构建器、未签署任何合同/授权。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；窗口级尺度全 1,013 UNVERIFIED、覆盖完整性/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=0、LABEL_NULL=1,013。下一步（三项实质补证）：① 窗口级尺度换方法（逐日来源溯源/独立原始价源逐日比对）；② 接独立台账实现 R1/R2 自动比对、先复验 7 条；③ 验收前瞻记录链、经授权启用。覆盖/窗口级尺度核销后才可能进入 ENGINEERING_OK 裁决。
+
+## ENGINEERING-2026-10-13-R0V1-METHOD-CORRECTION（用户：纠正窗口级核验方法——不得把"窗口内须含大比例除权"当门禁；147 证据须保留；覆盖规则暂称必要条件非充分；前瞻采集授权与 LABEL_BUILD 分离；下一轮优先有界验证；仍不训练、不扩大构建器门禁）
+
+- **依据**：用户纠正——窗口级尺度**不要求**每 5 日窗口都出现可辨别尺度的公司行为；核验目标窗口≠要求每条窗口含判别事件。窗口级尺度应由：(1) 明确源接口价格口径+每行来源/转换溯源；(2) 与独立、口径明确的价格源比对 P 日参考价与窗口内必要价格；(3) 公司行为案例验证转换方法（非每条窗口必备）建立。当前全 NULL 是**检测方法无法判定**，非证明全部数据不可用；147 条历史支持证据须保留。两处收紧：① 覆盖规则暂不称充分条件（独立台账须登记自身来源/覆盖/完整性依据；因子差分若来自同一事件链仅查内部一致性，不能发现两者共同遗漏）；② 前瞻记录授权与标签构建授权分开（真实采集须独立 `RECORD_COLLECTION`，`LABEL_BUILD` 不自动启动采集）。下一轮优先有界验证（跨分片/跨 SDK-HTTP/公司行为边界固定案例），方法验收后再扩到 1,013；不继续全量运行天然无法判定的方法。仍不训练，但不必继续扩大构建器门禁。
+- **脚本修订（`verify_per_candidate_v1.py`）**：① `classify_window(g, win_events)` 文档与返回值 `UNVERIFIED` → `METHOD_CANNOT_DETERMINE`（两处），明确"窗口内无判别事件=方法无法判定，非数据不可用，不作门禁"。② 列 `winscale_class`/`winscale_evidence` 重命名为 `window_scale_crossday_diag`/`window_scale_crossday_note`，新增 `window_scale_evidence_method="PENDING: provenance-tracing + independent-price-comparison"`；均非门禁。③ **标签门槛 revert 回 `scale_class`（码级）**：`label_elig` 不再用窗口跨日比结果；147 证据保留 → `SCALE_SUPPORTED_COVERAGE_PENDING=147 / LABEL_NULL=866`、`ENGINEERING_OK=0`。④ `raw_mask` 回归码级 RAW（147 记录/99 唯一股票，保留）。⑤ dims/print 同步改 `window_scale_crossday_diag`/码级 RAW。lint 干净、退出码 0。复跑确认：`label={LABEL_NULL:866, SCALE_SUPPORTED_COVERAGE_PENDING:147}`、`scale(code)={RAW:147,AMBIGUOUS:321,UNVERIFIED:545}`、`window_scale_crossday_diag={METHOD_CANNOT_DETERMINE:1013}`。
+- **覆盖规则收紧（`risk_r0_v1_coverage_acceptance_rules.md`）**：§3 改为"必要非充分"——R1 独立台账须登记**自身来源/覆盖范围/完整性依据**（唯一真正完整性裁定基准）；R2 因子差分明确定性为"同一事件链内部一致性检查，不能发现共同遗漏、不得宣称完整性证明"；R1–R4 全过且各项登记来源/覆盖/完整性依据方 `coverage_verified=True`。
+- **前瞻采集授权分离**：① `risk_r0_v1_historical_engineering_contract_DRAFT.md` §3b 增"前瞻记录采集=独立授权 `RECORD_COLLECTION`，不随 `LABEL_BUILD` 自动生效；`LABEL_BUILD` 不自动授权启动采集"；§4 同步；§5 排除项增 "(e) 以 LABEL_BUILD 自动授权采集"。② `forward_recording.py`：`append_record` 增显式 `_authorized_collection` 开关（任何管线路径不自动置位）；文档明确须独立 `RECORD_COLLECTION` 授权、LABEL_BUILD 不启用写盘。
+- **有界验证设计（`window_scale_bounded_validation.py`，本轮落）**：`select_cases()` 零网络选出固定案例——跨分片（6 例，如 000600 跨 part_00000/part_incr_20260904）、跨 SDK-HTTP（pending：需生成管线 fetch 日志，非 parquet 可判定）、公司行为边界（本人口窗口内 0 例，与"短窗口少判别事件"一致）。定义 `method_provenance_trace`/`method_independent_compare` 两后端 STUB（标明所需授权/网络）+ 验收清单 M1–M6。写 `bounded_validation_cases.json`。下一轮对选中案例运行两法，M1–M6 全过方可扩到 1,013，**不继续全量运行天然无法判定的跨日比法**。
+- **交付物**：更新 `per_candidate_verification_v1.csv`（列改名+保留147）、`per_candidate_verification_summary_v1.md`（§5 方法纠正、§7 标签计数、§8 三项工作项重写）、`risk_r0_v1_readiness_blockers.md`（标签准入更正+覆盖规则收紧）、`risk_r0_v1_coverage_acceptance_rules.md`（必要非充分）、`risk_r0_v1_historical_engineering_contract_DRAFT.md`（§3b/§4/§5 授权分离）、`forward_recording.py`（采集授权分离）、**新 `window_scale_bounded_validation.py`**+`bounded_validation_cases.json`。构建器零改动（不扩大门禁）。
+- **未做**：未写真实标签、未训练、未执行诊断性试算（无合同）、未启用前瞻记录（采集须 RECORD_COLLECTION）、未接独立台账/价格源（需授权+网络）、未全量运行跨日比法、未签署任何合同/授权。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；窗口级尺度跨日比法全 `METHOD_CANNOT_DETERMINE`（方法局限，非数据不可用）、覆盖完整性/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一步（用户指定优先级）：**先做有界验证**（跨分片/跨 SDK-HTTP/公司行为边界固定案例，验证来源溯源或独立价格比对能否真正判定尺度；方法验收后再扩到 1,013）。覆盖/窗口级尺度经可行方法核销后才可能进入 ENGINEERING_OK 裁决。
+
+## ENGINEERING-2026-10-13-R0V1-BOUNDED-BACKEND（用户：本轮方向基本正确，已完成方法纠正+案例选定+验收设计；两后端仍 STUB；两处措辞收紧；接下来跑通有界验证、补公司行为边界案例、板块龙头三层表并行登记）
+
+- **依据**：用户确认本轮方向正确；已完成=方法纠正、案例选定、验收设计；但两后端仍 STUB，尚未取得新尺度核销证据，`ENGINEERING_OK=0` 继续合理。两处措辞收紧：① 147 条保留为"码级尺度支持证据"，**不是恢复为窗口尺度准入门**；目标窗口仍须来源溯源或独立价格比对。② 独立公司行为台账是重要核验路径，但**不宜写成"唯一完整性基准"**；先评估其自身来源、覆盖与遗漏风险；无充分证据保持 UNVERIFIED。
+- **跑通一个可运行后端（`window_scale_bounded_validation.py`）**：实现 `method_transformation_continuity`，用完整 cache 中 `|mult-1|>=0.20` 的固定工程案例（**不加入训练人口**）检验本数据集价格流在除权日的连续性方向。结果：12 例中 7 例 RAW、5 例 UNDETERMINED；有数据者 `r_pre_ev` 与 `mult` 接近（002594 3.0246 vs 3.036；300668 2.7076 vs 2.547；920808 2.7147 vs 2.516）→ 判定 `data_daily_parts` OHLC 为 **RAW 尺度**（除权日按因子跳变）；5 例 UNDETERMINED 为 parquet 早年期缺覆盖（非方法失败）。此为**转换方向验证**（同一事件链内部一致性，公司行为案例允许用途），**尚非对 1,013 人口的独立尺度证据**。`method_independent_compare`/`method_provenance_trace` 仍为 STUB（需独立源授权/网络，再次读同一 stockdb 仅证一致性，不算独立核验）。写 `bounded_validation_evidence_v1.json`。
+- **跨分片/跨 SDK-HTTP 案例**：仍标 `PENDING_INDEPENDENT_SOURCE`，未测试项**不计 PASS**。
+- **两处措辞收紧落地**：① 摘要 §5/§7、blockers 标签准入段：147 = "码级尺度支持证据"，明确非窗口尺度准入门，目标窗口仍须来源溯源/独立价格比对。② 覆盖规则 `risk_r0_v1_coverage_acceptance_rules.md` R1 改"重要核验路径、非唯一完整性基准；须先评估自身来源/覆盖/遗漏风险，证据不足保持 UNVERIFIED"；blockers 同步。
+- **板块/龙头三层表设计（`sector_leader_context_tables_design.md`，新）**：三层=板块身份表（sector_key/成员/规则版本/有效时间/可知时间）/龙头代表名单表（机械选择规则/名单/选择时刻/权重，禁事后赢家回填）/候选上下文表（决策时刻连接板块强弱、广度、下行波动、回撤、代表股走势）。沿用指南阶梯：个股+市场 → 加板块 → 加龙头代表组，每步固定标签/人口/折/模型配置，同保留比检验尾部风险增量并披露覆盖损失。明确：当前目标=五日不利价格风险，板块/龙头是输入上下文，**不必先各训练板块强弱模型/龙头模型**；先用可复现统计字段，确需上游预测分数再要求严格 OOT，避免上游全样本预测泄漏到 R0。三表**并行登记定义，训练母表待标签核销后构建**，不先训练。
+- **交付物**：重写 `window_scale_bounded_validation.py`（跑通 transformation_continuity + corp_action_fixed 案例 + 独立源 STUB）+ `bounded_validation_cases.json`/`bounded_validation_evidence_v1.json`；`risk_r0_v1_coverage_acceptance_rules.md`（R1 口径再修正）；`per_candidate_verification_summary_v1.md`（§5/§7/§8 措辞与后端证据更新）；`risk_r0_v1_readiness_blockers.md`（147 与 R1 措辞）；**新 `sector_leader_context_tables_design.md`**。构建器零改动（不扩大门禁）。
+- **未做**：未写真实标签、未训练、未执行诊断性试算（无合同）、未启用前瞻记录（采集须 RECORD_COLLECTION）、未接独立台账/价格源（需授权+网络）、未全量运行跨日比法、未签署任何合同/授权。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；窗口级尺度经 transformation_continuity 验证指向 `data_daily_parts` 为 RAW 尺度（转换方向验证，非独立证据）、跨分片/跨 SDK-HTTP 待独立源、覆盖完整性/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一步（用户指定）：① 取得独立价格源授权后运行 `method_independent_compare` 做真独立核验；② 补公司行为边界固定案例（已完成，不加入训练人口）；③ 方法经适用项验收后扩到 1,013，输出逐候选窗口尺度与复权覆盖状态；之后才裁决正式标签构建，仍不自动训练。
+
+## ENGINEERING-2026-10-13-R0V1-VERDICT-TIGHTENING（用户：7 例不得宣告整库 RAW；收紧两点——预冻结容差+`RAW_LIKE_DIRECTION_SUPPORTED`、缺覆盖=`NOT_TESTED_DATA_MISSING`；下一轮先定独立源与有界请求单、比对真正影响标签的价格、尺度与覆盖分别出结论；板块/龙头并行做三层表字段注册与合成验收）
+
+- **依据**：用户确认转换方向验证可运行、板块/龙头三层表设计已就；但强调**不能据 7 例宣告整个 `data_daily_parts` OHLC 为 RAW**。两点收紧：① 7 例应标 `RAW_LIKE_DIRECTION_SUPPORTED`，且"接近乘子"的容差与分类依据须**预先冻结、非观感**（2.7076 vs 2.547、2.7147 vs 2.516 偏差 ~6–8%）；② 除权日前后比值同时含真实市场涨跌，不能只凭比值接近乘子确认尺度，它适合支持转换方向、不替代独立价格核验；5 例缺覆盖应记 `NOT_TESTED_DATA_MISSING`（非通过、非方法失败）。
+- **脚本修订（`window_scale_bounded_validation.py`）**：① 容差常量加注释冻结（TOL_QFQ=0.05、TOL_RAW_REL=0.15）；② 判定改 `RAW_LIKE_DIRECTION_SUPPORTED`/`QFQ_LIKE_DIRECTION_SUPPORTED`（方向支持，非 RAW 确认），记录 `raw_dev`/`qfq_dev`；缺覆盖（日历/价格缺失）→ `NOT_TESTED_DATA_MISSING`；③ `method_independent_compare` 改为优先核验**真正影响标签的 P 日参考收盘与后五日最低价**，注明差异容差按价格精度+语义冻结、差异留因不覆盖原数据、独立匹配不自动证复权完整；④ main 指引更新（本轮不采集、先定独立源与有界请求单）。
+- **复跑结果（12 例固定工程案例，不加入训练人口）**：7 `RAW_LIKE_DIRECTION_SUPPORTED`（raw_dev 0.0038–0.0790，部分 ~6–8% 偏差→仅方向支持）/ 4 `NOT_TESTED_DATA_MISSING`（parquet 早年期缺覆盖，非通过非失败）/ 1 `UNDETERMINED`（603716 D+1 涨 11% 破坏连续性判据，方法边界，非失败）。写 `bounded_validation_evidence_v1.json`。
+- **文档收紧**：摘要 §8 工作1 改为 7 `RAW_LIKE_DIRECTION_SUPPORTED`/4 `NOT_TESTED_DATA_MISSING`/1 `UNDETERMINED`，明列冻结容差、raw_dev、不得据 7 例宣告整库 RAW、比值含真实涨跌不替代独立核验、下一轮三步骤；blockers 工作1 同步；summary §5/§7 维持"147=码级尺度支持证据，非窗口尺度准入门"。
+- **新交付物（设计，非执行）**：① **`bounded_independent_verification_request_order.md`**——独立源与有界请求单 DESIGN SPEC：vendor/口径/独立性/固定案例/字段(P日收盘+后五日最低)/日期/请求数/重试/预算全列项，明确**本轮汇报非采集批准**，差异容差按价格精度+语义冻结、差异留因不覆盖，尺度与覆盖分别出结论。② 板块/龙头三层表设计 `sector_leader_context_tables_design.md` 增 **§7 字段注册与合成验收**：5 项合成验收 S-AC1 历史名单变更/S-AC2 迟到数据/S-AC3 候选自身唯一代表股→NULL/S-AC4 空基准→NULL/S-AC5 未来扰动不改过去字段（验证防泄漏逻辑，不依赖训练）。
+- **未做**：未写真实标签、未训练、未执行诊断性试算（无合同）、未启用前瞻记录、未接独立台账/价格源（需单独 `INDEPENDENT_FETCH` 授权，本轮只出请求单设计）、未全量运行跨日比法、未签署任何合同/授权、未扩大同链内部诊断（本轮重点转至可执行独立核验范围）。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；窗口级尺度：7 例仅为 `RAW_LIKE_DIRECTION_SUPPORTED`（方向支持，非 RAW 确认，不得据之宣告整库 RAW）、4 例缺覆盖 `NOT_TESTED_DATA_MISSING`、1 例方法边界 `UNDETERMINED`、跨分片/跨 SDK-HTTP 待独立源、覆盖完整性/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一步（用户指定，本轮不采集）：① 先定独立源与有界请求单、单独授权取数；② 独立比对优先核验 P 日参考收盘与后五日最低价，容差冻结、差异留因；③ 尺度与覆盖分别出结论，各自核销后才可能批准正式标签构建，仍不自动训练。板块/龙头下一项=三层表字段注册与合成验收（无需先训练）。
+
+## ENGINEERING-2026-10-13-R0V1-ARCHIVE-INTERNAL-DIAGNOSIS（用户：本轮可归档——完成的是内部方向诊断 + 独立核验设计，尚未完成独立核验；两轮诚实收紧；下一轮停止改内部诊断、进入一次有界执行）
+
+- **诚实收紧 1（15% 容差定性）**：用户指出 `TOL_RAW_REL=0.15` 是**看过此前案例后设定的粗粒度方向诊断容差**（属"诊断方法修订"），**不能用于正式价格尺度准入**，也**不能称为这些案例的独立预注册验证**。已校正：脚本注释、摘要 §8、请求单 §6 均明确该容差为诊断用、非准入、非预注册；正式准入容差须在执行时按来源精度冻结。
+- **诚实收紧 2（后五日最低价=逐日 low）**：用户指出应是 P+1..P+5 **各交易日各自的 low**（逐日保留比对），不能只比一个窗口最小值（否则漏掉某天尺度异常或日期错位）。已校正：`method_independent_compare` 文档、请求单 §3 字段 2 均改为逐日 low。
+- **填实请求单（结构）**：`bounded_independent_verification_request_order.md` §2 已冻结具体案例——跨分片 6 例（000600×3/000893/001318/002009）、公司行为边界 12 例（920729…300259，附事件日与 mult）；§3 字段改为逐日 low；§4 请求数 18 案例×(1 收盘+5 low)=≤108；§1/§5 的 vendor/口径/独立性/预算/授权仍 `TBD`——**未填实前不能直接执行**，须用户/授权方选定具体独立源并单独 `INDEPENDENT_FETCH` 授权。
+- **板块/龙头三层表合成验收落地（可运行，无需采集/拟合）**：新增 `sector_leader_synthetic_acceptance.py`，把设计 §7 的 S-AC1~5 + 缺失必要成员反例转为**可运行测试**，**6/6 PASS**（S-AC1 历史名单变更 / S-AC2 迟到数据 / S-AC3 候选自身唯一代表股→NULL / S-AC4 空基准→NULL / S-AC5 未来扰动 / 反例 缺失必要成员→NULL 不缩分母）。仅验证构造与防泄漏语义。
+- **停止修改内部诊断**：本轮回合起不再扩展 `transformation_continuity` 案例或重调其内部容差；重点转至**拿到外部证据 + 跑通三层表验收**。
+- **交付物**：`window_scale_bounded_validation.py`（容差诚实定性 + 逐日 low 文档）、`bounded_independent_verification_request_order.md`（§2 填实案例/§3 逐日 low/§6 容差边界）、**新 `sector_leader_synthetic_acceptance.py`（6/6 PASS）**、摘要 §8（工作1 容差定性+工作1b 合成验收）、blockers 工作1 同步。构建器零改动。
+- **未做**：未写真实标签、未训练、未执行诊断性试算、未启用前瞻记录、未接独立台账/价格源（请求单 §1/§5 未填实、未授权 `INDEPENDENT_FETCH`）、未实际执行独立取数比对（仅设计）、未扩大同链内部诊断。
+- **状态重申（归档）**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；真实人口标签数据集未生成；三道授权均未签；窗口级尺度仅完成**内部方向诊断**（7 `RAW_LIKE_DIRECTION_SUPPORTED` 方向支持、非 RAW 确认、不得据之宣告整库 RAW）+ **独立核验设计**（请求单已结构填实、待选源授权）；实际独立核验**尚未完成**；覆盖完整性/当时已知/历史到达时刻全 UNKNOWN 或 UNVERIFIED；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一轮（有界执行）：① 填实请求单 §1/§5 并单独授权；② 取数后逐日比对 P 日收盘与后五日各自 low，尺度与覆盖分别出结论、不覆盖旧数据；③ 三层表合成验收已 6/6 通过，可接真实源构建表3。仍不自动训练。
+
+## ENGINEERING-2026-10-14-R0V1-READINESS-FIX-AND-REQUEST-ORDER（用户：已读回脚本，指出"44 窗只差独立尺度核验"不成立——确认的是价格字段在场，非标签准入；零网络修正四处；收敛为 修正盘点→拟请求单→单独授权取数，不重跑特殊事件批次）
+
+- **关键纠正**：`label_readiness_v1.json` 此前把"独立尺度核验"写成唯一阻断项，且数据源直接标 `qfq`。用户指出：**目前确认的是价格字段在场，不是标签准入**；"44 窗只差独立尺度核验"**不能成立**。本轮回合已重定位：价格在场性/有限性/正数 = 已确认；标签准入另有多道未关门（独立尺度核验/公司行为覆盖/历史时刻/数据源口径）。
+- **零网络修正四处**：
+  1. `label_readiness_inventory.py` `load_prices`：原只对非空检查，且重复 `(code,date)` 静默覆盖。改为检测**有限/正数**（`valid_price`：NaN/inf/≤0 判无效），并**登记重复键冲突**（`conflicts`，保留来源，不静默覆盖）。重跑后：44 窗价格数据完整(有限/正数)=**44**，价格键冲突=**0**。
+  2. 事件交差：原把并集写成 `intersection`、两个"only"未做差集。改为 `intersection=cs&es`、`cache_only=cs-es`、`external_only=es-cs`（交集/缓存−外部/外部−缓存分别列出）。
+  3. `five_day_window_calendar_map.py:81`：原 `any(w>cal_end)` 取日历日期再查超末日，条件**永不成立**。改为 `truncated_at_calendar_end = (len(win)<5)`（P 临近日历末无法取满 5 交易日）；并加 `calendar_source_verification=SEPARATE_GATE`，把**日历映射**与**日历来源核销**分离。**未重跑该脚本**（不重跑特殊事件批次），仅修源码，待合法重生成时生效。
+  4. 数据源口径：`source` 由 `'canonical daily parts (qfq parquet)'` 改为 `scale UNVERIFIED`（仅内部方向诊断 RAW_LIKE 方向支持，**缺证据，不标 qfq**）；公司行为覆盖未核销、历史时刻未知**进入缺项汇总**（已加为全局门 `open_gates`，末行缺项统计各 44 窗）。
+- **框架重定位**：`label_readiness_v1.json` 顶层 `common_blocker` → `next_priority_verification_task`，措辞"下一项优先核验任务，非唯一阻断项"；新增 `open_gates`（4 道未关门）、`price_key_conflicts`（计数+样本）。`note` 明确"本盘点仅确认价格字段在场，不是标签准入"。
+- **拟有界价格核验请求单（44 窗实例化）**：新增 `price_verification_request_order_44win.md`，口径按用户指定：① 44×6=**264 个价格比较点**（非 264 次请求），按股票合并日期范围、去重、复用既有原始响应，两次冒烟计入总额度；② **绝对差 ≤0.01 元**用于同口径收盘与逐日 low 比对，仅判价格一致性、不认证公司行为完整性；③ 近 8% 标签边界记录**单独报价格误差敏感性、不静默判类**；④ 结果**仅覆盖已查 44 窗、不外推全库、不自动授权标签或训练**。仍依赖源选择（vendor 仍 TBD，待填实+单独 `INDEPENDENT_FETCH` 授权）。
+- **交付物**：`label_readiness_inventory.py`（四处修正）、`label_readiness_v1.json`（重生成，框架重定位）、`five_day_window_calendar_map.py`（line 81 修正，未重跑）、**新 `price_verification_request_order_44win.md`**。构建器零改动。
+- **未做**：未取数（请求单 §2 vendor 仍 TBD、未签 `INDEPENDENT_FETCH`）、未重跑特殊事件批次/日历 map 重生成、未写真实标签、未训练、未接独立台账。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；44 窗**仅确认价格字段在场（有限/正数）**，非标签准入；独立尺度核验/公司行为覆盖/历史时刻/数据源口径**四道未关门均 OPEN**；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一步（收敛路径）：修正盘点已完成 → 拟请求单已完成 → 待填实 vendor+预算、签 `INDEPENDENT_FETCH` 授权后取数比对。仍不自动训练。
+
+## ENGINEERING-2026-10-14-R0V1-ZERO-NET-PREP（用户：方向正确——44窗价格在场已确认，但仍处标签工程核验阶段，非训练就绪；三处未收口须零网络补齐；实际就绪表在批次目录非根目录；本轮只读复核，未改文件/取数/训练）
+
+- **零网络补齐三处未收口**：
+  1. **重复冲突未阻断使用**：`load_prices` 虽登记冲突仍 `out[key]=val` 保留最后值，`data_ok` 不排除冲突键、也无来源。重构为 `aggregate_prices`（纯函数，逐 part 文件归属 source）+ `evaluate_window_prices`：`value_mismatch` 冲突键**阻断 data_ok**（不静默放行）；报告区分 `blocking_count`/`total_duplicates` 并保留来源。新增 `label_readiness_synthetic_acceptance.py` 反例 **8/8 PASS**（数值冲突阻断/良性同值不阻断/NaN≤0 无效/正常窗口）。重跑库存：44 窗价格完整=44，冲突=0。
+  2. **映射源码与产物未同步**：修过 `five_day_window_calendar_map.py:81` 截断检查却仍读旧 `v2` JSON。已重生成 `five_day_window_map_v3.json`（零网络，仅读既有 `diff_table_reanalysis_v1.json`，**未重跑特殊事件取数批次**），截断检查修正为 `len(win)<5`；库存脚本改读 v3。重跑：44 窗、0 截断、hash_check=PASS。
+  3. **请求单指向 STUB 后端**：`method_independent_compare` 仍不可执行。已落 `price_verification_batch_44win.py`，**复用已验收受控客户端** `independent_fetch_client.TencentDailyClient`（直连腾讯原始 day、拒收复权键）作"外部交叉核验源"（非强独立源）；含 `--dry-run`（覆盖/计划）、`--selftest`（离线比对器+MAE≈−8% 边界，**6/6 PASS**）、`--fetch`（取数，待授权）。离线比对器复用 `independent_fetch_run.py` 的字段序映射。
+- **冻结比较点清单**：`freeze_comparison_points_44win.py` 由 map_v3 枚举 → **264 引用 → 225 唯一点、30 股票**（与用户读数一致）；落盘 `price_comparison_points_44win.json`，含 map 输入哈希（pop/cache/reanalysis）+ 三脚本代码版本。dry-run 扫描既有响应：**腾讯价格响应 0 条**（run_20261013* 为 Sina 公司行为页，非价格，不可复用）→ 需新取；按股票合并 **30+2冒烟=32 请求，硬顶 36**。
+- **路径纠正**：实际就绪表在 `independent_fetch/batch_d_mainpop_30/label_readiness_v1.json`（非风险模型根目录）；库存脚本 BASE 已指向批次目录，本轮重生成即落该处。
+- **批次规格填实**：`price_verification_request_order_44win.md` 重写为可填实批次件——腾讯通道定位"外部交叉核验源（非强独立）"、2 冒烟、硬顶 36、失败即停不换源、|diff|≤0.01、边界敏感性针对 **MAE≈−8%（非 ±8%）**、响应/落盘/报告分别记账；历史研究用途另签范围，44 窗不得直接当 LightGBM 训练人口。
+- **交付物**：`label_readiness_inventory.py`（冲突阻断）、`label_readiness_synthetic_acceptance.py`（8/8）、`five_day_window_calendar_map.py`+`five_day_window_map_v3.json`、`price_verification_batch_44win.py`（dry-run/selftest 通过）、`price_comparison_points_44win.json`、`price_verification_request_order_44win.md`。构建器零改动。
+- **未做**：未取数（仅零网络准备；`--fetch` 待单独 `INDEPENDENT_FETCH` 授权）、未重跑特殊事件批次、未写标签/训练/拟合、未签任何授权。板块/龙头仍按"个股+市场→加板块→加代表股"阶梯，当前完善字段定义不提前拟合。
+- **状态重申**：仍**非训练就绪**、**不放行真实标签构建或训练**、**不签署任何放行表述**；P1 DRAFT_FOR_REVIEW；44 窗**仅确认价格字段在场（有限/正数）**，非标签准入；独立尺度核验/公司行为覆盖/历史时刻/数据源口径**四道未关门均 OPEN**；ENGINEERING_OK=0、SCALE_SUPPORTED_COVERAGE_PENDING=147、LABEL_NULL=866。下一步（用户指定顺序）：① 第一步+第二步零网络准备已完成 → ② **单独审批取数**（签 `INDEPENDENT_FETCH` 后运行 `--fetch`，逐窗裁决价格匹配/缺失/差异/覆盖，不一键放行）→ ③ 标签验收后先盘点有效事件/尾部阳性/日期簇，再决定是否扩人口与拟合合同。仍不自动训练。

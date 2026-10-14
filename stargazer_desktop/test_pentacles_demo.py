@@ -63,6 +63,8 @@ class DemoTests(unittest.TestCase):
         exec(compile(ast.Module(body=nodes, type_ignores=[]), 'server.py', 'exec'), namespace)
         client = app.test_client()
         self.assertEqual(client.get('/api/pentacles/state').status_code, 200)
+        self.assertEqual(client.get('/api/pentacles/journal').status_code, 200)
+        self.assertEqual(client.get('/api/pentacles/journal?day=../../config').status_code, 400)
         self.assertTrue(client.post('/api/pentacles/monitor', json={'enabled': True}).json['enabled'])
         for body in ([], {'enabled': 'true'}):
             self.assertEqual(client.post('/api/pentacles/monitor', json=body).status_code, 400)

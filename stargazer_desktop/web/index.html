@@ -14,7 +14,7 @@
   <header id="topbar">
     <div class="brand">
       <div class="logo">✦</div>
-      <span class="brand-name">Stargazer</span>
+      <span class="brand-name">Stargazer</span><span class="shell-label">稳定应用外壳</span>
     </div>
     <div class="market-pill">
       <span class="dot" id="marketDot"></span><b id="marketText">…</b>
@@ -23,7 +23,8 @@
     <div class="top-spacer"></div>
     <div class="top-actions">
       <button class="tb-btn" id="manualCheckBtn">立即巡检</button>
-      <button class="tb-btn" id="planSettleBtn" title="对最新冻结计划跑 settle（五结局打标 + 未执行反事实），需本机 plan 库">盘后总结</button>
+      <button class="tb-btn" id="reviewOpenBtn" title="星币侍从复盘预览，人工确认后写入">盘后复盘</button>
+      <button id="planSettleBtn" hidden>旧计划结算（停用入口）</button>
       <button class="tb-btn" id="testPushBtn">测试推送</button>
       <div class="push-quick"><span>微信推送</span><label class="switch"><input type="checkbox" id="pushEnabled"><span class="slider"></span></label></div>
       <button class="tb-btn" id="openSettings">设置</button>
@@ -32,14 +33,12 @@
 
   <!-- ═══ 主导航 ═══ -->
   <nav id="mainNav">
-    <button class="nav-item active" data-page="monitor">监控</button>
-    <button class="nav-item" data-page="premarket">盘前助手与实时监控</button>
-    <button class="nav-item" data-page="plan" id="navPlan" hidden>交易计划</button>
-    <button class="nav-item" data-page="chat">AI 对话<i class="badge"></i></button>
-    <button class="nav-item-ext" onclick="location.href='/info'">信息面板</button>
+    <button class="nav-item active" data-page="monitor">监控总览</button>
     <button class="nav-item" data-page="pentacles">星币侍从</button>
+    <button class="nav-item" data-page="chat">AI 助手<i class="badge"></i></button>
+    <button class="nav-item" data-page="context">信息与风险</button>
     <span class="nav-sep"></span>
-    <span class="nav-hint" id="navHint">本地模型</span>
+    <span class="nav-hint" id="navHint">规则观察 · 不自动下单</span>
   </nav>
 
   <div id="shell">
@@ -73,7 +72,7 @@
       </section>
 
       <section class="side-section engine">
-        <div class="side-title"><span>数据引擎</span><button class="mini-link" id="runModelBtn">生成建议</button></div>
+        <div class="side-title"><span>选股快照</span><button class="mini-link" id="runModelBtn">查看名单</button></div>
         <div class="model-status" id="modelStatus">尚未读取</div>
         <div class="model-list-hint" id="modelHint">候选详情见监控页</div>
       </section>
@@ -84,6 +83,19 @@
 
       <!-- 监控页 -->
       <section id="pageMonitor" class="page active">
+        <div class="shell-overview">
+          <div class="section-card">
+            <div class="section-head"><h2>今日工作台</h2><span class="sub">持仓风控与报价提醒独立运行</span></div>
+            <div class="shell-stats"><div><span>已登记持仓</span><b id="overviewPositions">—</b></div><div><span>观察名单</span><b id="overviewWatches">—</b></div><div><span>选股候选</span><b id="overviewCandidates">—</b></div></div>
+            <p class="shell-note">持仓、真实成交和到价提醒仍按原规则运行。AI讨论只是草案，人工确认后才启用观察名单；未知风险不等于低风险。</p>
+            <div class="shell-actions"><button class="tb-btn" id="overviewCheck">持仓风控巡检</button><button class="tb-btn" id="overviewPicks">查看星币侍从</button><button class="tb-btn" id="overviewPlan">讨论次日计划</button></div>
+          </div>
+          <div class="section-card"><div class="section-head"><h2>三模型接入状态</h2><span class="sub">只连接当前选股输出 · 不融合、不互询</span></div>
+            <div class="model-slots"><article><span class="slot-kicker">SELECTION</span><h3>选股</h3><p id="slotSelection">读取中…</p><small>规则观察输出，未证明盈利能力</small></article><article><span class="slot-kicker">INFORMATION</span><h3>信息</h3><p>未接入 · UNKNOWN</p><small>资料面板不冒充训练模型输出</small></article><article><span class="slot-kicker">RISK</span><h3>风险</h3><p>未就绪 · UNKNOWN</p><small>持仓硬风控照常，不填风险概率</small></article></div>
+          </div>
+          <div class="section-card"><div class="section-head"><h2>计划与学习闭环</h2><span class="sub">LangGraph 独立编排 · 人工确认</span></div><p class="shell-note">盘后观察名单 → AI讨论 → 确认名单 → 次日到价提醒 → 学习记录预览 → 确认追加。图状态用于恢复，原始快照与哈希记录才是事实依据。</p><p class="shell-note">信息、风险模型验收后再接入；本版本称“稳定应用外壳”，不是第一版Demo。</p></div>
+        </div>
+        <div hidden inert aria-hidden="true">
         <nav class="strategy-tabs">
           <button class="stab active" data-tab="green"><i class="st-dot green"></i>绿盘低吸</button>
           <button class="stab" data-tab="horizontal"><i class="st-dot cyan"></i>横盘埋伏</button>
@@ -113,27 +125,16 @@
           </header>
           <div id="t5List" class="dash-list"><div class="empty">暂无影子决策行（盘后生成建议后自动留痕）</div></div>
         </section>
+        </div>
       </section>
 
       <!-- 盘前助手与实时监控页 -->
-      <section id="pagePremarket" class="page">
+      <section id="pageContext" class="page">
         <div class="monitor-page">
           <div class="section-card">
-            <div class="section-head">
-              <h2>盘前助手</h2>
-              <span class="sub">隔夜市场映射 · 今日应对判断</span>
-              <span class="status-pill" id="pmDecision">待输入</span>
-            </div>
-            <div class="pm-fields">
-              <label>美股 %<input id="pmUs" type="number" step="0.1" placeholder="0.0"></label>
-              <label>日股 %<input id="pmJp" type="number" step="0.1" placeholder="0.0"></label>
-              <label>韩股 %<input id="pmKr" type="number" step="0.1" placeholder="0.0"></label>
-              <label class="pm-wide">板块影响<input id="pmImpact" type="text" placeholder="板块名:影响(-1~+1); 例：半导体:-0.8"></label>
-            </div>
-            <div class="pm-actions">
-              <button class="save-btn" id="pmSaveBtn">保存判断</button>
-              <span id="pmReason" class="pm-reason"></span>
-            </div>
+            <div class="section-head"><h2>信息与风险</h2><span class="status-pill">模型未接入</span></div>
+            <p class="shell-note">当前只展示来源资料与已有监控规则。信息模型、风险模型未来分别验收接入；未知状态不补为安全评分。盘前手填助手已撤下，持仓风控保留。</p>
+            <button class="tb-btn" onclick="location.href='/info'">查看来源资料面板</button>
           </div>
 
           <div class="section-card">
@@ -154,7 +155,7 @@
       </section>
 
       <!-- 交易计划页（本机专属；监控机 plan.enabled=false 或全链不存在时隐藏入口） -->
-      <section id="pagePlan" class="page">
+      <section id="pagePlan" class="page" hidden inert aria-hidden="true">
         <div class="monitor-page">
           <div class="section-card">
             <div class="section-head">
@@ -187,14 +188,29 @@
       <section id="pagePentacles" class="page">
         <div class="pentacles-page">
           <div class="pentacles-toolbar">
-            <div><h2>星币侍从 <span class="pentacles-tag">研究 Demo</span></h2><p>共性选观察对象 · 区域研究参考 · 非买卖建议</p></div>
+            <div><h2>星币侍从 <span class="pentacles-tag">规则观察</span></h2><p>共性选观察对象 · 区域研究参考 · 非买卖建议</p></div>
             <div class="pentacles-actions">
               <div class="push-quick"><span>次日到价提醒</span><label class="switch"><input type="checkbox" id="pentaclesMonitor" aria-label="开启次日独立报价监控和到价推送"><span class="slider"></span></label></div>
               <button class="tb-btn" id="pentaclesRun">盘后总结 · 分析选股</button>
+              <button class="tb-btn" id="pentaclesLearning">写入学习记录</button>
+              <button class="tb-btn" id="pentaclesPlan">制定次日计划</button>
+              <button class="tb-btn" id="pentaclesJournal">观察日记</button>
             </div>
           </div>
           <div id="pentaclesStatus" class="pentacles-status" role="status">尚未生成观察名单。点击盘后总结，从最新本地日线选股。</div>
+          <div id="learningPanel" class="pentacles-journal" hidden>
+            <label>复盘观察日 <input id="learningDay" type="date"></label>
+            <button class="tb-btn" id="learningGenerate">DeepSeek 生成预览</button>
+            <button class="tb-btn" id="learningConfirm" disabled>确认追加到学习记录</button>
+            <p id="learningStatus" role="status">只读当日行情；七日未成熟、成交或尺度未核验时保持未知。</p>
+            <pre id="learningPreview"></pre>
+          </div>
           <div class="pentacles-filters"><button class="stab active" data-pool="ALL">全部</button><button class="stab" data-pool="A_SDP">强势分歧</button><button class="stab" data-pool="B_LVB">低位稳量</button><span id="pentaclesCount"></span></div>
+          <div id="pentaclesJournalPanel" class="pentacles-journal" hidden>
+            <label>观察日期 <select id="pentaclesJournalDay" aria-label="选择观察日记日期"></select></label>
+            <button class="tb-btn" id="pentaclesJournalDownload">保存文档</button>
+            <pre id="pentaclesJournalText"></pre>
+          </div>
           <div class="pentacles-table-wrap"><table class="pentacles-table">
             <thead><tr><th>序</th><th>股票 / 共性形态</th><th>快照收盘</th><th>关注区域（非买入价）</th><th>区域依据</th><th>距区域 / ATR</th><th>RSI14</th><th>观察状态</th></tr></thead>
             <tbody id="pentaclesRows"><tr><td colspan="8" class="empty">暂无观察快照，不填充虚构股票或模型评分。</td></tr></tbody>
@@ -207,20 +223,18 @@
       <section id="pageChat" class="page">
         <div class="chat-page">
           <header class="chat-head">
-            <span class="chat-title">AI 对话</span>
-            <span class="chat-sub">信息搜集 · 行情分析 · 确定性命令</span>
+            <span class="chat-title">AI 助手</span>
+            <span class="chat-sub">DeepSeek · 原文留存 · 有界上下文</span>
+            <button class="tb-btn" id="newChatBtn">新会话</button>
+            <button class="tb-btn" id="restoreChatBtn">恢复对话</button>
           </header>
           <div id="chatLog"></div>
           <div id="quickBar">
-            <button data-prompt="给我一份晨报：大盘指数与情绪（涨停/炸板/成交额）、隔夜美股表现、最新财经快讯里和我持仓/观察名单相关的消息、我持仓现在的风控状态，然后给出今天的应对分析。">晨报分析</button>
-            <button data-prompt="昨晚美股怎么样？对今天我A股的持仓和观察名单有什么映射影响？">美股映射</button>
+            <button data-plan="true">制定次日计划</button>
+            <button data-normal="true">普通对话</button>
             <button data-prompt="最新财经快讯里有什么值得注意的？按我的交易手册解读一下，哪些板块有动静、哪些是噪音。">新闻解读</button>
             <button data-cmd="/check">/check 风控</button>
-            <button data-cmd="/flow">/flow 资金流</button>
             <button data-cmd="/quote ">/quote 体检</button>
-            <button data-cmd="/scan ">/scan 扫板块</button>
-            <button data-cmd="/score ">/score 打分</button>
-            <button data-cmd="/model">/model 建议</button>
           </div>
           <div id="inputBar">
             <textarea id="input" rows="1" placeholder="直接对话，或 / 开头走确定性命令… (Enter 发送, Shift+Enter 换行)"></textarea>
@@ -268,6 +282,10 @@
       <label class="field check"><input type="checkbox" id="cfgStopWatch"> <span>盘中5分钟止损盯梢</span></label>
       <label class="field check"><input type="checkbox" id="cfgAuction"> <span>交易日 09:26 竞价三条件检查</span></label>
     </div>
+    <label class="field">
+      <span>DeepSeek API Key（本机加密保存，不回显；迁移后重新填写）</span>
+      <input type="password" id="cfgDeepseek" autocomplete="new-password" placeholder="留空表示不修改">
+    </label>
     <label class="field">
       <span>Tavily API Key（研报/深度搜索，可选）<a href="https://tavily.com" target="_blank">tavily.com →</a></span>
       <input type="text" id="cfgTavily" placeholder="tvly- 开头，留空表示不修改">

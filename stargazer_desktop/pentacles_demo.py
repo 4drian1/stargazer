@@ -19,6 +19,17 @@ def snapshot_path():
     return Path(paths.data_file('data/pentacles_demo/snapshot.json', seed_from_bundle=False))
 
 
+def monitoring_plan():
+    """A human-confirmed selection takes precedence; never silently replace it."""
+    file = snapshot_path().with_name('assistant_plan.json')
+    if file.exists():
+        try:
+            return json.loads(file.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return None
+    return state().get('snapshot')
+
+
 def _default_daily(root):
     """日线分片目录：env STARGAZER_DAILY_PARTS → 仓库根 data_daily_parts（监控机布局）
     → 本机 D:/a股数据 缺省（与 build_pool/refresh_pool 同模式）。"""
@@ -79,17 +90,6 @@ def run(cfg):
     def work():
         global _running, _error
         try:
-            refresh = root / 'stargazer_ml/v5_hybrid/green_v2/refresh_pool.py'
-            if refresh.is_file():
-                import os
-                env = dict(os.environ, PYTHONIOENCODING='utf-8',
-                           STARGAZER_DAILY_PARTS=str(daily))
-                rp = subprocess.run([str(python), '-B', '-X', 'utf8', str(refresh)],
-                                    capture_output=True, timeout=900, env=env,
-                                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-                if rp.returncode:
-                    raise RuntimeError('日线增量(refresh_pool)失败：'
-                                       + rp.stderr.decode('utf-8', errors='replace')[-400:])
             proc = subprocess.run([str(python), '-B', '-X', 'utf8', str(script),
                                    '--daily-dir', str(daily)], capture_output=True, timeout=900,
                                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))

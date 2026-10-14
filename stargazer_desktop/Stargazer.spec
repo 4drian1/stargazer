@@ -1,11 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
-import os
-import akshare
 
-datas = [('web', 'web'), ('STRATEGY.md', '.'), ('config.example.yaml', '.'), ('data/pentacles_demo/snapshot.json', 'data/pentacles_demo'), (os.path.join(os.path.dirname(akshare.__file__), 'file_fold'), 'akshare/file_fold')]
+datas = [('web', 'web'), ('STRATEGY.md', '.'), ('config.yaml', '.'), ('data', 'data'), ('C:/Users/22107/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages/akshare/file_fold', 'akshare/file_fold')]
 binaries = []
-hiddenimports = ['yaml', 'services', 'notifier', 'paths', 'ml_bridge', 'plan_bridge', 'intraday_monitor', 'pentacles_demo', 'agent.brain', 'tools.financials', 'tools.lhb', 'tools.market', 'tools.news', 'tools.research', 'strategy.exits', 'strategy.funnel', 'strategy.oversold', 'strategy.scorer', 'info_panel', 'psycopg', 'pyarrow', 'akshare.stock_feature.stock_info', 'akshare.index.index_research_sw', 'akshare.index.index_stock_us_sina', 'akshare.futures.futures_foreign']
+hiddenimports = ['yaml', 'services', 'notifier', 'paths', 'ml_bridge', 'plan_bridge', 'intraday_monitor', 'agent.brain', 'tools.financials', 'tools.lhb', 'tools.market', 'tools.news', 'tools.research', 'strategy.exits', 'strategy.funnel', 'strategy.oversold', 'strategy.scorer', 'info_panel', 'pentacles_demo', 'pentacles_monitor', 'psycopg', 'pyarrow', 'akshare.stock_feature.stock_info', 'akshare.index.index_research_sw', 'akshare.index.index_stock_us_sina', 'akshare.futures.futures_foreign']
 tmp_ret = collect_all('py_mini_racer')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 

@@ -1,3 +1,7 @@
+deepseek:
+  model: deepseek-flash
+  max_tokens: 2000
+  # API Key 在设置中填写，使用当前 Windows 用户 DPAPI；不随 exe 打包。
 kimi:
   api_key: ''
   base_url: https://api.kimi.com/coding/v1

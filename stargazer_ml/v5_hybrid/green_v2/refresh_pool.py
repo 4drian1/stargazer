@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import argparse
 import glob
 import json
 import sys
@@ -96,12 +97,16 @@ def fetch_day(day: str):
                 rows = d.get("data") if isinstance(d, dict) else d
                 if not rows:
                     return []
-                return [[rec.get(f) for f in FIELDS] for _k, rec in rows]
-            except Exception:
+                records = [rec for _k, rec in rows]
+                if any(int(rec['date']) != int(day) or str(rec['code']).zfill(6) != code
+                       for rec in records):
+                    raise ValueError('返回的股票/日期与请求不符')
+                return [[rec.get(f) for f in FIELDS] for rec in records]
+            except Exception as exc:
                 if attempt < 2:
                     _t.sleep(2)
-                continue
-        return []
+                else:
+                    raise RuntimeError(f'{code}/{day} 请求失败，停止同步，不写部分分片：{exc}') from exc
 
     all_rows = []
     with ThreadPoolExecutor(max_workers=8) as ex:
@@ -116,25 +121,35 @@ def fetch_day(day: str):
               "float_share": "int64", "total_mv": "int64", "float_mv": "int64"}
     df = df.astype({k: v for k, v in dtypes.items() if k in df.columns})
     df = df.drop_duplicates(["date", "code"]).sort_values(["date", "code"])
-    df.to_parquet(out, index=False)
+    temp = out.with_suffix('.parquet.tmp')
+    df.to_parquet(temp, index=False)
+    temp.replace(out)
     print(f"[ok] {out.name} shape={df.shape}")
 
 
-def main():
+def main(daily_only=False, through_date=None):
     sdb = latest_stockdb_date()
+    target = through_date or sdb
+    if target > sdb:
+        raise SystemExit(f'stockdb 最新={sdb}，尚未更新到所需收盘日 {target}')
     parts = latest_parts_date()
     print(f"stockdb 最新={sdb} | data_daily_parts 最新={parts}")
-    if sdb <= parts:
+    if target <= parts:
         print("无需增量")
     else:
         # 逐日补（跨节假日多日缺失也能补）
         import datetime as dt
         d0 = dt.datetime.strptime(str(parts), "%Y%m%d") + dt.timedelta(days=1)
-        d1 = dt.datetime.strptime(str(sdb), "%Y%m%d")
+        d1 = dt.datetime.strptime(str(target), "%Y%m%d")
         cur = d0
         while cur <= d1:
             fetch_day(cur.strftime("%Y%m%d"))
             cur += dt.timedelta(days=1)
+    if latest_parts_date() < target:
+        raise SystemExit(f'同步后日线仍未到 {target}，不生成新名单')
+    if daily_only:
+        print(f'[done] 日线已同步到 {target}；仅同步分片，不重建观察池')
+        return
     import subprocess
     ml = Path(__file__).resolve().parent.parent
     pool_script = ml / "green_watch_v0" / "build_pool.py"
@@ -157,4 +172,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--daily-only', action='store_true')
+    parser.add_argument('--through-date', type=int)
+    args = parser.parse_args()
+    main(daily_only=args.daily_only, through_date=args.through_date)

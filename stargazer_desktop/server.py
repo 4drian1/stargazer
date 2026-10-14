@@ -17,6 +17,8 @@ import plan_bridge
 import intraday_monitor
 import fmt
 import pentacles_demo
+import assistant_workflow
+import deepseek_api
 from agent.brain import Brain, load_config
 
 # sector_pullback（→numpy+pandas）延迟到路由首次调用时才导入
@@ -28,6 +30,13 @@ def _sector_pullback():
 app = Flask(__name__, static_folder=None)
 WEB = paths.resource("web")
 
+
+@app.before_request
+def retire_legacy_mutations():
+    if request.method == 'POST' and request.path in (
+        '/api/plan/settle', '/api/plan/dual_list/run', '/api/plan/draft', '/api/plan/freeze_export'):
+        return jsonify({'ok': False, 'error': '旧交易计划入口已停用；历史记录与已冻结计划的风控保留'}), 410
+
 _cfg_lock = threading.Lock()
 _brain_lock = threading.RLock()   # RLock: chat() 与 get_brain() 会嵌套获取
 _brain = None
@@ -35,7 +44,9 @@ _brain = None
 
 def get_cfg():
     with _cfg_lock:
-        return load_config()
+        cfg = load_config()
+        cfg['stable_shell'] = True
+        return cfg
 
 
 def get_brain():
@@ -65,6 +76,8 @@ def _name_of(code):
 
 
 def handle_slash(text, cfg):
+    if text.split()[0] in ('/scan', '/score', '/model'):
+        return {'text': '旧选股入口已关闭；请到星币侍从查看当前规则观察名单。历史研究与持仓风控保留。'}
     parts = text.split()
     op = parts[0]
     try:
@@ -239,9 +252,18 @@ def chat():
 
     try:
         with _brain_lock:
+            body = request.get_json() or {}
+            if body.get('mode') == 'next_day_plan':
+                result = assistant_workflow.plan_chat(cfg, msg, body.get('draft_id'))
+                from assistant_runtime import gate
+                try:
+                    result['graph'] = gate('plan', result['draft'])
+                except ValueError as exc:
+                    result['graph'] = {'ok': False, 'error': str(exc)}
+                return jsonify({**result, 'tools': []})
             reply = get_brain().chat(msg, on_tool=on_tool)
     except Exception as e:
-        reply = f"对话失败: {e}"
+        reply = f"对话失败: {e}" if isinstance(e, ValueError) else f"对话失败（{type(e).__name__}）"
     return jsonify({"reply": reply, "tools": tools_seen})
 
 
@@ -329,6 +351,10 @@ def update_config():
                 _brain = None  # 换 key 后重建
         if "tavily_key" in body:
             cfg.setdefault("tavily", {})["api_key"] = (body["tavily_key"] or "").strip()
+        if body.get('deepseek_key'):
+            deepseek_api.save_key(body['deepseek_key'])
+            # complete() reads the protected key each call. Do not wait for a
+            # running chat while holding _cfg_lock: quote monitors need config.
         with open(cfg_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
     return jsonify({"ok": True})
@@ -442,13 +468,12 @@ def api_model_advice():
 
 @app.route("/api/model/run", methods=["POST"])
 def api_model_run():
-    body = request.json or {}
-    return jsonify(ml_bridge.start(get_cfg(), as_of=body.get("as_of")))
+    return jsonify({'ok': False, 'error': '旧选股入口已停用，请使用星币侍从；历史结果保留'}), 410
 
 
 @app.route("/api/model/refresh", methods=["POST"])
 def api_model_refresh():
-    return jsonify(ml_bridge.refresh(get_cfg()))
+    return jsonify({'ok': False, 'error': '旧选股入口已停用，请使用星币侍从'}), 410
 
 
 # ---------- 计划盘后总结（stargazer_plan：settle 子进程封装，plan_bridge） ----------
@@ -519,12 +544,92 @@ def api_pentacles_monitor():
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
 
+@app.route('/api/pentacles/journal')
+def api_pentacles_journal():
+    try:
+        return jsonify(pentacles_demo.monitor.journal.report(request.args.get('day')))
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
 @app.route('/api/pentacles/run', methods=['POST'])
 def api_pentacles_run():
     try:
         return jsonify(pentacles_demo.run(get_cfg()))
     except Exception as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
+@app.route('/api/assistant/state')
+def api_assistant_state():
+    try:
+        return jsonify({**assistant_workflow.state(), 'llm': deepseek_api.status()})
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': f'助手记录读取失败（{type(exc).__name__}）'}), 400
+
+
+@app.route('/api/assistant/plan/confirm', methods=['POST'])
+def api_assistant_plan_confirm():
+    try:
+        body = request.get_json() or {}
+        if body.get('confirmed') is not True:
+            raise ValueError('必须人工确认计划')
+        from assistant_runtime import gate
+        draft = {'id': body.get('id'), **assistant_workflow.load_draft('plan', body.get('id'))}
+        gate('plan', draft, approved=True)
+        result = assistant_workflow.confirm_plan(body.get('id'), body.get('confirmed'))
+        pentacles_demo.set_enabled(True)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc) if isinstance(exc, ValueError)
+                        else f'计划确认失败（{type(exc).__name__}）'}), 400
+
+
+@app.route('/api/assistant/review', methods=['POST'])
+def api_assistant_review():
+    try:
+        body = request.get_json() or {}
+        return jsonify(assistant_workflow.review_start(get_cfg(), int(body['day'])))
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc) if isinstance(exc, ValueError)
+                        else '复盘日期无效'}), 400
+
+
+@app.route('/api/assistant/review/confirm', methods=['POST'])
+def api_assistant_review_confirm():
+    try:
+        body = request.get_json() or {}
+        if body.get('confirmed') is not True:
+            raise ValueError('必须人工确认学习记录')
+        from assistant_runtime import gate
+        draft = {'id': body.get('id'), **assistant_workflow.load_draft('review', body.get('id'))}
+        gate('review', draft, approved=True)
+        return jsonify(assistant_workflow.confirm_review(body.get('id'), body.get('confirmed')))
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc) if isinstance(exc, ValueError)
+                        else f'复盘保存失败（{type(exc).__name__}）'}), 400
+
+
+@app.route('/api/shell/state')
+def api_shell_state():
+    from model_slots import slots
+    try:
+        value = assistant_workflow.snapshot()
+    except (ValueError, OSError):
+        value = {'schema': 'UNAVAILABLE', 'rows': []}
+    return jsonify(slots(value))
+
+
+@app.route('/api/chat/session', methods=['GET', 'POST'])
+def api_chat_session():
+    global _brain
+    with _brain_lock:
+        if request.method == 'POST':
+            _brain = Brain(fresh=True)
+        brain = get_brain()
+        return jsonify({'ok': True, 'session': brain.archive.stem,
+                        'messages': [m for m in brain.messages[-20:]
+                                     if m.get('role') in ('user', 'assistant') and m.get('content')]})
 
 
 # ---------- 信息面板（路线 #13：SHADOW 展示页，无 LLM，无决策权） ----------
@@ -661,9 +766,7 @@ def api_premarket_state():
 
 @app.route("/api/premarket/save", methods=["POST"])
 def api_premarket_save():
-    body = request.json or {}
-    fields = body.get("fields") or {}
-    return jsonify(_sector_pullback().apply_premarket_decision(get_cfg(), fields))
+    return jsonify({'ok': False, 'error': '盘前手填助手已停用；持仓风控与实时板块监控保留'}), 410
 
 
 # ---------- 交易记录（对话/命令写入的成交，供回测） ----------
@@ -767,7 +870,7 @@ def start(port=17890):
             s.close()
     notifier_thread.start()
     model_monitor_thread.start()
-    pentacles_demo.monitor.start(get_cfg, lambda: pentacles_demo.state()['snapshot'])
+    pentacles_demo.monitor.start(get_cfg, pentacles_demo.monitoring_plan)
     threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
