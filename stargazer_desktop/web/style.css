@@ -416,6 +416,10 @@ body {
 .msg.user { align-self: flex-end; background: var(--fg); color: #000; border-bottom-right-radius: 4px; white-space: pre-wrap; }
 .msg.bot { align-self: flex-start; background: var(--bg2); border: 1px solid var(--border2); border-bottom-left-radius: 4px; color: var(--fg2); }
 .msg.bot h3 { font-size: 14px; color: var(--fg); margin: 8px 0 6px; font-weight: 600; }
+.plan-discussion > p { margin: 0 0 14px; }
+.plan-discussion > details { margin: 10px 0; padding: 10px 0; border-top: 1px solid var(--border2); }
+.plan-discussion summary { cursor: pointer; }
+.plan-discussion details p { margin: 8px 0; }
 .msg.bot table { border-collapse: collapse; margin: 8px 0; font-size: 12.5px; width: 100%; }
 .msg.bot th, .msg.bot td { border: 1px solid var(--border3); padding: 6px 10px; text-align: left; }
 .msg.bot th { background: var(--bg3); color: var(--fg); }
@@ -498,10 +502,35 @@ body {
 .pentacles-journal input { background: var(--bg3); color: var(--fg); border: 1px solid var(--border3); border-radius: 6px; padding: 5px; }
 #learningPreview { white-space: pre-wrap; }
 .pentacles-journal pre { max-height: 340px; overflow: auto; font-size: 12px; line-height: 1.8; color: var(--fg2); white-space: pre; }
+/* 影子建议（Stargazer 1.0 接线③）：只记录不影响，样式从属于星币侍从面板 */
+.pentacles-row { cursor: pointer; }
+.shadow-advice-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.shadow-advice-title { font-weight: 600; }
+.shadow-advice-tag { color: var(--dim); font-size: 12px; }
+.shadow-advice-head .tb-btn { margin-left: auto; }
+#shadowAdviceBody { font-size: 13px; line-height: 1.9; color: var(--fg2); overflow-wrap: anywhere; }
+.shadow-advice-sub { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.shadow-advice-option { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.shadow-advice-line { margin: 2px 0; }
+.shadow-advice-line b { color: var(--fg); margin-right: 6px; }
+.shadow-advice-line ul { margin: 2px 0 6px; padding-left: 20px; }
+.shadow-advice-unscorable, .shadow-advice-error { padding: 10px 12px; border-radius: 8px; margin-top: 4px; }
+.shadow-advice-unscorable { color: var(--dim); background: var(--bg1); border: 1px dashed var(--border3); }
+.shadow-advice-error { color: #c9a227; background: var(--bg1); border: 1px solid var(--border2); }
+/* 信息面板横栏（Stargazer 1.0：Corvus 未接入时占位） */
+.info-feed-bar { display: flex; align-items: center; gap: 12px; padding: 8px 20px; border-bottom: 1px solid var(--border2); background: var(--bg1); font-size: 12px; color: var(--dim); }
+.info-feed-label { font-weight: 600; color: var(--fg2); flex: none; }
+.info-feed-status { flex: none; padding: 2px 10px; border: 1px dashed var(--border3); border-radius: 999px; }
+.info-feed-items { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 交易计划栏 */
+.plan-stock { padding: 10px 12px; border: 1px solid var(--border2); border-radius: 10px; margin-bottom: 8px; background: var(--bg3); font-size: 13px; }
+.plan-stock .tag { margin-left: 8px; }
+.plan-stock .plan-status.warn { color: #c9a227; border-color: #c9a227; }
+.plan-stock .c-note { margin-top: 6px; color: var(--dim); font-size: 12px; }
 /* Stable shell: retired screens are never reactivated by old styles. */
 [hidden] { display: none !important; }
 .shell-label { font-size: 11px; color: #777; margin-left: 8px; }
-.shell-overview { max-width: 1120px; margin: 0 auto; padding: 28px 32px; display: grid; gap: 22px; }
+.shell-overview { max-width: 1120px; width: 100%; margin: 0 auto; padding: 28px 32px; display: grid; gap: 22px; flex: 1; min-height: 0; overflow: auto; align-content: start; }
 .shell-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin: 24px 0; }
 .shell-stats > div { border: 1px solid #292929; border-radius: 12px; padding: 18px 22px; background: #141414; }
 .shell-stats span { display: block; font-size: 12px; color: #888; margin-bottom: 10px; }
@@ -514,6 +543,10 @@ body {
 .model-slots h3 { margin:12px 0; font-size:17px; }
 .model-slots p { font-size:13px; color:#b9b9b9; }
 .model-slots small { color:#767676; line-height:1.8; }
+.model-slots small { display:block; }
+.model-slots .tb-btn { margin-top:12px; }
+#modelDetailPanel { margin-top:20px; }
+#modelDetailBody .section-card { margin-top:12px; }
 .chat-head .tb-btn { margin-left: auto; }
 .chat-head .tb-btn + .tb-btn { margin-left: 8px; }
 @media (max-width: 950px) { .model-slots { grid-template-columns:1fr; } .shell-label { display:none; } .shell-overview { padding:22px; } }

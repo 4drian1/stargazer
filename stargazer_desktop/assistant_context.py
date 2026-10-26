@@ -14,6 +14,10 @@ def candidate_table(snapshot):
     for row in snapshot['rows']:
         zone = row.get('zone') or {}
         rows.append([row.get(k) for k in columns[:4]] + [zone.get(k) for k in columns[4:7]] + [row.get('status')])
+    if snapshot.get('rule_version') == 'TAROT_A_SECOND_CASH_V2':
+        columns += ['rank', 'selection_score']
+        for values, row in zip(rows, snapshot['rows']):
+            values += [row.get('rank'), row.get('selection_score')]
     return {'columns': columns, 'rows': rows}
 
 

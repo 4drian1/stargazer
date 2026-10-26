@@ -41,6 +41,15 @@ def is_scoring_eligible(record, feat_row=None, as_of_date=None,
     本函数刻意不检查任何标签侧字段。
     """
     problems = []
+    if as_of_date is None:
+        problems.append("scoring_asof_required")
+    else:
+        try:
+            feature_day = int(record["label_start"])
+            if feature_day > int(as_of_date):
+                problems.append("feature_asof_in_future")
+        except (KeyError, ValueError, TypeError, OverflowError):
+            problems.append("feature_asof_unknown")
     if str(record.get("tier")) != "P0":
         problems.append("tier!=P0")
     if str(record.get("attribution_quality")) == "HEAVY":

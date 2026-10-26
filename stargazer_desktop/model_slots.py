@@ -1,4 +1,4 @@
-"""Three display adapters reuse SnapshotV2; no fusion or model promotion."""
+"""Registered model slots; per-plan evidence is provided by plan_evidence."""
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -21,7 +21,7 @@ def slots(value):
     result = {}
     for slot, kind, reason in [('selection', 'opportunity', 'RULE_OBSERVATION_NOT_VALIDATED_PROFIT'),
                                ('information', 'context', 'INFORMATION_MODEL_NOT_CONNECTED'),
-                               ('risk', 'risk', 'RISK_MODEL_NOT_READY')]:
+                               ('risk', 'risk', 'RISK_INPUT_NOT_BOUND')]:
         header = SnapshotHeaderV2(
             snapshot_id=f'{slot}-{identity}', schema_version=f'{kind}.v2',
             frozen_artifact_ref=(f'rule_snapshot:PAGE_OF_PENTACLES_DEMO_V1:{identity}' if slot == 'selection'
@@ -35,5 +35,9 @@ def slots(value):
                     'timestamp_semantics': 'UI读取时刻，不是历史源到达时刻',
                     'source_schema': value.get('schema')} if slot == 'selection' else {})
         result[slot] = asdict(SnapshotV2(kind, header, payload))
+        result[slot]['display_name'] = {'selection': 'Tarot·星币侍从 1.0', 'risk': 'Pyxis 1.0', 'information': 'Corvus'}[slot]
+        if slot == 'risk':
+            from oracles_v1 import PYXIS_FROZEN
+            result[slot]['header']['frozen_artifact_ref'] = 'pyxis:232:' + PYXIS_FROZEN['232主版']['model_sha256']
     return {'shell_version': 'stable-shell-v1', 'name': '稳定应用外壳',
             'models': result, 'interaction_enabled': False, 'trading_authority': False}

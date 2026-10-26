@@ -20,33 +20,56 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
+import bisect
+import math
 from collections import Counter
+from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / 'step9_preflight'))
 from independent_fetch_client import (  # 已验收受控客户端
     TencentDailyClient, FetchCounter, ByteCounter, FetchBudgetExceeded,
     ByteBudgetExceeded,
 )
-from label_readiness_inventory import valid_price  # 复用有限/正数校验
 
 BATCH = HERE / 'independent_fetch' / 'batch_d_mainpop_30'
 POINTS = BATCH / 'price_comparison_points_44win.json'
+MANIFEST = BATCH / 'price_verification_manifest_v2.json'
+REQUEST_CAP = 36
+BYTE_CAP = 5 * 1024 * 1024
+REPORT_RESERVE = 256 * 1024
 TOL = 0.01                      # 冻结容差：|diff| ≤ 0.01 元
 BOUNDARY = -0.08                # MAE_5d 标签边界（约 −8%）
 BSE_GAP = {'920729', '920808'}  # 北交所覆盖缺口：不请求
+
+
+def valid_price(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value > 0
 
 
 # ---- 复用已验收的字段序映射（腾讯 day 行序=[date,open,close,high,low]） ----
 def tencent_rows_to_map(rows: list) -> dict:
     out = {}
     for r in rows:
+        if not isinstance(r, list) or len(r) < 5:
+            raise ValueError('REMOTE_ROW_SHAPE')
+        datetime.strptime(str(r[0]), '%Y-%m-%d')
         d = int(str(r[0]).replace('-', ''))
-        out[d] = dict(open=float(r[1]), close=float(r[2]),
-                      high=float(r[3]), low=float(r[4]))
+        if any(isinstance(v, bool) for v in r[1:5]):
+            raise ValueError('REMOTE_PRICE_INVALID')
+        value = dict(open=float(r[1]), close=float(r[2]), high=float(r[3]), low=float(r[4]))
+        if not all(valid_price(v) for v in value.values()) or not (
+                value['low'] <= min(value['open'], value['close']) <=
+                max(value['open'], value['close']) <= value['high']):
+            raise ValueError('REMOTE_PRICE_INVALID')
+        if d in out and out[d] != value:
+            raise ValueError('REMOTE_DUPLICATE_CONFLICT')
+        out[d] = value
     return out
 
 
@@ -58,8 +81,10 @@ def compare_point(local_val, remote_val):
         return 'MISS_LOCAL', None
     if remote_val is None:
         return 'MISS_REMOTE', None
-    diff = round(local_val - remote_val, 4)
-    return ('MATCH' if abs(diff) <= TOL else 'DIFF'), diff
+    if any(isinstance(v, bool) or not valid_price(v) for v in (local_val, remote_val)):
+        return 'INVALID_PRICE', None
+    diff = Decimal(str(local_val)) - Decimal(str(remote_val))
+    return ('MATCH' if abs(diff) <= Decimal(str(TOL)) else 'DIFF'), float(diff)
 
 
 def mae_5d(local, code, p, win):
@@ -82,30 +107,50 @@ def boundary_sensitivity(local, code, p, win):
     if rp is None or not valid_price(rp['close']):
         return None
     r_p = rp['close']
-    perturb = 0.01 / r_p
     m = mae_5d(local, code, p, win)
     if m is None:
         return None
-    cross = (m - perturb <= BOUNDARY) and (m + perturb >= BOUNDARY)
-    return dict(mae_5d=round(m, 6), perturb=round(perturb, 6),
-                boundary=BOUNDARY, sensitive=bool(cross))
+    rp_d, tol = Decimal(str(r_p)), Decimal(str(TOL))
+    low = min(Decimal(str(local[(code, int(w.replace('-', '')))]['low'])) for w in win)
+    if rp_d <= tol or low <= tol:
+        return {'status': 'PERTURBATION_NONPOSITIVE', 'sensitive': None}
+    lower = (low - tol) / (rp_d + tol) - 1
+    upper = (low + tol) / (rp_d - tol) - 1
+    return dict(diagnostic_mae_5d=m, lower=float(lower), upper=float(upper),
+                boundary=BOUNDARY, sensitive=bool(lower <= Decimal(str(BOUNDARY)) <= upper),
+                note='未核销价格尺度/公司行为；仅误差敏感性诊断，不是正式MAE或风险标签')
 
 
 # ---- 本地价格读取（来自 data_daily_parts，与标签契约同口径）----
-def load_local_prices(points):
-    from data_source_provenance import DAILY_PARTS
+def load_local_prices(points, files=None):
     import pyarrow.dataset as ds, glob
+    if files is None:
+        from data_source_provenance import DAILY_PARTS
+        files = sorted(glob.glob(str(Path(DAILY_PARTS) / 'part_*.parquet')))
+    needed = {(p['code'], p['date'], p['field']) for p in points}
     codes = sorted({p['code'] for p in points})
-    files = sorted(glob.glob(str(Path(DAILY_PARTS) / 'part_*.parquet')))
-    tbl = ds.dataset(files, format='parquet').to_table(
-        columns=['code', 'date', 'close', 'low'],
-        filter=ds.field('code').isin(codes))
+    dates = sorted({p['date'] for p in points})
     local = {}
-    for code, date, cl, lo in zip(tbl['code'].to_pylist(), tbl['date'].to_pylist(),
-                                  tbl['close'].to_pylist(), tbl['low'].to_pylist()):
-        key = (str(code).zfill(6), int(date))
-        if valid_price(cl) and valid_price(lo):
-            local[key] = dict(close=cl, low=lo)
+    sources = {}
+    for file in files:
+        tbl = ds.dataset([file], format='parquet').to_table(
+            columns=['code', 'date', 'close', 'low'],
+            filter=ds.field('code').isin(codes) & ds.field('date').isin(dates))
+        for row in tbl.to_pylist():
+            code, date = str(row['code']).zfill(6), int(row['date'])
+            for field in ('close', 'low'):
+                key = (code, date, field)
+                if key not in needed:
+                    continue
+                value = row[field]
+                if key in sources and local[(code, date)][field] != value:
+                    raise ValueError(f'LOCAL_DUPLICATE_CONFLICT:{key}:{sources[key]}:{Path(file).name}')
+                if isinstance(value, bool) or not valid_price(value):
+                    raise ValueError(f'LOCAL_PRICE_INVALID:{key}:{Path(file).name}')
+                local.setdefault((code, date), {})[field] = value
+                sources[key] = Path(file).name
+    if any(p['field'] not in local.get((p['code'], p['date']), {}) for p in points):
+        raise ValueError('LOCAL_REQUIRED_PRICE_MISSING')
     return local
 
 
@@ -145,25 +190,25 @@ def plan_from_points(points):
     return plan
 
 
-def dry_run():
-    data = json.loads(POINTS.read_text(encoding='utf-8'))
-    points = data['points']
+def dry_run(manifest_path=MANIFEST):
+    from price_verification_guarded_run import verify_bundle
+    manifest, windows, points, local = verify_bundle(manifest_path, sys.modules[__name__])
     plan = plan_from_points(points)
     n_total, n_price = scan_existing_price_coverage()
     n_stocks = len(plan)
-    req_estimate = n_stocks + 2  # +2 冒烟
-    cap = req_estimate + 4        # 硬顶 = 估算 + 余量
+    req_estimate = n_stocks  # Two full-interval smoke responses are reused.
+    cap = REQUEST_CAP
     print('==== 44 窗价格核验 取数计划（dry-run，零网络）====')
-    print(f'唯一点={data["unique_points_total"]} 引用={data["references_total"]} '
-          f'股票={data["stocks_total"]}')
+    print(f'窗口={len(windows)} 唯一点={len(points)} 引用={len(windows)*6} 股票={len(plan)}；冻结哈希复验PASS')
     print(f'既有响应扫描：总 {n_total} 条；其中腾讯价格响应 {n_price} 条 '
-          f'→ 价格点可复用覆盖 = {n_price}')
-    print(f'按股票合并请求数 = {n_stocks}；+ 2 冒烟 = {req_estimate}；'
-          f'建议请求硬顶 = {cap}')
+          f'（响应条数不是价格点覆盖；未经逐点核验不复用）')
+    print(f'按股票合并={n_stocks}；2次冒烟区间结果复用；正常请求={req_estimate}；固定硬顶={cap}；零重试')
     print('北交所缺口（不请求）：', sorted(BSE_GAP & set(plan)))
     print(f'容差冻结 |diff|≤{TOL} 元；边界敏感性针对 MAE≈{BOUNDARY}（非 ±8%）')
     print('注：既有 run_20261013* 为 Sina 公司行为页，非价格响应，不可复用为价格点。')
-    return dict(req_estimate=req_estimate, cap=cap, price_covered=n_price)
+    print('状态：ZERO_NETWORK_PREFLIGHT_PASS / INDEPENDENT_FETCH_AUTHORIZATION_REQUIRED；非标签/训练就绪')
+    return dict(req_estimate=req_estimate, cap=cap, existing_price_response_count=n_price,
+                price_points_verified_for_reuse=0, training_ready=False)
 
 
 # ---- 零网络：合成自测 ----
@@ -213,67 +258,34 @@ def selftest():
     return npass == len(results)
 
 
-# ---- 取数模式（需单独授权；本轮不执行）----
-def fetch_run(archive_dir: str):  # pragma: no cover - 需授权后启用
-    data = json.loads(POINTS.read_text(encoding='utf-8'))
-    points = data['points']
-    plan = plan_from_points(points)
-    local = load_local_prices(points)
-    req_cap = len(plan) + 2 + 4
-    req = FetchCounter(req_cap)
-    nbytes = ByteCounter(5 * 1024 * 1024)
-    disk = ByteCounter(5 * 1024 * 1024)
-    disk.consume(256 * 1024)  # 报告预留
-    client = TencentDailyClient(req, nbytes, rate_limit_s=1.0, timeout_s=10.0,
-                                max_retries=3, disk_counter=disk)
-    adir = Path(archive_dir)
-    # 冒烟 2 次零重试（本批股票各一）
-    smoke = list(plan.items())[:2]
-    for code, rng in smoke:
-        try:
-            rows = client.fetch_raw_daily(code, rng['start'], rng['end'],
-                                          archive_dir=str(adir), smoke=True)
-            _ = tencent_rows_to_map(rows)
-        except Exception as exc:
-            raise SystemExit(f'冒烟失败即终止：{code} {exc}')
-    # 逐股票取区间日线
-    remote_maps = {}
-    for code, rng in plan.items():
-        if code in BSE_GAP:
-            continue
-        rows = client.fetch_raw_daily(code, rng['start'], rng['end'],
-                                      archive_dir=str(adir))
-        remote_maps[code] = tencent_rows_to_map(rows)
-    # 离线比对 225 唯一点
-    out = []
-    for p in points:
-        code, date, field = p['code'], p['date'], p['field']
-        loc = local.get((code, date))
-        rem = remote_maps.get(code, {}).get(date)
-        lv = loc[field] if loc else None
-        rv = rem[field] if rem else None
-        verdict, diff = compare_point(lv, rv)
-        rec = dict(code=code, date=date, field=field, local=lv, remote=rv,
-                   diff=diff, verdict=verdict)
-        out.append(rec)
-    # 边界敏感性逐窗单列
-    # (按 (code,P) 聚合窗口后调用 boundary_sensitivity——此处仅逐点，窗口级另由 map 提供)
-    (BATCH / 'price_match_table_44win.json').write_text(
-        json.dumps(out, ensure_ascii=False, indent=1), encoding='utf-8')
-    cnt = Counter(r['verdict'] for r in out)
-    print('价格比对（225 唯一点）：', dict(cnt))
-    print(f'请求 {req.used}/{req.hard_cap} 响应 {nbytes.used} B 落盘 {disk.used} B')
-    return out
+# ---- Fetch entry: signed artifact + full preflight, then isolated batch ----
+def fetch_run(archive_dir, authorization=None, authorization_sha256=None, manifest_path=MANIFEST):
+    from price_verification_guarded_run import execute
+    return execute(archive_dir, authorization, authorization_sha256, manifest_path,
+                   sys.modules[__name__])
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == '--dry-run':
-        dry_run()
-    elif len(sys.argv) > 1 and sys.argv[1] == '--selftest':
-        raise SystemExit(0 if selftest() else 1)
-    elif len(sys.argv) > 1 and sys.argv[1] == '--fetch':
-        if len(sys.argv) < 3:
-            raise SystemExit('--fetch 需要 archive_dir 参数（须先获授权）')
-        fetch_run(sys.argv[2])
-    else:
-        print('用法: --dry-run | --selftest | --fetch <archive_dir>')
+    import argparse
+    parser = argparse.ArgumentParser(description='44窗价格交叉核验；不构建标签、不训练')
+    modes = parser.add_mutually_exclusive_group(required=True)
+    modes.add_argument('--dry-run', action='store_true')
+    modes.add_argument('--selftest', action='store_true')
+    modes.add_argument('--fetch', metavar='NEW_BATCH_DIRECTORY')
+    parser.add_argument('--authorization')
+    parser.add_argument('--authorization-sha256')
+    parser.add_argument('--manifest', type=Path, default=MANIFEST)
+    args = parser.parse_args()
+    try:
+        if args.selftest:
+            raise SystemExit(0 if selftest() else 1)
+        elif args.dry_run:
+            dry_run(args.manifest)
+        else:
+            result = fetch_run(args.fetch,args.authorization,args.authorization_sha256,args.manifest)
+            print(json.dumps(result,ensure_ascii=False,allow_nan=False))
+            raise SystemExit(0 if result['stop_reason'] == 'completed' else 2)
+    except (ValueError, OSError, KeyError) as exc:
+        print(json.dumps({'status':'BLOCKED','reason':str(exc),'network_authorized':False},
+                         ensure_ascii=False))
+        raise SystemExit(2)

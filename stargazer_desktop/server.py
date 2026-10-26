@@ -253,8 +253,15 @@ def chat():
     try:
         with _brain_lock:
             body = request.get_json() or {}
-            if body.get('mode') == 'next_day_plan':
-                result = assistant_workflow.plan_chat(cfg, msg, body.get('draft_id'))
+            from conversation_intent import plan_work
+            if plan_work(msg, drafting=body.get('mode') == 'next_day_plan'):
+                draft_id = body.get('draft_id')
+                if not draft_id and not any(word in msg for word in ('制定', '生成', '重选')):
+                    previous = assistant_workflow.latest('plan')
+                    draft_id = previous['id'] if previous else None
+                result = assistant_workflow.plan_chat(cfg, msg, draft_id)
+                if result['draft'].get('awaiting_count'):
+                    return jsonify({**result, 'tools': []})
                 from assistant_runtime import gate
                 try:
                     result['graph'] = gate('plan', result['draft'])
@@ -560,6 +567,56 @@ def api_pentacles_run():
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
 
+# ---------- 影子建议（Stargazer 1.0 接线③：只记录不影响；失败绝不拖垮主进程） ----------
+@app.route('/api/shadow_evidence')
+def api_shadow_evidence():
+    import shadow_ui
+    code = (request.args.get('code') or '').strip()
+    date = (request.args.get('date') or '').strip()
+    if not code and not date:
+        return jsonify(shadow_ui.evidence_catalog())
+    if not code or not date:
+        return jsonify({'status': 'UNSCORABLE', 'reason': 'code/date 必填'}), 400
+    try:
+        return jsonify(shadow_ui.get_shadow_evidence(code, date))
+    except Exception as exc:
+        return jsonify({'status': 'ERROR', 'reason': type(exc).__name__})
+
+
+@app.route('/api/shadow_advice')
+def api_shadow_advice():
+    """GET ?code=XXXXXX&date=YYYYMMDD → {status: OK|UNSCORABLE|ERROR, reason,
+    advice: render_advice 字段或 null, journal_ref}。
+
+    证据包由数据线产出（dist/data/shadow_packs.jsonl），本接口不算特征；
+    评分只走 shadow_journal.record_event(trigger='MANUAL') 入影子日记。
+    持仓中的候选用 POSITIONED 场景，其余按 UNPOSITIONED。
+    """
+    import shadow_ui
+    code = (request.args.get('code') or '').strip()
+    date = (request.args.get('date') or '').strip()
+    if not code or not date:
+        return jsonify({'status': 'UNSCORABLE', 'reason': 'code/date 必填',
+                        'advice': None, 'journal_ref': None}), 400
+    if not deepseek_api.status().get('configured'):
+        return jsonify({'status': 'ERROR',
+                        'reason': '本次建议不可用（DeepSeek 未配置）',
+                        'advice': None, 'journal_ref': None})
+    try:
+        held = {str(p.get('code')) for p in
+                (services.wl_load(get_cfg()).get('positions') or [])}
+    except Exception:
+        held = set()
+    try:
+        return jsonify(shadow_ui.get_shadow_advice(
+            code, date, scenario=('POSITIONED' if code in held
+                                  else 'UNPOSITIONED')))
+    except Exception as exc:  # 双保险：任何异常不外抛、不 500
+        return jsonify({'status': 'ERROR',
+                        'reason': f'本次建议不可用（{type(exc).__name__}）',
+                        'advice': None, 'journal_ref': None})
+
+
 @app.route('/api/assistant/state')
 def api_assistant_state():
     try:
@@ -617,7 +674,64 @@ def api_shell_state():
         value = assistant_workflow.snapshot()
     except (ValueError, OSError):
         value = {'schema': 'UNAVAILABLE', 'rows': []}
-    return jsonify(slots(value))
+    import joint_risk_bridge
+    import plan_evidence
+    return jsonify({**slots(value), 'display': plan_evidence.status(value),
+                    'joint_shadow': joint_risk_bridge.state(get_cfg())})
+
+
+@app.route('/api/model/detail')
+def api_model_detail():
+    import plan_evidence
+    try:
+        return jsonify(plan_evidence.model_view(request.args.get('model', '')))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+
+@app.route('/api/risk/outlook', methods=['POST'])
+def api_risk_outlook():
+    import plan_evidence
+    import risk_outlook_v1
+    view=plan_evidence.model_view('risk')
+    if not view.get('items') or not view.get('data_date'):
+        return jsonify({'status':'NO_PLAN','reason':'尚无绑定计划证据'}),400
+    old=view.get('outlook') or {}
+    if old.get('status') not in (None,'NOT_GENERATED'):
+        return jsonify(old)
+    cutoff=int(view['data_date'])*1000000+150000
+    return jsonify(risk_outlook_v1.queue(get_cfg(),view,cutoff,plan_id=risk_outlook_v1.view_id(view)))
+
+
+@app.route('/api/plan_boards')
+def api_plan_boards():
+    import plan_board_monitor
+    try:
+        return jsonify(plan_board_monitor.state())
+    except Exception:
+        return jsonify({'status': 'UNAVAILABLE', 'rows': []})
+
+
+@app.route('/api/joint-shadow/state')
+def api_joint_shadow_state():
+    import joint_risk_bridge
+    return jsonify(joint_risk_bridge.state(get_cfg()))
+
+
+@app.route('/api/postclose-risk/state')
+def api_postclose_risk_state():
+    import postclose_risk_runtime
+    return jsonify(postclose_risk_runtime.state())
+
+
+@app.route('/api/joint-shadow/run', methods=['POST'])
+def api_joint_shadow_run():
+    import joint_risk_bridge
+    try:
+        # Data paths, mode and enabling belong to local config, not the POST body.
+        return jsonify(joint_risk_bridge.run(get_cfg(), pentacles_demo.monitoring_plan()))
+    except (ValueError, OSError) as exc:
+        return jsonify({'ok': False, 'status': 'REQUEST_REFUSED', 'reason': type(exc).__name__}), 400
 
 
 @app.route('/api/chat/session', methods=['GET', 'POST'])
@@ -630,6 +744,130 @@ def api_chat_session():
         return jsonify({'ok': True, 'session': brain.archive.stem,
                         'messages': [m for m in brain.messages[-20:]
                                      if m.get('role') in ('user', 'assistant') and m.get('content')]})
+
+
+# ---------- 信息面板（Stargazer 1.0 UI 框架：Corvus 信息模型，缺席=未接入） ----------
+# 数据契约：信息流后续推送 JSON 到 dist/data/info_feed.jsonl（每行一条，见
+# /api/info_feed 路由注释）。文件缺席/为空 → connected=False → 面板显示"信息模型未接入"。
+INFO_FEED_FILE = paths.data_file('dist/data/info_feed.jsonl', seed_from_bundle=False)
+INFO_FEED_MAX_ITEMS = 20
+INFO_FEED_FIELDS = ('ts', 'source', 'kind', 'title', 'summary', 'tags', 'refs')
+
+
+@app.route('/api/info_feed')
+def api_info_feed():
+    """最新信息流条目。契约（每行一个 JSON）：
+    {ts: 14位时间戳, source: 来源标识, kind: 类别(announcement/news/risk/...),
+     title: 标题, summary: 摘要, tags: [..], refs: [代码/证据编号]}
+    """
+    items, bad_lines = [], 0
+    try:
+        with open(INFO_FEED_FILE, encoding='utf-8') as f:
+            lines = f.read().splitlines()
+    except OSError:
+        lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            bad_lines += 1
+            continue
+        if isinstance(row, dict) and row.get('ts') and row.get('title'):
+            items.append({k: row.get(k) for k in INFO_FEED_FIELDS})
+    items = items[-INFO_FEED_MAX_ITEMS:][::-1]
+    return jsonify({'connected': bool(items), 'schema': 'STARGAZER_INFO_FEED_V1',
+                    'items': items, 'bad_lines': bad_lines,
+                    'asof': items[0]['ts'] if items else None})
+
+
+# ---------- 交易计划（Stargazer 1.0 UI 框架：server 校验后落盘 dist/data/trade_plan.json） ----------
+@app.route('/api/trade_plan')
+def api_trade_plan():
+    """当前交易计划；缺席 → {plan: None, status: 'NO_PLAN'}（UI 显示"暂无计划"）。"""
+    import trade_plan_v1 as tp
+    try:
+        plan = tp.load_plan()
+        return jsonify({'ok': True, 'status': 'OK' if plan else 'NO_PLAN',
+                        'plan': plan, 'errors': tp.validate_plan(plan) if plan else []})
+    except Exception as exc:
+        return jsonify({'ok': False, 'status': 'ERROR',
+                        'reason': f'{type(exc).__name__}: {exc}', 'plan': None})
+
+
+@app.route('/api/trade_plan', methods=['POST'])
+def api_trade_plan_save():
+    """写入正式计划（用户人工确认后）。body=契约 JSON，校验通过才落盘。"""
+    import trade_plan_v1 as tp
+    body = request.get_json(silent=True)
+    errs = tp.validate_plan(body)
+    if errs:
+        return jsonify({'ok': False, 'status': 'REJECTED',
+                        'reason': '计划契约校验失败', 'errors': errs[:8]}), 400
+    try:
+        path = tp.save_plan(body)
+        return jsonify({'ok': True, 'status': 'SAVED', 'path': str(path)})
+    except Exception as exc:
+        return jsonify({'ok': False, 'status': 'ERROR',
+                        'reason': f'{type(exc).__name__}: {exc}'})
+
+
+# 计划触发推送去重（内存态：进程内每股每计划日只推一次；框架级，模型接入后保留）
+_PLAN_PUSHED: set = set()
+
+
+@app.route('/api/plan_check')
+def api_plan_check():
+    """计划监控钩子（框架先行）：?code=&price=[&ts=14位] → 结构化状态。
+
+    当前只按计划 JSON 规则判断（NEAR/TRIGGERED/EXPIRED/...）；
+    # 模型决策接入点：数据链验收后接 decision_layer（见 trade_plan_v1.plan_check）。
+    规则触发事件沿现有通道推送（微信未开启时仅记录）；推送失败不影响返回。
+    """
+    import trade_plan_v1 as tp
+    code = (request.args.get('code') or '').strip()
+    price = request.args.get('price')
+    ts = (request.args.get('ts') or '').strip() or None
+    if not code:
+        return jsonify({'status': 'ERROR', 'reason': 'code 必填'}), 400
+    try:
+        result = tp.plan_check(code, price, ts)
+    except Exception as exc:
+        return jsonify({'status': 'ERROR', 'reason': f'{type(exc).__name__}'})
+    if result.get('status') == 'TRIGGERED':
+        key = (code, str((result.get('stock') or {}).get('valid_until', '')))
+        if key not in _PLAN_PUSHED:
+            _PLAN_PUSHED.add(key)
+            try:
+                cfg = get_cfg()
+                name = (result.get('stock') or {}).get('name') or ''
+                zone = result.get('buy_zone') or []
+                ok, msg = notifier.send_wechat(
+                    cfg, f'计划触发提醒 {name} {code}',
+                    f'现价 {price} 进入计划买入区 {zone[0]}–{zone[1]}。\n'
+                    f'规则触发，模型决策待接入；买卖由你决定。')
+                result['pushed'] = ok
+                result['push_msg'] = msg
+            except Exception as exc:
+                result['pushed'] = False
+                result['push_msg'] = f'{type(exc).__name__}'
+    return jsonify(result)
+
+
+@app.route('/api/index_freshness')
+def api_index_freshness():
+    """指数新鲜度（UI 契约②）：由 index_minutes_v1.get_index_freshness() 提供；
+    数据链未接入（模块缺席/异常）→ available=False，前端显示"数据过期"。"""
+    try:
+        import index_minutes_v1
+        value = index_minutes_v1.get_index_freshness()
+        if not isinstance(value, dict):
+            raise ValueError('FRESHNESS_NOT_DICT')
+        return jsonify({'available': True, **value})
+    except Exception:
+        return jsonify({'available': False, 'reason': 'INDEX_FRESHNESS_NOT_CONNECTED'})
 
 
 # ---------- 信息面板（路线 #13：SHADOW 展示页，无 LLM，无决策权） ----------
@@ -871,6 +1109,10 @@ def start(port=17890):
     notifier_thread.start()
     model_monitor_thread.start()
     pentacles_demo.monitor.start(get_cfg, pentacles_demo.monitoring_plan)
+    import index_minutes_v1
+    index_minutes_v1.start_source_sync()
+    import postclose_risk_runtime
+    postclose_risk_runtime.start()
     threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()

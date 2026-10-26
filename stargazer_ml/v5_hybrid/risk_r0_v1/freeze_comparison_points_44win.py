@@ -1,88 +1,79 @@
-"""freeze_comparison_points_44win.py — 冻结 44 窗价格比较点清单（零网络；可复算）。
-
-从 five_day_window_map_v3.json 枚举窗口，构造比较点：
-  每窗 1 个 P 日收盘(close) + 5 个后五日各自 low = 6 引用 → 44×6 = 264 引用；
-  按 (code, date, field) 去重 → 唯一价格点（用户读数：225）。
-落盘：independent_fetch/batch_d_mainpop_30/price_comparison_points_44win.json
-含：输入哈希（map 文件 + 人口/缓存哈希）、代码版本（三脚本 sha256）、按股票合并的日期范围（取数计划用）。
-"""
-from __future__ import annotations
-
-import hashlib
+"""Freeze REV2 inputs and points without replacing the legacy REV1 evidence."""
 import json
-from collections import defaultdict
-from datetime import datetime, timedelta
 from pathlib import Path
+import sys
 
 HERE = Path(__file__).resolve().parent
-BATCH = HERE / 'independent_fetch' / 'batch_d_mainpop_30'
+sys.path.insert(0, str(HERE.parent / 'step9_preflight'))
+BATCH = HERE / 'independent_fetch/batch_d_mainpop_30'
 MAP_PATH = BATCH / 'five_day_window_map_v3.json'
 
 
-def dint(s: str) -> int:
-    return int(s.replace('-', ''))
-
-
 def main():
-    MAP = json.loads(MAP_PATH.read_text(encoding='utf-8'))
-    map_sha = hashlib.sha256(MAP_PATH.read_bytes()).hexdigest()[:16]
-    inp = MAP.get('input_hash', {})
-
-    points = []
-    seen = set()
-    stock_dates = defaultdict(set)
-    n_ref = 0
-    for c in MAP['codes']:
-        code = c['code']
-        for w in c['windows']:
-            p = int(w['P'])
-            n_ref += 1
-            # P 日收盘
-            key = (code, p, 'close')
-            if key not in seen:
-                seen.add(key)
-                points.append(dict(code=code, date=p, field='close'))
-            stock_dates[code].add(p)
-            for wd in w['window']:
-                d = dint(wd)
-                n_ref += 1
-                key = (code, d, 'low')
-                if key not in seen:
-                    seen.add(key)
-                    points.append(dict(code=code, date=d, field='low'))
-                stock_dates[code].add(d)
-
-    # 按股票合并日期范围（取数计划：每股票一次区间请求）
-    stock_plan = {}
-    for code, ds in stock_dates.items():
-        lo, hi = min(ds), max(ds)
-        start = (datetime.strptime(str(lo), '%Y%m%d') - timedelta(days=7)).strftime('%Y%m%d')
-        end = (datetime.strptime(str(hi), '%Y%m%d') + timedelta(days=2)).strftime('%Y%m%d')
-        stock_plan[code] = dict(start=start, end=end, n_points=len(ds))
-
-    # 代码版本：三脚本 sha256
-    code_files = ['label_readiness_inventory.py', 'five_day_window_calendar_map.py',
-                  'price_verification_batch_44win.py']
-    code_sha = {f: hashlib.sha256((HERE / f).read_bytes()).hexdigest()[:12]
-                for f in code_files if (HERE / f).exists()}
-
-    out = dict(
-        generated_from=str(MAP_PATH.name),
-        map_sha256_16=map_sha,
-        map_input_hash=inp,                 # population/cache/reanalysis sha
-        code_version=code_sha,
-        windows_total=MAP.get('total_candidate_windows'),
-        stocks_total=len(stock_dates),
-        references_total=n_ref,             # 应 = 264
-        unique_points_total=len(points),    # 应 = 225
-        per_stock_date_range=stock_plan,
-        points=points,
-    )
-    out_path = BATCH / 'price_comparison_points_44win.json'
-    out_path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding='utf-8')
-    print(f'引用={n_ref} 唯一点={len(points)} 股票={len(stock_dates)}')
-    print(f'map_sha={map_sha} pop={inp.get("population")} cache={inp.get("cache")}')
-    print(f'written {out_path.name}')
+    import pyarrow.dataset as ds
+    from data_source_provenance import DAILY_PARTS
+    import price_verification_batch_44win as api
+    from price_verification_guarded_run import encoded, sha, materialize_points
+    point_file = BATCH / 'price_comparison_points_44win_v2.json'
+    manifest_file = BATCH / 'price_verification_manifest_v2.json'
+    if point_file.exists() or manifest_file.exists():
+        raise ValueError('FROZEN_VERSION_EXISTS_NO_OVERWRITE')
+    files = sorted(Path(DAILY_PARTS).resolve().glob('part_*.parquet'))
+    if not files:
+        raise ValueError('DAILY_FILES_MISSING')
+    calendar = sorted(ds.dataset([str(p) for p in files],format='parquet')
+                      .to_table(columns=['date'])['date'].unique().to_pylist())
+    mapping = json.loads(MAP_PATH.read_bytes())
+    windows, points = materialize_points(mapping, calendar)
+    if (len(windows),len(points),len({p['code'] for p in points})) != (44,225,30):
+        raise ValueError('FIXED_COUNTS_MISMATCH')
+    point_value = {'schema':'PRICE_COMPARISON_POINTS_V2','windows':windows,'points':points,
+                   'windows_total':44,'references_total':264,'unique_points_total':225,'stocks_total':30,
+                   'map_sha256':sha(MAP_PATH)}
+    old_points = json.loads((BATCH / 'price_comparison_points_44win.json').read_bytes())
+    if sorted(old_points['points'],key=lambda p:(p['code'],p['date'],p['field'])) != points:
+        raise ValueError('LEGACY_POINT_SET_DIFF_REQUIRES_REVIEW')
+    assets = {
+        'map':MAP_PATH, 'points':point_file,
+        'population':HERE.parent / 'green_common_profile/gcp_round_b_small_sample_v1/gcp_247_ruleA_trigger_records_v1.json',
+        'cache':HERE.parent / 'opportunity_v2/gate1c/feb2026_adjustment_cache_v1/adj_cache.json',
+        'reanalysis':BATCH / 'diff_table_reanalysis_v1.json',
+        'design':HERE / 'batch_d_design.json',
+        'calendar_code':HERE.parent / 'step9_preflight/trading_calendar.py',
+        'provenance_code':HERE.parent / 'step9_preflight/data_source_provenance.py',
+        'runner_code':HERE / 'price_verification_batch_44win.py',
+        'guard_code':HERE / 'price_verification_guarded_run.py',
+        'client_code':HERE / 'independent_fetch_client.py',
+        'freeze_code':Path(__file__).resolve(),
+        'request_order':HERE / 'price_verification_request_order_44win.md'}
+    assets.update({'daily:'+p.name:p for p in files})
+    point_bytes = encoded(point_value)
+    inputs = []
+    import hashlib
+    for role,path in assets.items():
+        path = path.resolve()
+        inputs.append({'role':role,'path':str(path),
+                       'bytes':len(point_bytes) if role == 'points' else path.stat().st_size,
+                       'sha256':hashlib.sha256(point_bytes).hexdigest() if role == 'points' else sha(path)})
+    manifest = {'schema':'PRICE_VERIFICATION_MANIFEST_V2','inputs':inputs,'calendar_dates':calendar,
+                'limits':{'requests':api.REQUEST_CAP,'response_bytes':api.BYTE_CAP,
+                          'disk_bytes':api.BYTE_CAP,'report_reserve_bytes':api.REPORT_RESERVE,'retries':0},
+                'source':'Tencent RAW day; external cross-check, independence unverified',
+                'calendar_semantics':'daily date union; mapping only, independent source gate OPEN',
+                'network_authorized':False,'label_build_authorized':False,'fit_authorized':False}
+    manifest_bytes = encoded(manifest)
+    if len(point_bytes) + len(manifest_bytes) > 1024 * 1024:
+        raise ValueError('ZERO_NETWORK_ARTIFACT_BUDGET_STOP')
+    # Check original parent bindings before publishing the new artifacts.
+    design = json.loads(assets['design'].read_bytes())
+    if sha(assets['population']) != design['population_binding']['sha256'] or sha(assets['cache']) != design['cache_binding']['sha256']:
+        raise ValueError('PARENT_INPUT_BINDING_MISMATCH')
+    for path,raw in ((point_file,point_bytes),(manifest_file,manifest_bytes)):
+        with path.open('xb') as stream:
+            stream.write(raw)
+    print(json.dumps({'windows':44,'references':264,'unique_points':225,'stocks':30,
+                      'input_files':len(inputs),'new_bytes':len(point_bytes)+len(manifest_bytes),
+                      'manifest_sha256':sha(manifest_file),'status':'FROZEN_NOT_AUTHORIZED'}))
 
 
 if __name__ == '__main__':
