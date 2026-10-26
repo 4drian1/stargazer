@@ -153,11 +153,14 @@ def main(daily_only=False, through_date=None):
     import subprocess
     ml = Path(__file__).resolve().parent.parent
     pool_script = ml / "green_watch_v0" / "build_pool.py"
+    # 解释器缺省：仓库根下 .venv（与文件相对定位，不再绑定 D:\stargazer）；
+    # 可用环境变量 STARGAZER_ML_PYTHON 覆盖（监控机指向自己的 venv）
     py = Path(sys.executable).parent.parent / ".venv" / "Scripts" / "python.exe"
     if not py.exists():
         import os
+        root = Path(__file__).resolve().parents[3]  # 仓库根
         py = Path(os.environ.get("STARGAZER_ML_PYTHON",
-                                r"D:\stargazer\.venv\Scripts\python.exe"))
+                                 root / ".venv" / "Scripts" / "python.exe"))
     print(f"[pool] {py} build_pool.py --date {sdb}")
     r = subprocess.run([str(py), "-X", "utf8", str(pool_script), "--date", str(sdb)],
                        capture_output=True, text=True, encoding="utf-8", errors="replace",

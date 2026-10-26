@@ -28,10 +28,12 @@ push:
   auction_time: '09:26'
 model:
   enabled: true
-  python: D:\stargazer\.venv\Scripts\python.exe
-  batch_script: D:\stargazer\stargazer_ml\v5_9_live_batch.py
+  # 以下三个路径为"本机开发缺省"，随机器不同必须改：监控机填自己的解释器与脚本绝对路径
+  # （打包/迁移纪律见 PACKAGING_TARGET.md；留空则 ml_bridge 自动用 <项目根>/stargazer_ml 下相对路径）
+  python: ''            # 例: C:\Users\10757\trading\stargazer\rule_venv\Scripts\python.exe
+  batch_script: ''      # 例: <项目根>\stargazer_ml\v5_9_live_batch.py
   # 本地用增量刷新：基于 data_daily_parts 补全最新数据； portable 环境请改成 v5_9_portable_refresh.py
-  refresh_script: D:\stargazer\stargazer_ml\v5_9_refresh_live_data.py
+  refresh_script: ''    # 例: <项目根>\stargazer_ml\v5_9_refresh_live_data.py
   cache_dir: data/model
   intraday_db: data/model_state.sqlite
   device: auto
@@ -54,8 +56,9 @@ model:
 #   · 全链（green_v2\model_shadow_draft.py / rule_python / plan_dir）不存在时页面自动隐藏
 #   · 15:05 盘后日终汇总（候选数/触发清单 → 微信 + data\plan_daily_summary_YYYYMMDD.json）
 plan:
-  ml_root: D:\stargazer\stargazer_ml   # 交易计划页双名单脚本根（打包迁移时按 PACKAGING_TARGET 纪律替换）
+  # ml_root 留空则自动取 <项目根>/stargazer_ml；监控机一般无需填写
+  ml_root: ''                               # 例: C:\Users\10757\trading\stargazer\stargazer_ml
   plan_file: data/plan_frozen.json          # 相对本程序目录
   interval_seconds: 180                     # 计划规则求值间隔（检查点到点必查）
-  plan_dir: D:\stargazer\stargazer_plan     # 「盘后总结」按钮 settle 子进程 cwd
-  rule_python: D:\stargazer\_dev_venv\Scripts\python.exe   # settle 解释器（需 PG）
+  plan_dir: ''                              # 例: C:\Users\10757\trading\stargazer\stargazer_plan（settle 子进程 cwd）
+  rule_python: ''                           # 例: C:\Users\10757\trading\stargazer\rule_venv\Scripts\python.exe

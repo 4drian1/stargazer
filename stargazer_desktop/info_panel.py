@@ -21,14 +21,16 @@ BASE = Path(__file__).resolve().parent
 import paths as _paths  # 桌面端路径规范：打包后可写数据在 exe 同级，不在 _MEI 临时目录
 DATA = Path(_paths.APP_DIR) / "data" / "info_panel"
 def _sibling(name):
-    """桌面端 exe/源码同级或上级目录查找（本机与监控机目录形态不同）。"""
-    bases = [Path(_paths.APP_DIR).parent, Path(_paths.APP_DIR).parent.parent,
-             Path(r"D:/stargazer")]
+    """桌面端 exe/源码同级或上级目录查找（本机与监控机目录形态不同）。
+
+    自 APP_DIR 向上扫描含目标子目录的项目根，不再硬编码 D:/stargazer；
+    找不到时返回最近候选（缺口会在 gaps 区明示）。"""
+    bases = [Path(_paths.APP_DIR).parent, *Path(_paths.APP_DIR).parents]
     for b in bases:
         p = b / name
         if p.exists():
             return p
-    return Path(r"D:/stargazer") / name  # 兜底缺省（缺口会在 gaps 区明示）
+    return Path(_paths.APP_DIR).parent / name  # 兜底缺省（缺口会在 gaps 区明示）
 
 
 C3 = Path(os.environ.get("STARGAZER_C3_ROOT") or "") if os.environ.get(
