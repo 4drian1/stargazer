@@ -1,0 +1,41 @@
+{
+  "status": "PASS_BATCH_READER_IDENTICAL_TO_V1_NOT_FIT",
+  "tests": 5,
+  "test_output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.622s\n\nOK\n",
+  "segments": {
+    "train": {
+      "rows": 70096,
+      "conditional_fields": 128,
+      "changed_cells": 0,
+      "legacy_performance_warnings": 31,
+      "v2_performance_warnings": 0
+    },
+    "select": {
+      "rows": 21488,
+      "conditional_fields": 128,
+      "changed_cells": 0,
+      "legacy_performance_warnings": 31,
+      "v2_performance_warnings": 0
+    },
+    "calibration": {
+      "rows": 5648,
+      "conditional_fields": 128,
+      "changed_cells": 36475,
+      "legacy_performance_warnings": 31,
+      "v2_performance_warnings": 0
+    },
+    "test": {
+      "rows": 3472,
+      "conditional_fields": 128,
+      "changed_cells": 83391,
+      "legacy_performance_warnings": 31,
+      "v2_performance_warnings": 0
+    }
+  },
+  "reader_sha256": "a4c0701d0598ce41beb7c9ff100d36acc9260dc07ab63e3eb2a1613ddd466dc1",
+  "auditor_sha256": "171c799c3ab2679e4f85c749fca744bbce57f218e1728720b0102169eefa321c",
+  "prior_acceptance_sha256": "d9f35599e7dfa3b2a4888cedd2faf497c8b49d54220077bfcfb19267a8ac990e",
+  "old_reader_preserved": true,
+  "fit": false,
+  "http_requests": 0
+}

@@ -1,0 +1,21 @@
+{
+  "status": "PASS_FIXED_FIT_ENTRY_NO_REAL_FIT",
+  "tests": 41,
+  "test_output": ".........................................\n----------------------------------------------------------------------\nRan 41 tests in 1.973s\n\nOK\n",
+  "refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\config.json": "1ea339247bcf3f09fc7f3e8634e283c4e8b2b815e9f9ff82ca34c434a105a9ab",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_three_arm_fit_v1.py": "e59aa49d1ced7c4fa0087edf25a9a974dca863e68766a1302a69f4a461c4ea39",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_fit_evaluation_v1.py": "f543632d86ef33bb5b2e4fabee7bf473a8b7e77a3971f8bdb777c9ebf07f4e4a",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_three_arm_fit_v1.py": "e5a1773ce817007ebed0a257137c38fb877f2b15f5c5aae9bd2cb3ead1b3cbe8",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_multiboard_three_arm_fit_v1.py": "e88b296d3b1050439b3fc83a9795d9f38702bf7991e9c281c3c988e3a88d835f"
+  },
+  "common_rows": {
+    "train": 60712,
+    "select": 18071,
+    "calibration": 4548,
+    "test": 2988
+  },
+  "synthetic_models_only": true,
+  "real_fit_performed": false,
+  "http_requests": 0
+}

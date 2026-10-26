@@ -1,0 +1,13 @@
+{
+  "status": "PASS_FIXED_DIRECT_WARNING_RESEARCH_REPLAY_NOT_PROMOTION",
+  "probability_values_checked": 690552,
+  "maximum_replay_error": 0.0,
+  "rows": 86319,
+  "old_artifacts_checked": 21,
+  "D2_unchanged": true,
+  "output_bytes": 4659030,
+  "registered_bytes": 4285633593,
+  "cap": 4294967296,
+  "new_http": 0,
+  "deployed": false
+}

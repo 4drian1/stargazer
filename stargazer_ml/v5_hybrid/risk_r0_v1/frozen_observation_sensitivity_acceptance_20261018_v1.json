@@ -1,0 +1,271 @@
+{
+  "status": "PASS_FIXED_MODEL_INPUT_SENSITIVITY_NOT_FIT",
+  "tests": 7,
+  "independent_probability_values": 690552,
+  "sparse_prediction_cells": 8148,
+  "maximum_direct_metric_error": 2.220446049250313e-16,
+  "old_model_artifacts_unchanged": 21,
+  "d2_unchanged": true,
+  "report_sha256": "0acdc7233a62c9e496d70d55156933cb79d0411893ca8b9aa70210f5f4ee1e5f",
+  "auditor_sha256": "8db995f85db028d36bf6c89c5454bcc071e09dee4519b91caa0d014fd3a63ec3",
+  "posthoc_largest_probability_change_cases_not_used_for_feature_selection": [
+    {
+      "code": "688033",
+      "decision_ts": 20260824150000,
+      "original_probability": 0.4957231286262533,
+      "conditional_probability": 0.8479567800860761,
+      "logit_delta": 1.7357727483905663,
+      "numeric_logit_delta": 1.7357727483905614,
+      "missing_indicator_logit_delta": 0.0,
+      "top_terms": [
+        {
+          "field": "own5_current_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.4166666666666667,
+          "coefficient": -0.10638589946092587,
+          "logit_delta": 0.8632152788522446
+        },
+        {
+          "field": "own15_current_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.4166666666666667,
+          "coefficient": -0.10638589946092587,
+          "logit_delta": 0.8632152788522446
+        },
+        {
+          "field": "own15_captured_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.9166666666666666,
+          "coefficient": -0.19183542372758322,
+          "logit_delta": 0.3320890571102285
+        },
+        {
+          "field": "mb5_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "mb15_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        }
+      ]
+    },
+    {
+      "code": "002542",
+      "decision_ts": 20260824141500,
+      "original_probability": 0.4736854955425068,
+      "conditional_probability": 0.3403852237180931,
+      "logit_delta": -0.5562226438282458,
+      "numeric_logit_delta": -0.5562226438282432,
+      "missing_indicator_logit_delta": 0.0,
+      "top_terms": [
+        {
+          "field": "own15_sse_positive_nonpositive_rate",
+          "kind": "numeric",
+          "old_value": 0.3333333333333333,
+          "new_value": 0.5,
+          "coefficient": 0.7184454901347603,
+          "logit_delta": 0.5275529587681363
+        },
+        {
+          "field": "own15_sse_positive_falling_rate",
+          "kind": "numeric",
+          "old_value": 0.3333333333333333,
+          "new_value": 0.5,
+          "coefficient": -0.6090970318948625,
+          "logit_delta": -0.44786818882710516
+        },
+        {
+          "field": "own15_cyb_positive_nonpositive_rate",
+          "kind": "numeric",
+          "old_value": 0.3333333333333333,
+          "new_value": 0.5,
+          "coefficient": -0.3676622734367967,
+          "logit_delta": -0.29084010151569734
+        },
+        {
+          "field": "own15_cyb_positive_falling_rate",
+          "kind": "numeric",
+          "old_value": 0.3333333333333333,
+          "new_value": 0.5,
+          "coefficient": 0.3476922454244659,
+          "logit_delta": 0.27549459832609646
+        },
+        {
+          "field": "mb5_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        }
+      ]
+    },
+    {
+      "code": "600810",
+      "decision_ts": 20260824141500,
+      "original_probability": 0.5105460979576787,
+      "conditional_probability": 0.38457362235437914,
+      "logit_delta": -0.5123707275666742,
+      "numeric_logit_delta": -0.5123707275666698,
+      "missing_indicator_logit_delta": 0.0,
+      "top_terms": [
+        {
+          "field": "mb5_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "mb15_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "mb5_q90",
+          "kind": "numeric",
+          "old_value": 0.0057485575238689825,
+          "new_value": 0.004739336492891155,
+          "coefficient": 0.8830162263657162,
+          "logit_delta": -0.07370038125113083
+        },
+        {
+          "field": "mb15_q90",
+          "kind": "numeric",
+          "old_value": 0.0057485575238689825,
+          "new_value": 0.004739336492891155,
+          "coefficient": 0.8830162263657162,
+          "logit_delta": -0.07370038125113083
+        },
+        {
+          "field": "mb5_mean",
+          "kind": "numeric",
+          "old_value": -0.012145717993225414,
+          "new_value": -0.012360724353138428,
+          "coefficient": -2.9460000149626597,
+          "logit_delta": 0.049816111334854314
+        }
+      ]
+    },
+    {
+      "code": "688033",
+      "decision_ts": 20260824140000,
+      "original_probability": 0.34914035768639723,
+      "conditional_probability": 0.4594538669041719,
+      "logit_delta": 0.46027855560570075,
+      "numeric_logit_delta": 0.4602785556057061,
+      "missing_indicator_logit_delta": 0.0,
+      "top_terms": [
+        {
+          "field": "own15_captured_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.9166666666666666,
+          "coefficient": -0.19183542372758322,
+          "logit_delta": 0.3320890571102285
+        },
+        {
+          "field": "own5_current_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.8333333333333334,
+          "coefficient": -0.10638589946092587,
+          "logit_delta": 0.24663293681492696
+        },
+        {
+          "field": "own15_current_leader_known_share",
+          "kind": "numeric",
+          "old_value": 1.0,
+          "new_value": 0.8333333333333334,
+          "coefficient": -0.10638589946092587,
+          "logit_delta": 0.24663293681492696
+        },
+        {
+          "field": "mb5_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "mb15_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        }
+      ]
+    },
+    {
+      "code": "002542",
+      "decision_ts": 20260824143000,
+      "original_probability": 0.29490041579285364,
+      "conditional_probability": 0.1954756683616798,
+      "logit_delta": -0.543113975960436,
+      "numeric_logit_delta": -0.5431139759604438,
+      "missing_indicator_logit_delta": 0.0,
+      "top_terms": [
+        {
+          "field": "own15_sse_positive_nonpositive_rate",
+          "kind": "numeric",
+          "old_value": 0.75,
+          "new_value": 0.6666666666666666,
+          "coefficient": 0.7184454901347603,
+          "logit_delta": -0.26377647938406795
+        },
+        {
+          "field": "mb5_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "mb15_observed_share",
+          "kind": "numeric",
+          "old_value": 0.6687116564417178,
+          "new_value": 0.6881390593047034,
+          "coefficient": -0.01061941190219316,
+          "logit_delta": -0.2271461137441878
+        },
+        {
+          "field": "own15_sse_positive_falling_rate",
+          "kind": "numeric",
+          "old_value": 0.75,
+          "new_value": 0.6666666666666666,
+          "coefficient": -0.6090970318948625,
+          "logit_delta": 0.22393409441355258
+        },
+        {
+          "field": "own15_cyb_positive_nonpositive_rate",
+          "kind": "numeric",
+          "old_value": 0.75,
+          "new_value": 0.6666666666666666,
+          "coefficient": -0.3676622734367967,
+          "logit_delta": 0.1454200507578486
+        }
+      ]
+    }
+  ],
+  "fit": false,
+  "recalibration": false,
+  "http_requests": 0
+}

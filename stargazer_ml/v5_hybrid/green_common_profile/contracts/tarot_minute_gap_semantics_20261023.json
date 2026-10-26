@@ -1,0 +1,13 @@
+{
+  "status": "PREREGISTERED_OFFLINE_DIAGNOSTIC_ONLY",
+  "scope": "Existing captured stockdb responses and fixed 1032 execution-label rows only",
+  "questions": ["Are required missing slots absent in raw responses or removed by normalization?", "Are gaps isolated session boundaries or interior?", "Which chronological windows support exploratory evaluation?"],
+  "no_trade_inference": "Absence alone never proves zero trades; no bars filled or labels changed",
+  "training": false,
+  "http": false,
+  "production_changes": false,
+  "new_artifact_limit_bytes": 2097152,
+  "counted_within_existing_fit_limit_bytes": 33554432,
+  "cumulative_limit_bytes": 5368709120,
+  "validation": "All 83 DAY_GAP dependencies partitioned; all 1032 labels unchanged; month coverage retains rejected rows; observed periods never called untouched holdout"
+}

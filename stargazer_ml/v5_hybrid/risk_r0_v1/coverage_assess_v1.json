@@ -1,0 +1,228 @@
+{
+ "task": "phase1_coverage_and_rebuild_feasibility",
+ "generated": "2026-10-19 21:56:40",
+ "discipline": {
+  "network_fetch": 0,
+  "frozen_files_modified": 0,
+  "note": "verification used only existing frozen files"
+ },
+ "frozen_minute_ledger": {
+  "ledger_json": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\relative_stall_5m_20261018_v1\\raw_input_ledger.json",
+  "entries": 4196,
+  "roots": {
+   "D:\\stargazer\\stargazer_ml\\pullback_train\\minute_cache_clean": 3955,
+   "...\\green_common_profile\\gcp_round_b_small_sample_v1\\minute": 1,
+   "...\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext": 147,
+   "...\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_car": 93
+  },
+  "naming": "<code>.parquet, one file per stock, lookup by 6-digit code",
+  "schema": [
+   "code",
+   "date(1m-end timestamp yyyymmddhhmmss)",
+   "open",
+   "close",
+   "high",
+   "low",
+   "volume",
+   "amount",
+   "volume_scale_factor",
+   "volume_repaired"
+  ],
+  "span_observed": "20250102..20260908 (per-file range varies; 444/543 intersection files reach 2026-09, 50 end 2026-01)",
+  "grid_semantics": "240 valid bars/day: 09:31-11:30 + 13:01-15:00 (bar-end grid, 09:30 bar excluded)",
+  "hash_gate": "each entry carries sha256; all 543 intersection files verified intact (0 drift)"
+ },
+ "candidate_sets": {
+  "user_stated_filter": "status in {TRIGGERED,NOT_TRIGGERED} & E in 20260401..20260928 & master_admission==OK",
+  "status_plus_E_only": {
+   "records": 812,
+   "codes": 639,
+   "triggered": 33
+  },
+  "plus_admission_OK": {
+   "records": 787,
+   "codes": 620,
+   "triggered": 32
+  },
+  "reconciliation": "user-stated 812/639/33 equals status+E WITHOUT admission filter; admission==OK drops 25 records (23 ISOLATED corp-action + 2 REJECT label-incomplete)",
+  "primary_set": {
+   "definition": "status+E filter intersected with 4196 ledger codes (matches user-stated 695/543/30)",
+   "records": 695,
+   "codes": 543,
+   "triggered": 30
+  },
+  "secondary_set": {
+   "definition": "same plus master_admission==OK",
+   "records": 674,
+   "codes": 528,
+   "triggered": 29
+  }
+ },
+ "warmup_requirement": {
+  "per_stock": "E-day complete 240-bar session through the 15:00 assumed-end cutoff + one prior complete trading session (prior close reference and previous-session volume); no per-stock lookback beyond 1 day (no 60/120-day warmup needed); market-side history (rsi/macd/daily_return20) lives in market_price_features.parquet",
+  "label_window": "max_adverse_drop_120m = slots t+1..t+120 future lows, continues into next trading day: needs E-day last 60 minutes + next trading day 09:31-10:30 (60 bars); labels optional for scoring-only use"
+ },
+ "coverage_results_primary_695": {
+  "records_total": 695,
+  "fully_usable_OK": 228,
+  "triggered_OK": 8,
+  "triggered_total": 30,
+  "label_windows_complete": 223,
+  "already_in_frozen_predictions": 2,
+  "codes_with_at_least_one_OK_record": 196,
+  "codes_total": 543,
+  "sha_drift_files": 0,
+  "failure_reasons": {
+   "E_day_incomplete_bars": 262,
+   "OK": 228,
+   "E_day_absent": 117,
+   "prev_day_missing_or_incomplete": 83,
+   "E_day_quarantined": 4,
+   "joint_reference_E_missing": 1
+  },
+  "failure_reasons_by_status": {
+   "NOT_TRIGGERED": {
+    "E_day_absent": 110,
+    "E_day_incomplete_bars": 248,
+    "E_day_quarantined": 4,
+    "OK": 220,
+    "joint_reference_E_missing": 1,
+    "prev_day_missing_or_incomplete": 82
+   },
+   "TRIGGERED": {
+    "E_day_absent": 7,
+    "E_day_incomplete_bars": 14,
+    "OK": 8,
+    "prev_day_missing_or_incomplete": 1
+   }
+  },
+  "reasons_by_month": {
+   "202604": {
+    "E_day_absent": 14,
+    "E_day_incomplete_bars": 25,
+    "E_day_quarantined": 1,
+    "OK": 49,
+    "prev_day_missing_or_incomplete": 14
+   },
+   "202605": {
+    "E_day_absent": 23,
+    "E_day_incomplete_bars": 23,
+    "OK": 74,
+    "joint_reference_E_missing": 1,
+    "prev_day_missing_or_incomplete": 27
+   },
+   "202606": {
+    "E_day_absent": 37,
+    "E_day_incomplete_bars": 113,
+    "E_day_quarantined": 3,
+    "OK": 99,
+    "prev_day_missing_or_incomplete": 34
+   },
+   "202607": {
+    "E_day_absent": 13,
+    "E_day_incomplete_bars": 90
+   },
+   "202608": {
+    "E_day_absent": 3,
+    "E_day_incomplete_bars": 11,
+    "OK": 2,
+    "prev_day_missing_or_incomplete": 3
+   },
+   "202609": {
+    "E_day_absent": 27,
+    "OK": 4,
+    "prev_day_missing_or_incomplete": 5
+   }
+  },
+  "near_miss_note": "262 E_day_incomplete records have 237-239/240 bars (mean 238.8); a recurring July pattern is the single missing 11:30 bar (grid slot 119); frozen prefix-completeness semantics treat these days as NaN-feature days",
+  "OK_by_month": {
+   "202604": 49,
+   "202605": 74,
+   "202606": 99,
+   "202608": 2,
+   "202609": 4
+  },
+  "structural_absence": "117 E_day_absent: minute file has no valid bars on E (108/379 absent+incomplete cases have file_max_day < E, i.e. file simply ends earlier; late-September E days mostly unreachable: files end ~2026-09-07/08)",
+  "catalog": "all 543 codes are in the 5540-code THS concept catalog and each has >=1 board membership"
+ },
+ "secondary_set_results_674": {
+  "fully_usable_OK": 220,
+  "triggered_OK": 8,
+  "label_windows_complete": 215,
+  "failure_reasons": {
+   "E_day_incomplete_bars": 256,
+   "E_day_absent": 113,
+   "prev_day_missing_or_incomplete": 80,
+   "E_day_quarantined": 4,
+   "joint_reference_E_missing": 1,
+   "OK": 220
+  }
+ },
+ "pipeline_feasibility": {
+  "frozen_builders_are_replay_not_generic": {
+   "build_multiboard_full_features_v1.run": [
+    "ORIGINAL_COHORT_CHANGED: cohort pinned to 100704 rows (joint_fit_review_20261017_v1)",
+    "RAW_FROZEN_LEDGER_CHANGED per-file sha256; SOURCE_CACHE_IDENTITY_CHANGED identity binding",
+    "EXACT_COHORT_CUTOFF_GRID_MISMATCH: cutoffs pinned to cohort grid",
+    "CATALOG hash-pinned via ths_full_concept_scope (5540 codes/978 boards)"
+   ],
+   "build_continuous_motion_population_v1": [
+    "POPULATION_DRIFT: population pinned to 86319 rows",
+    "BOUND_RAW_SCOPE_CHANGED: ledger length pinned to 4196",
+    "FROZEN_RAW_DRIFT per-file; CATALOG_DRIFT/CATALOG_SCOPE_DRIFT 5540/978",
+    "ACCEPTED_RESTRICTED_ANCHOR_SCOPE_CHANGED: 400 restricted anchor units pinned",
+    "ANCHOR_ACCEPTANCE_DRIFT: prior_anchor_evidence binding pinned"
+   ],
+   "conclusion": "top-level builders iterate the frozen original population only; they CANNOT be passed an arbitrary code list; they must not be modified (frozen)"
+  },
+  "reusable_pure_kernels": {
+   "minute grid/returns": "intraday_relative_stall_v2.minute_returns (1m bars -> 5/15m returns)",
+   "path/motion": "continuous_motion_matrix_v1.path_arrays/board_motion/context",
+   "board features": "multiboard_risk_features_v1.matrix_features/summarize",
+   "common-candidate 34": "common_loo_derive_v1.compute_board/board_fields + continuous_motion_common_v1",
+   "market grid": "build_multiboard_full_features_v1.market_arrays (pure)",
+   "membership": "ths_full_concept_scope_20261017_v1.json (hash-pinned, covers all 543)"
+  },
+  "frozen_context_coverage": {
+   "market_price_features.parquet": "448 days 20241209-20261016, test window 100% source_complete -> fully reusable",
+   "shared_market_and_leaders.parquet": "16 cutoffs/day complete for all 448 days incl. leaders columns -> reusable for any on-grid 15:00 cutoff",
+   "golden_anchor_replay_20261017_v2": "442 states up to 20261016 -> covers test window",
+   "joint_risk_features_20261017_v3 joint_parts": "reference-close rows exist for the 4196 ledger codes (4047 have references); for the 543 intersection, E-day reference missing in only 1/695 records"
+  },
+  "feature_group_data_dependency": {
+   "golden_time_9": "replay.json states + clock (frozen, full window)",
+   "market_sse_cyb_~78": "market_price_features.parquet (frozen, full window)",
+   "board_shared_mb5_mb15_nh_mb_~90": "needs 5/15m returns matrix for all board members over the window; matrix NOT persisted (persisted_wide_table=False); rebuild = deterministic replay of the 4196 frozen minute files (~minutes of compute, zero fetch)",
+   "own_cm_ccm_and_stock_~55+34": "needs the code own minute file (present, sha-verified) + joint_parts reference (present) + catalog membership (present)"
+  },
+  "rebuild_grades": {
+   "risk_r0_v1_232_fields": {
+    "grade": "B: 需新编排脚本（不改冻结文件），无算法改动",
+    "path": "new thin orchestrator importing the pure kernels; rebuild shared returns matrix once from the 4196 frozen files (or restrict to test-window months), join frozen market/golden/context by day/cutoff, emit features for the candidate (code, 15:00-cutoff) pairs",
+    "blocking_input_gaps": "none for the 543 codes; the only real blocker is E-day bar completeness (see coverage)"
+   },
+   "risk_r0_v1_266_fields": {
+    "grade": "B: 同上 + ccm_v1 侧车内核同为纯数组函数，同矩阵直接可得",
+    "extra": "34 ccm_v1 fields need common_loo_derive kernels over the same returns matrices; same effort"
+   },
+   "dead_records": "467/695 primary records fail frozen bar-completeness gates in the RAW DATA itself; no rebuild can recover them under the zero-fetch discipline"
+  },
+  "important_caveats": [
+   "文件在场 != 特征可重建: 543/543 files present and hash-intact, but only 228/695 records pass all gates",
+   "near-miss 237-239-bar days are NaN under frozen semantics; relaxing completeness is a spec change, needs explicit approval",
+   "266-field ccm_v1 requires candidate code to have >=1 THS concept board (all 543 do)",
+   "reference identity rule REFERENCE_WITHOUT_ORIGINAL_SOURCE_IDENTITY means codes outside the 4196 ledger would need new reference derivation; the 543 are all inside, so this does not bite here"
+  ]
+ },
+ "recommendations": [
+  "Proceed with a phase-2 thin builder (new file, frozen ones untouched) that scores ONLY the 228 OK records (8 triggered) — quick win, zero fetch, zero frozen change",
+  "Decide explicitly whether the 262 near-miss records (237-239 bars, mostly missing the 11:30 bar) may be scored under relaxed completeness; default is exclude",
+  "For joint-experiment evaluation with realized outcomes, 223 of the 228 OK records also have complete 120m label windows",
+  "Do not attempt the 117 absent / 83 prev-day-missing records: raw data simply does not exist in the frozen corpus (mostly files ending 2026-01 or 2026-09-07/08)",
+  "Reuse the frozen predictions join for the 2 already-scored records; rebuild path shared across both model versions (232/266) since they share the same population keys and feature base"
+ ],
+ "supporting_files": {
+  "per_record_detail": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\_tmp_coverage_assess\\per_record_695.csv (and _787/_812 variants)",
+  "scripts": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\_tmp_coverage_assess\\*.py (probe + verification scripts, read-only over frozen inputs)"
+ }
+}

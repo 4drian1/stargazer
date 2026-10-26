@@ -1,0 +1,15 @@
+{
+  "status": "PASS_CONDITIONAL_DIAGNOSIS_NOT_CAUSAL_NOT_FIT",
+  "input_refs_verified": 110,
+  "group_summaries_checked": 256,
+  "daily_rows_checked": 12733,
+  "source_population_rows": 86319,
+  "report_sha256": "4342fbbb7292852fa74b0e7df89346bf6f7d90e9ec880669bce9cd2abccca57b",
+  "bytes": 1403199,
+  "registered_bytes": 4287081370,
+  "cap": 4294967296,
+  "main_fits": 0,
+  "calibration_fits": 0,
+  "http_requests": 0,
+  "new_labels": false
+}

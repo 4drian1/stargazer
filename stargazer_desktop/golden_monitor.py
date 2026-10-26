@@ -1,6 +1,7 @@
 """Thin process boundary for completed-minute rules; quote-only checks never buy."""
 from datetime import datetime
 import json
+import math
 import re
 from pathlib import Path
 import subprocess
@@ -54,6 +55,9 @@ def validate_result(value, plan):
             raise ValueError('GOLDEN_RULE_HASH_MISMATCH')
         if item.get('status') == 'RULE_TRIGGERED':
             if plan.get('rule_version')=='TAROT_A_SECOND_CASH_V2':
+                if row['entry_rule'].get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
+                    validate_v4(item,row,value['cutoff'])
+                    continue
                 new_policy=row['entry_rule'].get('policy')=='GOLDEN_LADDER_STOP_V3'
                 trigger=item.get('trigger_time')
                 valid_time=(isinstance(trigger,int) and trigger//1000000==value['cutoff']//1000000 and trigger<=value['cutoff']) if new_policy else trigger==value['cutoff']
@@ -93,6 +97,36 @@ def validate_result(value, plan):
                     or not isinstance(t,int) or not value['cutoff']//1000000==t//1000000 or t>value['cutoff']
                     or not div or not div.get('anchor_t',0)<div.get('event_t',0)<=t%1000000):
                 raise ValueError('GOLDEN_TRIGGER_EVIDENCE_INVALID')
+
+
+def validate_v4(item,row,cutoff):
+    rule=row['entry_rule'];trigger=item.get('trigger_time');band=item.get('band') or {}
+    def high(a,b):
+        return isinstance(a,(int,float)) and isinstance(b,(int,float)) and math.isfinite(a) and math.isfinite(b) and a>b and not math.isclose(a,b,rel_tol=1e-12,abs_tol=1e-12)
+    choices=rule.get('observation_bands') or []
+    div=item.get('divergence') or {};anchor=item.get('cross_day_anchor') or {}
+    bars=item.get('confirmation_bars') or [];crosses=item.get('event_cross_times') or []
+    low_time=div.get('event_time');touch=item.get('touch_time');rsi=item.get('rsi') or {}
+    if (item.get('policy')!='GOLDEN_RESONANCE_CROSSDAY_V4' or band not in choices or
+            item.get('node')!=band.get('lower') or item.get('node') not in rule['levels'] or
+            not isinstance(trigger,int) or trigger//1000000!=cutoff//1000000 or trigger>cutoff or item.get('price_asof')!=cutoff or
+            not isinstance(low_time,int) or not isinstance(touch,int) or low_time//1000000!=cutoff//1000000 or touch//1000000!=cutoff//1000000 or
+            len(crosses)<2 or crosses!=sorted(set(crosses)) or not all(max(low_time,touch)<=t<=trigger for t in crosses) or
+            not high(rsi.get('rsi6'),rsi.get('rsi15')) or
+            not isinstance(anchor.get('time'),int) or anchor['time']//1000000!=rule['p_date'] or
+            anchor.get('low')!=div.get('anchor_low') or anchor.get('rsi6')!=div.get('anchor_rsi') or
+            not high(div.get('anchor_low'),div.get('event_low')) or not high(div.get('event_rsi'),div.get('anchor_rsi')) or
+            len(bars)<2 or bars[-1].get('t')!=trigger%1000000):
+        raise ValueError('V4_COMBINATION_EVIDENCE_INVALID')
+    if item.get('branch')=='RECLAIM':
+        if not all(b['close']>=band['upper'] for b in bars[-2:]):raise ValueError('V4_WHOLE_BAND_RECLAIM_REQUIRED')
+    elif item.get('branch')=='STOP_ABOVE':
+        if (len(bars)!=3 or bars[0]['low']<band['lower'] or bars[0]['low']>band['zone_upper'] or
+                not bars[2]['low']>=bars[1]['low']>=bars[0]['low'] or
+                not bars[2]['close']>bars[1]['close']>=bars[0]['close'] or
+                any(b.get('volume') is None for b in bars) or (bars[1]['volume']+bars[2]['volume'])/2>bars[0]['volume']):
+            raise ValueError('V4_STOP_EVIDENCE_INVALID')
+    else:raise ValueError('V4_BRANCH_INVALID')
 
 
 def status_for(formal_plan, code, ts):

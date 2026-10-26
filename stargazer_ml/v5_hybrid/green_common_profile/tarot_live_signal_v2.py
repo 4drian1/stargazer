@@ -16,6 +16,9 @@ def adapter():
 
 
 def evaluate(row,day,cutoff,minute_rows):
+    if row['entry_rule'].get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
+        from golden_resonance_v4 import evaluate as current
+        return current(row,day,cutoff,minute_rows)
     if row['entry_rule'].get('policy')=='GOLDEN_LADDER_STOP_V3':
         from golden_ladder_v3 import evaluate as current
         return current(row,day,cutoff,minute_rows)

@@ -1,0 +1,30 @@
+{
+  "version": "TAROT_A_SECOND_LEG_FIRST_FIT_20261022_V1",
+  "authorization": "2026-10-22 user: 持续进行到第一轮重训完成; 二段允许低点抬高的二次回踩; 累计5 GiB、本轮新增最多32 MiB",
+  "status": "AUTHORIZED_RESEARCH_ONE_FIXED_FIT_NOT_DEPLOYMENT",
+  "total_cap_bytes": 5368709120,
+  "run_cap_bytes": 33554432,
+  "previous_four_root_cap_bytes": 4328521728,
+  "previous_four_root_measured_bytes": 4625456098,
+  "previous_overage_preserved_bytes": 296934370,
+  "roots": [
+    "D:/stargazer/stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1",
+    "D:/stargazer/stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_bg_value_v1",
+    "D:/stargazer/stargazer_ml/v5_hybrid/green_v2/shadow_bypass",
+    "D:/stargazer/stargazer_ml/v5_hybrid/risk_r0_v1",
+    "D:/stargazer/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix",
+    "D:/stargazer/stargazer_desktop/candidate_rule_audit_20261022",
+    "D:/stargazer/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1"
+  ],
+  "one_leg": "Existing frozen A membership through 20260928 + WAVE_A new_conditions; no old cycle proximity veto; triple tops excluded using same frozen peak counting as second leg. Original A has no six-day veto.",
+  "second_leg": "V3 with exactly one authorized change: remove P close < first-leg-end close predicate. Preserve red panic anchor >1.25 prior8 mean, confirmed prior rise >15%, first three days down and volumes strictly decreasing from anchor, rebound then down, anchor+5..7, triple exclusion, max falling streak<6. No manual shape bonus. Positive panic candles remain excluded.",
+  "position": "A uses existing wave node; second leg uses frozen causal cycle node; both highest eligible node <=P close. Missing node retained as audit but not fitted/ranked. Source explicitly recorded.",
+  "population": "One bounded historical daily pass for new second-leg population; reuse old A membership rather than rescan it. P>=20190101 and P<=20260928. Post-September examples excluded from fitting and held-out evaluation.",
+  "label": "y7=(close at seventh exchange trading day after P / close(P)-1)>0; all eight calendar slots must exist; source cutoff20260928; missing corporate-action cache and events in (P,label_end] isolated. Qfq/cache limitations remain research-only. This is not realized entry/exit return.",
+  "splits": {"train": "2019-2023 with label_end<20240101", "validation": "2024 with label_end<20250101; diagnostics only, no tuning", "test": "2025 with label_end<20260101", "research_2026": "20260101-20260928 with label_end<=20260928; development-exposed historical evaluation, not untouched prospective evidence"},
+  "fit": {"model": "StandardScaler + LogisticRegression", "C": 0.1, "max_iter": 2000, "seed": 20261022, "fits": 1, "class_weight": null, "missing": "training-only medians, all-null training columns explicitly recorded and filled0", "manual_stage_bonus": 0, "stage_indicator_feature": false, "minimum_training_total": 200, "minimum_training_each_stage": 50},
+  "evaluation": "Save model/population/predictions; exact reloaded scores; AUC/Brier/logloss and calibration by stage/year; pooled top5 per date vs same-date candidate mean, downside/coverage/composition. 20-consecutive-date moving-block bootstrap1000 seeded20261022. Per-group n>=50 and days>=30 for effect claim; Brier better than train-only stage prevalence, AUC>0.5, top5 uplift CI lower>0 and mean MAE not worse are research promotion gates. Failure retained without another fit.",
+  "limitations": "No market-risk retrain, no Pyxis amplitude blending, no intraday signal backtest, no paid collection, no automatic formal-plan/EXE replacement; running cache1GiB unchanged. First fit complete does not mean live-ready. No fresh blind test asserted.",
+  "rollback": "Old model and all evidence retained; no file overwrites or ledger reset. Failed attempt terminal prevents automatic rerun of fit.",
+  "memory_limit_bytes": 2147483648
+}

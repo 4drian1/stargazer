@@ -23,9 +23,18 @@ class SelectorBindingTests(unittest.TestCase):
     def test_actual_selection_manifest_and_weights_match(self):
         current=selector.verified_manifest(SimpleNamespace(sha=sha))
         old=json.loads((GCP/'tarot_live_manifest_v4_20261023_flow.json').read_bytes())
-        self.assertEqual(set(current['frozen_inputs']),set(old['frozen_inputs'])|{str(GCP/'tarot_manual_review_v1.py')})
-        self.assertEqual(current['frozen_inputs'][str(selector.MODEL)],old['frozen_inputs'][str(selector.MODEL)])
-        self.assertEqual(current['frozen_inputs'][str(selector.FIT/'run.py')],old['frozen_inputs'][str(selector.FIT/'run.py')])
+        root=selector._project_root()
+        def normalize(items):
+            return {str((Path(p) if Path(p).is_absolute() else root/p).resolve()):h for p,h in items.items()}
+        predecessor=root/current['supersedes']
+        prior=json.loads(gzip.decompress(predecessor.read_bytes()))
+        actual,expected=normalize(current['frozen_inputs']),normalize(prior['frozen_inputs'])
+        allowed={str((GCP/'golden_resonance_v4.py').resolve()),str((root/'stargazer_desktop/web/pentacles.js').resolve()),str(Path(__file__).resolve())}
+        self.assertEqual(set(actual),set(expected)|allowed)
+        original=normalize(old['frozen_inputs'])
+        self.assertEqual(actual[str(selector.MODEL.resolve())],original[str(selector.MODEL.resolve())])
+        self.assertEqual(actual[str((selector.FIT/'run.py').resolve())],original[str((selector.FIT/'run.py').resolve())])
+        self.assertFalse(current['models_retrained'])
 
     def test_changed_runtime_or_model_is_still_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

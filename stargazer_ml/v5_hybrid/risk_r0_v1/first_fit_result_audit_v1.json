@@ -1,0 +1,71 @@
+{
+ "all_primary_masks_differences_and_cis_recomputed": true,
+ "audit_code": {
+  "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_first_fit_result_v1.py",
+  "sha256": "5245e6dad5495b196147c73721a357b511f5c55c1fe2ae96da3906cd87b72c84"
+ },
+ "deployment_authorized": false,
+ "files": [
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_fit_v1_run\\input_and_authorization.json",
+   "sha256": "ceca0ebe4618a5969bf423bd4d3faf4c5c24b111e303a669881b2a819ce982be"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_fit_v1_run\\models.joblib",
+   "sha256": "547fae9090a40f133cf4b44677ce506af238cb2e301fa2a869032f88c0a0d90d"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_fit_v1_run\\predictions.parquet",
+   "sha256": "9b16c1cce0bbb4993dc8c0d51d95cd23a29081f0748eb836f2713a3d1b6714f4"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_fit_v1_run\\report.json",
+   "sha256": "1496984e9d16eb5f009486ff19a6b90f2623a5fa7abb78d6dac61dcd967961f1"
+  }
+ ],
+ "fit_refit_performed": false,
+ "legacy_artifacts_unchanged": 105,
+ "network_requests": 0,
+ "original_frozen_inputs_verified": 227,
+ "real_predictions_replayed": 59923,
+ "registered_actual_bytes": 96624592,
+ "run_actual_bytes": 3484497,
+ "segments": {
+  "calibration": {
+   "actual_rejection_fraction": 0.19175392670157065,
+   "lightgbm_mean_probability": 0.15750369030102868,
+   "lr_mean_probability": 0.1575045188070843,
+   "n": 4584,
+   "observed_tail_rate": 0.1575043630017452
+  },
+  "description": {
+   "actual_rejection_fraction": 0.1869782971619366,
+   "lightgbm_mean_probability": 0.16432709474529883,
+   "lr_mean_probability": 0.17715659504505898,
+   "n": 6589,
+   "observed_tail_rate": 0.24829260889361057
+  },
+  "select": {
+   "actual_rejection_fraction": 0.18618266978922715,
+   "lightgbm_mean_probability": 0.1310523326762203,
+   "lr_mean_probability": 0.15543000317952807,
+   "n": 4270,
+   "observed_tail_rate": 0.27634660421545665
+  },
+  "test": {
+   "actual_rejection_fraction": 0.1866695948171736,
+   "lightgbm_mean_probability": 0.12265267222010867,
+   "lr_mean_probability": 0.14256129671237447,
+   "n": 9107,
+   "observed_tail_rate": 0.13198638410014274
+  },
+  "train": {
+   "actual_rejection_fraction": 0.1899188646707941,
+   "lightgbm_mean_probability": 0.1126490740834884,
+   "lr_mean_probability": 0.12932270050397804,
+   "n": 35373,
+   "observed_tail_rate": 0.15011449410567382
+  }
+ },
+ "status": "FIT_OUTPUT_AUDIT_PASS"
+}

@@ -147,10 +147,10 @@ function renderPlanDiscussion(draft, stale=false) {
     const notes = document.createElement('details'), caption = document.createElement('summary');
     caption.textContent = '查看人工条件原文（未转换为自动触发规则）'; notes.append(caption);
     for (const row of view.manual_observations) {
-      const p = document.createElement('p'); p.textContent = `${row.code}：${row.user_requests.join('\n')}`; p.style.whiteSpace = 'pre-wrap'; notes.append(p);
+      const p = document.createElement('p'); p.textContent = `${row.code}${row.price_zone ? ` · 人工关注区 ${row.price_zone.join(' — ')}` : ''}：${row.user_requests.join('\n')}`; p.style.whiteSpace = 'pre-wrap'; notes.append(p);
     }
     box.append(notes);
-    paragraph('条件待核对', '人工条件已记录；价格或跌幅的参考基准、止跌定义未结构化确认前，不执行自动价格/买入提醒。可继续补充或修改，模型候选的原规则不因此改变。');
+    paragraph('条件待核对', '人工price_zone在场时，仅该价格区经确认后作到位观察；其余原话条件未结构化，不执行买入规则。无价格区时仅记录原话。模型候选原规则不变。');
   }
   if (draft.snapshot.rule_version) {
     paragraph('关注条件', '前日F618仅作执行参照；次日须已完成五分钟K线出现下杀、止跌、有效RSI背离。触价不等于买入信号。');
@@ -185,7 +185,7 @@ function renderPlanDraft(draft, readiness=null) {
   box.className = 'msg bot';
   const info = document.createElement('p');
   info.textContent = `待确认 · 观察日 ${draft.snapshot.monitor_date} · ${draft.selected_codes.join('、') || '尚未选择股票'}。区域只作到价提醒，不自动买入。`;
-  if (draft.manual_observations?.length) info.textContent += ` 另有人工观察 ${draft.manual_observations.map(r=>r.code).join('、')}，条件仅记录、无模型评分/自动价格提醒。`;
+  if (draft.manual_observations?.length) info.textContent += ` 另有人工观察 ${draft.manual_observations.map(r=>r.code).join('、')}，未评分；明确价格区确认后仅作到位观察，其余条件仅记录。`;
   if (draft.boards?.length) info.textContent += ` 监控板块：${draft.boards.map(b => b.name).join('、')}。`;
   const noZone = draft.snapshot.rows.filter(s => draft.selected_codes.includes(s.code) && s.zone == null).map(s => s.code);
   if (noZone.length) info.textContent += ` 仅观察、无价格提醒：${noZone.join('、')}。`;
@@ -660,7 +660,7 @@ async function loadIndexFreshness() {
 /* ---------- 交易计划栏（已确认计划 + /api/plan_check 规则状态；模型决策待接入） ---------- */
 const PLAN_CHECK_STATUSES = {NO_PLAN: "暂无计划", NOT_IN_PLAN: "不在计划", EXPIRED: "已失效",
   NEAR: "接近买入区", TRIGGERED: "已触发", BELOW_ZONE: "低于买入区", WATCHING: "观察中", OBSERVE_ONLY: "仅观察，无价格提醒", ERROR: "状态未知",
-  WAIT_MINUTE_EVIDENCE:'等待完成分钟证据', WAIT_SIGNAL:'等待下杀止跌背离', NON_DOWNSIDE:'非下杀路径，不触发', RULE_TRIGGERED:'黄金规则观察成立，待人工复核', DATA_INSUFFICIENT:'证据不足，不触发'};
+  WAIT_MINUTE_EVIDENCE:'等待完成分钟证据', WAIT_POSITION:'暂无合格低位共振观察区', WAIT_SIGNAL:'等待已登记组合信号', NON_DOWNSIDE:'非下杀路径，不触发', RULE_TRIGGERED:'黄金规则观察成立，待人工复核', DATA_INSUFFICIENT:'证据不足，不触发'};
 let planTradeCache = null;
 async function loadPlanTrade() {
   let d;
@@ -679,11 +679,11 @@ async function loadPlanTrade() {
     <div class="plan-stock" data-code="${esc(s.code)}">
       <b>${esc(s.code)}</b> ${esc(s.name || "")}
       <span class="tag">${s.observe_only && s.buy_zone == null ? '仅观察 · 无价格提醒' : Array.isArray(s.buy_zone) ? `关注区 ${Number(s.buy_zone[0]).toFixed(2)} — ${Number(s.buy_zone[1]).toFixed(2)}` : '关注区无效'}</span>
-      ${s.entry_rule ? '<span class="tag">前日F618 · 须完成5分下杀止跌背离，不是报价触价即买入</span>' : ''}
+      ${s.entry_rule ? '<span class="tag">冻结黄金观察区 · 按计划版本核验5分组合，报价触及只提醒</span>' : ''}
       <span class="tag">有效期至 ${esc(String(s.valid_until).replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1-$2-$3 $4:$5"))}</span>
       <span class="tag plan-status" data-plan-status="${esc(s.code)}">计划状态：加载中…</span>
       <div class="c-note">失效条件：${(s.invalidations || []).map(esc).join("；") || "—"}</div>
-      ${s.source === 'USER' ? `<div class="c-note">人工观察 · 未评分 · 自定义条件未执行：${(s.user_requests || []).map(esc).join('；')}</div>` : ''}
+      ${s.source === 'USER' ? `<div class="c-note">人工观察 · 未评分 · ${s.buy_zone ? '价格区仅作到位观察，其他条件未执行' : '自定义条件未执行'}：${(s.user_requests || []).map(esc).join('；')}</div>` : ''}
     </div>`).join("") || '<div class="empty">计划中没有股票条目。</div>';
   refreshPlanStatuses();
 }
@@ -1030,8 +1030,11 @@ document.querySelectorAll('[data-model-detail]').forEach(button => button.onclic
       if (button.dataset.modelDetail === 'selection') {
         const setup = {A_SDP:'强势首次分歧', B_LVB:'低位稳量'}[f.setup] || f.setup || '未登记';
         brief.textContent = `代码事实：${setup} · 参考价 ${fmtPrice(f.reference_price)} · RSI ${fmtPrice(f.rsi14)} · 距关注区 ${fmtPrice(f.distance_atr)} ATR`;
-        if (f.golden_f618 != null) brief.textContent += ` · 黄金0.618位置 ${fmtPrice(f.golden_f618)}`;
-        if (f.entry_rule) brief.textContent += ` · 周期节点距离 ${fmtPrice(f.entry_rule.cycle_distance_atr)} ATR（入围≤0.2）；前日F618 ${fmtPrice(f.entry_rule.f618)}，等待次日下杀止跌背离`;
+        if (f.entry_rule?.policy === 'GOLDEN_RESONANCE_CROSSDAY_V4') brief.textContent += ' · V4多档低位共振观察区；跨日背离＋两次上穿＋位置修复';
+        else {
+          if (f.golden_f618 != null) brief.textContent += ` · 黄金0.618位置 ${fmtPrice(f.golden_f618)}`;
+          if (f.entry_rule) brief.textContent += ` · 周期节点距离 ${fmtPrice(f.entry_rule.cycle_distance_atr)} ATR（入围≤0.2）；前日F618 ${fmtPrice(f.entry_rule.f618)}，等待次日下杀止跌背离`;
+        }
         if (f.status === 'USER_OBSERVATION') brief.textContent = `${f.reason}\n${(f.user_requests || []).join('\n')}`;
       } else {
         const context = f.context || {};

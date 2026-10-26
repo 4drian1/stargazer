@@ -1,0 +1,18 @@
+{
+  "status": "RESEARCH_TARGET_ADAPTER_FROZEN_NOT_TRAINING_OR_PRODUCTION_APPROVAL",
+  "population": "6050 fixed admitted candidate code/P keys; no rescreen or deletion",
+  "selection_unit": "code/P",
+  "branch_policy": "Earliest confirmation_available_ts; exact tie RSI before RECLAIM; one attempt, no fallback based on future fills or returns",
+  "scope": "Initial primary node only; Pyxis UNBOUND; END_ASSUMED research clock",
+  "features": "Frozen 24 numeric P-cutoff common features only; no branch, confirmation, fills, source QA, outcome, old scores or stage indicator as numeric input",
+  "labels": "H3 cost-adjusted execution net primary; H5 separate auxiliary; missing/no-fill remain NULL; no candidate cash-return zero imputation",
+  "non_event_policy": "Preserve original event_state; DAILY_NO_TOUCH only proves initial-node no-touch, not full multi-node policy outcome",
+  "split_proposal": "2025H1 exploratory fit, 2025H2 sequential development validation, 2026 descriptive stress; actual label endpoints strictly before validation boundary for fit; no fresh holdout claim",
+  "acceptance": "6050 unique feature rows;12100 unique horizon states;474 deterministic selected events; all516 branches retained; source labels immutable; grouped chronology; no future fields in X; missing denominators retained",
+  "new_artifact_limit_bytes": 2097152,
+  "existing_fit_limit_bytes": 33554432,
+  "cumulative_limit_bytes": 5368709120,
+  "fit_count": 0,
+  "http_count": 0,
+  "production_changes": 0
+}

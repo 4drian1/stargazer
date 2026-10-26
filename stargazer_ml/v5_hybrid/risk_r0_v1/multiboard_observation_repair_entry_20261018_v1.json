@@ -1,0 +1,13 @@
+{
+  "status": "PASS_OBSERVATION_REPAIR_ENTRY_NOT_FIT",
+  "tests": 22,
+  "test_output": "......................\n----------------------------------------------------------------------\nRan 22 tests in 2.352s\n\nOK\n",
+  "refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\repair_multiboard_observation_v1.py": "df2bf03312198de013d26f0b7d64964b24954fd671dac51835b1f55bfa5739c6",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\newhigh_common_motion_v1.py": "a6eeafee4451ee070760b8ecc0ecfa066f16a70842c50cf2b1b0185e66a52d5e",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_observation_repair_v1.py": "ea9988d8ed574cc1c94ffd270e57a7e986de8946e89aea7394be1e3a8863ecea",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_multiboard_observation_repair_v1.py": "978e84e2c4d5c82964a598dab4089899edf297fbba204cde0a704e7cb5a61841"
+  },
+  "actual_fit": false,
+  "http_requests": 0
+}

@@ -1,0 +1,16 @@
+{
+  "status": "PASS_INTENSITY_AND_EXACT_CUTOFF_DIAGNOSIS_NOT_FIT",
+  "inputs_verified": 115,
+  "bands_checked": 320,
+  "sklearn_cutoff_rankings_checked": 4600,
+  "daily_effects_checked": 3057,
+  "source_rows": 86319,
+  "report_sha256": "2acc5e50abcffd8e26e953ba3ad1bd994bcfc4f35a0730dcbd5b9539b2b54358",
+  "bytes": 907163,
+  "registered_bytes": 4288019915,
+  "cap": 4294967296,
+  "main_fits": 0,
+  "calibration_fits": 0,
+  "http_requests": 0,
+  "new_labels": false
+}

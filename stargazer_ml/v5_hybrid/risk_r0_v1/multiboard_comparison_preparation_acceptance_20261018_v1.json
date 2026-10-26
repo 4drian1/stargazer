@@ -1,0 +1,33 @@
+{
+  "status": "PASS_COMPARISON_SPEC_AND_POPULATION_NOT_FIT",
+  "tests": 48,
+  "test_output": "................................................\n----------------------------------------------------------------------\nRan 48 tests in 4.282s\n\nOK\n",
+  "original_rows": 100704,
+  "common_main_rows": 86319,
+  "retained_original_audit_rows": 100704,
+  "primary_excluded_rows": 14385,
+  "configuration_sha256": "1ea339247bcf3f09fc7f3e8634e283c4e8b2b815e9f9ff82ca34c434a105a9ab",
+  "refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\report.json": "dbe95fff8d82d147a7c35ed721aeca782e767d02b0523c5dc0e5d4656e9b15e9",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\stop_record.json": "562b59913f6851bb7bed8301767ddcdfa51b784d525c82dd5d744b0d2b5d10a0",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_multiboard_comparison_v1.py": "ab2207f56ca9f72dc3c70d2475195b35c3263e47ff8f3e6c8bb35488f48248ea",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\config.json": "1ea339247bcf3f09fc7f3e8634e283c4e8b2b815e9f9ff82ca34c434a105a9ab",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\population_audit.parquet": "10cbf5510e7114f54528bdede9bc4e3c4d754a661dcae167408d9551e0d208b3",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\field_profiles.json": "7ba1db79410642218156af3ac5bd73ac887950265b3a90993a3aa50a571d8578",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_prepare_multiboard_comparison_v1.py": "97348d02a634a54233c7bc0e865ad3119feeee2c8ada7d795e2e2fa24cc88114",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_joint_fit_preparation_v1.py": "748343f8abb2af88ae87783c993be55fe53af6981bc46db9b7860e0e8e6112c1",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_context_counts_v1.py": "d2aa05ce3e4073907f917bc2ed08ae1d1b64fd16ee34a0c4a5ba4befa76f718b",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_read_multiboard_full_features_v1.py": "b8c4d08c2582d0aaffdf3b0c2fe99b1e15b5aac8d4baf5e4fa19430cb0f7ef2b",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_risk_features_v1.py": "cc5dde66995f46d3c169e824b042e21d80004ad9972c491a759c7ce43e8aec82",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_build_multiboard_full_features_v1.py": "66e1468cbd63ead0699d3a24e74361e2021cdef75696de1f609c2c68ef5d4b31"
+  },
+  "original_model_sha256": "5d8402cd530cb83778d901e33eb87788f21ebc8619414f335b6d56905a81e005",
+  "http_requests": 0,
+  "fit_performed": false,
+  "real_preprocessing_fitted": false,
+  "risk_effectiveness_proven": false,
+  "statistical_power_proven": false,
+  "full_strategy_implementation_certified": false,
+  "next_gate": "SEPARATE_FIXED_RESEARCH_FIT_AUTHORIZATION",
+  "proposed_fit_cap": 16777216
+}

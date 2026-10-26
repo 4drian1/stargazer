@@ -1,0 +1,461 @@
+{
+  "status": "PASS_CONDITIONAL_BOARD_OBSERVATIONS_NOT_FIT",
+  "tests": 34,
+  "reader_tests": 4,
+  "reader_test_output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.041s\n\nOK\n",
+  "reader_sha256": "9434b1169359c986ae2160acdec1f3efe45c11e3e9f41b792422c6aaa83a3317",
+  "original_population_rows": 100704,
+  "sparse_old_values_verified": 64077,
+  "input_hashes_verified": 4392,
+  "parent_controls_verified": 103,
+  "coverage_proof_cutoffs": 5408,
+  "real_prefix_frequencies": 2,
+  "fixed_observation_impact": {
+    "train": {
+      "mb5_member_coverage": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 60712,
+        "new_positive": 60712,
+        "old_mean": 0.6583961224013837,
+        "new_mean": 0.6583961224013837
+      },
+      "own5_member_coverage": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 60712,
+        "new_positive": 60712,
+        "old_mean": 0.6736868492623396,
+        "new_mean": 0.6736868492623396
+      },
+      "nh_mb5_sse_positive_common_nonpositive_rate": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 7469,
+        "new_positive": 7469,
+        "old_mean": 0.03059226648734593,
+        "new_mean": 0.03059226648734593
+      },
+      "nh_own5_sse_positive_common_nonpositive_rate": {
+        "rows": 60712,
+        "old_known": 48884,
+        "new_known": 48884,
+        "old_positive": 2730,
+        "new_positive": 2730,
+        "old_mean": 0.022008031604844734,
+        "new_mean": 0.022008031604844734
+      },
+      "own5_current_change_negative_rate": {
+        "rows": 60712,
+        "old_known": 48806,
+        "new_known": 48806,
+        "old_positive": 31552,
+        "new_positive": 31552,
+        "old_mean": 0.17033568525553344,
+        "new_mean": 0.17033568525553344
+      },
+      "own5_captured_change_negative_rate": {
+        "rows": 60712,
+        "old_known": 48855,
+        "new_known": 48855,
+        "old_positive": 40394,
+        "new_positive": 40394,
+        "old_mean": 0.34710669412669065,
+        "new_mean": 0.34710669412669065
+      },
+      "mb15_member_coverage": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 60712,
+        "new_positive": 60712,
+        "old_mean": 0.6583961224013837,
+        "new_mean": 0.6583961224013837
+      },
+      "own15_member_coverage": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 60712,
+        "new_positive": 60712,
+        "old_mean": 0.6736868492623396,
+        "new_mean": 0.6736868492623396
+      },
+      "nh_mb15_sse_positive_common_nonpositive_rate": {
+        "rows": 60712,
+        "old_known": 60712,
+        "new_known": 60712,
+        "old_positive": 14005,
+        "new_positive": 14005,
+        "old_mean": 0.055457369564307094,
+        "new_mean": 0.055457369564307094
+      },
+      "nh_own15_sse_positive_common_nonpositive_rate": {
+        "rows": 60712,
+        "old_known": 48884,
+        "new_known": 48884,
+        "old_positive": 4862,
+        "new_positive": 4862,
+        "old_mean": 0.04289110065188686,
+        "new_mean": 0.04289110065188686
+      },
+      "own15_current_change_negative_rate": {
+        "rows": 60712,
+        "old_known": 48806,
+        "new_known": 48806,
+        "old_positive": 30118,
+        "new_positive": 30118,
+        "old_mean": 0.15850134045610909,
+        "new_mean": 0.15850134045610909
+      },
+      "own15_captured_change_negative_rate": {
+        "rows": 60712,
+        "old_known": 48843,
+        "new_known": 48843,
+        "old_positive": 38938,
+        "new_positive": 38938,
+        "old_mean": 0.3146081560214058,
+        "new_mean": 0.3146081560214058
+      }
+    },
+    "select": {
+      "mb5_member_coverage": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 18071,
+        "new_positive": 18071,
+        "old_mean": 0.6593295754551645,
+        "new_mean": 0.6593295754551645
+      },
+      "own5_member_coverage": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 18071,
+        "new_positive": 18071,
+        "old_mean": 0.6755107253977393,
+        "new_mean": 0.6755107253977393
+      },
+      "nh_mb5_sse_positive_common_nonpositive_rate": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 2588,
+        "new_positive": 2588,
+        "old_mean": 0.04627911298054126,
+        "new_mean": 0.04627911298054126
+      },
+      "nh_own5_sse_positive_common_nonpositive_rate": {
+        "rows": 18071,
+        "old_known": 13930,
+        "new_known": 13930,
+        "old_positive": 1237,
+        "new_positive": 1237,
+        "old_mean": 0.0400912599651566,
+        "new_mean": 0.0400912599651566
+      },
+      "own5_current_change_negative_rate": {
+        "rows": 18071,
+        "old_known": 13906,
+        "new_known": 13906,
+        "old_positive": 9083,
+        "new_positive": 9083,
+        "old_mean": 0.17926081592719043,
+        "new_mean": 0.17926081592719043
+      },
+      "own5_captured_change_negative_rate": {
+        "rows": 18071,
+        "old_known": 13925,
+        "new_known": 13925,
+        "old_positive": 11618,
+        "new_positive": 11618,
+        "old_mean": 0.3716891042000721,
+        "new_mean": 0.3716891042000721
+      },
+      "mb15_member_coverage": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 18071,
+        "new_positive": 18071,
+        "old_mean": 0.6593295754551645,
+        "new_mean": 0.6593295754551645
+      },
+      "own15_member_coverage": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 18071,
+        "new_positive": 18071,
+        "old_mean": 0.6755107253977393,
+        "new_mean": 0.6755107253977393
+      },
+      "nh_mb15_sse_positive_common_nonpositive_rate": {
+        "rows": 18071,
+        "old_known": 18071,
+        "new_known": 18071,
+        "old_positive": 5220,
+        "new_positive": 5220,
+        "old_mean": 0.07547343536116012,
+        "new_mean": 0.07547343536116012
+      },
+      "nh_own15_sse_positive_common_nonpositive_rate": {
+        "rows": 18071,
+        "old_known": 13930,
+        "new_known": 13930,
+        "old_positive": 1999,
+        "new_positive": 1999,
+        "old_mean": 0.06386553402920289,
+        "new_mean": 0.06386553402920289
+      },
+      "own15_current_change_negative_rate": {
+        "rows": 18071,
+        "old_known": 13906,
+        "new_known": 13906,
+        "old_positive": 8702,
+        "new_positive": 8702,
+        "old_mean": 0.16255528440604536,
+        "new_mean": 0.16255528440604536
+      },
+      "own15_captured_change_negative_rate": {
+        "rows": 18071,
+        "old_known": 13920,
+        "new_known": 13920,
+        "old_positive": 11318,
+        "new_positive": 11318,
+        "old_mean": 0.3359200030253099,
+        "new_mean": 0.3359200030253099
+      }
+    },
+    "calibration": {
+      "mb5_member_coverage": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 4548,
+        "new_positive": 4548,
+        "old_mean": 0.5962642768013485,
+        "new_mean": 0.5964981297290354
+      },
+      "own5_member_coverage": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 4548,
+        "new_positive": 4548,
+        "old_mean": 0.6098240187768619,
+        "new_mean": 0.610003794755954
+      },
+      "nh_mb5_sse_positive_common_nonpositive_rate": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 736,
+        "new_positive": 736,
+        "old_mean": 0.047356371087405244,
+        "new_mean": 0.04734990662067717
+      },
+      "nh_own5_sse_positive_common_nonpositive_rate": {
+        "rows": 4548,
+        "old_known": 3878,
+        "new_known": 3878,
+        "old_positive": 389,
+        "new_positive": 388,
+        "old_mean": 0.03761809593998403,
+        "new_mean": 0.037603437470351324
+      },
+      "own5_current_change_negative_rate": {
+        "rows": 4548,
+        "old_known": 3868,
+        "new_known": 3868,
+        "old_positive": 2610,
+        "new_positive": 2602,
+        "old_mean": 0.1759660997177924,
+        "new_mean": 0.17500142805591
+      },
+      "own5_captured_change_negative_rate": {
+        "rows": 4548,
+        "old_known": 3878,
+        "new_known": 3878,
+        "old_positive": 3240,
+        "new_positive": 3239,
+        "old_mean": 0.35086385359126104,
+        "new_mean": 0.35072192908314126
+      },
+      "mb15_member_coverage": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 4548,
+        "new_positive": 4548,
+        "old_mean": 0.5947232570822871,
+        "new_mean": 0.5949555729498942
+      },
+      "own15_member_coverage": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 4548,
+        "new_positive": 4548,
+        "old_mean": 0.6082969008267751,
+        "new_mean": 0.6084756680488465
+      },
+      "nh_mb15_sse_positive_common_nonpositive_rate": {
+        "rows": 4548,
+        "old_known": 4548,
+        "new_known": 4548,
+        "old_positive": 1173,
+        "new_positive": 1173,
+        "old_mean": 0.06294824630863749,
+        "new_mean": 0.06296542418039701
+      },
+      "nh_own15_sse_positive_common_nonpositive_rate": {
+        "rows": 4548,
+        "old_known": 3881,
+        "new_known": 3881,
+        "old_positive": 497,
+        "new_positive": 497,
+        "old_mean": 0.041280973028962116,
+        "new_mean": 0.041242629941147246
+      },
+      "own15_current_change_negative_rate": {
+        "rows": 4548,
+        "old_known": 3870,
+        "new_known": 3870,
+        "old_positive": 2488,
+        "new_positive": 2480,
+        "old_mean": 0.16284522489522982,
+        "new_mean": 0.16227588944991336
+      },
+      "own15_captured_change_negative_rate": {
+        "rows": 4548,
+        "old_known": 3880,
+        "new_known": 3880,
+        "old_positive": 3174,
+        "new_positive": 3175,
+        "old_mean": 0.3153148888747078,
+        "new_mean": 0.31531117905422307
+      }
+    },
+    "test": {
+      "mb5_member_coverage": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 2988,
+        "new_positive": 2988,
+        "old_mean": 0.45753484840585334,
+        "new_mean": 0.45840703975348696
+      },
+      "own5_member_coverage": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 2988,
+        "new_positive": 2988,
+        "old_mean": 0.47360062018824833,
+        "new_mean": 0.47443641908371226
+      },
+      "nh_mb5_sse_positive_common_nonpositive_rate": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 445,
+        "new_positive": 445,
+        "old_mean": 0.03700045672869016,
+        "new_mean": 0.03700955319496304
+      },
+      "nh_own5_sse_positive_common_nonpositive_rate": {
+        "rows": 2988,
+        "old_known": 2201,
+        "new_known": 2197,
+        "old_positive": 177,
+        "new_positive": 176,
+        "old_mean": 0.024261856446427865,
+        "new_mean": 0.024295903247220293
+      },
+      "own5_current_change_negative_rate": {
+        "rows": 2988,
+        "old_known": 2201,
+        "new_known": 2197,
+        "old_positive": 1546,
+        "new_positive": 1543,
+        "old_mean": 0.20688742189853848,
+        "new_mean": 0.20620332287963947
+      },
+      "own5_captured_change_negative_rate": {
+        "rows": 2988,
+        "old_known": 2196,
+        "new_known": 2192,
+        "old_positive": 1823,
+        "new_positive": 1819,
+        "old_mean": 0.3700182145584077,
+        "new_mean": 0.3696038447775413
+      },
+      "mb15_member_coverage": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 2988,
+        "new_positive": 2988,
+        "old_mean": 0.45283351552553225,
+        "new_mean": 0.45369651146026674
+      },
+      "own15_member_coverage": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 2988,
+        "new_positive": 2988,
+        "old_mean": 0.4689982602919978,
+        "new_mean": 0.4698245338580264
+      },
+      "nh_mb15_sse_positive_common_nonpositive_rate": {
+        "rows": 2988,
+        "old_known": 2988,
+        "new_known": 2988,
+        "old_positive": 795,
+        "new_positive": 795,
+        "old_mean": 0.07190578616606104,
+        "new_mean": 0.07195298839487173
+      },
+      "nh_own15_sse_positive_common_nonpositive_rate": {
+        "rows": 2988,
+        "old_known": 2202,
+        "new_known": 2200,
+        "old_positive": 328,
+        "new_positive": 328,
+        "old_mean": 0.06331840393576417,
+        "new_mean": 0.06385962502107645
+      },
+      "own15_current_change_negative_rate": {
+        "rows": 2988,
+        "old_known": 2196,
+        "new_known": 2195,
+        "old_positive": 1460,
+        "new_positive": 1457,
+        "old_mean": 0.1836386334181572,
+        "new_mean": 0.18366773142893406
+      },
+      "own15_captured_change_negative_rate": {
+        "rows": 2988,
+        "old_known": 2191,
+        "new_known": 2190,
+        "old_positive": 1768,
+        "new_positive": 1768,
+        "old_mean": 0.3340702663002152,
+        "new_mean": 0.33445847081703917
+      }
+    }
+  },
+  "old_model_artifacts_unchanged": 21,
+  "d2_unchanged": true,
+  "fit": false,
+  "http_requests": 0,
+  "report_sha256": "2d85a72865a97627cad237bcdeb998d9477abb5225537d9fd67a77272bad8498",
+  "auditor_sha256": "92e2cc3096ca41ba036df55c712db973bcb0a307b9e183514e54dd071cdc8a56"
+}

@@ -1,0 +1,15 @@
+{
+  "status": "PREREGISTERED_INITIAL_NODE_RESEARCH_ONLY_NO_FIT",
+  "population": "All6050 fixed candidate code/P keys, each with separate H3/H5",
+  "policy": "Only initial primary node, existing earliest-confirmation single-attempt adapter; no lower-node migration, no risk approval, no fallback",
+  "action_classes": ["NO_TOUCH", "COMPLETE_NO_CONFIRMATION", "CONFIRMED_NO_FILL", "FILLED_CLOSED", "FILLED_EXIT_UNKNOWN", "CONFIRMED_ENTRY_UNKNOWN", "OBSERVATION_UNKNOWN"],
+  "known_no_trade_proof": "Frozen daily_path NO_TOUCH_ABOVE_NODE; or adapter FULL_48_COMPLETE with zero events and NO_PRICE_CONFIRMATION_OBSERVED; or selected NO_FILL_EOD",
+  "target_fields": "Preserve original trade net NULL for no fill. New candidate_cash_return=0 only for proven initial-node no-trade; closed fills copy net; all unknowns NULL. Not full production-policy outcome",
+  "target_observation_endpoint": "No-trade known at E close plus one real minute under END_ASSUMED convention; closed fill uses unchanged actual label endpoint. Not historical arrival certification",
+  "evaluation": "Frozen existing score selects min(5,N) before missingness filtering; no backfill. Report full population and top5 coverage. Compare same-day top5 vs all-candidate equalweight only on entirely evaluable days; separately report N>5 subset. Already inspected2025 development only;2026 missingness stress only",
+  "inputs": "Existing frozen ledgers, target adapter and frozen predictions only; no scans or requests",
+  "limits": {"phase_bytes": 2097152, "fit_bytes": 33554432, "joint_bytes": 5368709120},
+  "fit_count": 0,
+  "http_count": 0,
+  "production_changes": 0
+}

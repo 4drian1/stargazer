@@ -1,0 +1,20 @@
+{
+  "status": "ENGINEERING_READY_FIT_AUTHORIZATION_PENDING",
+  "date": "2026-10-15",
+  "tests_total": 99,
+  "tests_new_fit_entry": 21,
+  "tests_passed": 99,
+  "synthetic_library_fit_test_performed": true,
+  "real_dataset_fit_performed": false,
+  "external_requests": 0,
+  "local_stockdb_requests": 0,
+  "frozen_input_count": 227,
+  "manifest_sha256": "d9a8a1ada719b9e30e70ae032dc26ef0c2dca5e3b240341477fe34e98079699c",
+  "config_sha256": "5de1f90d6efa47ff8aa4f32670b271c67bdf7193afed5c40e1e55248d9584a8a",
+  "contract_sha256": "166667e686068d7564c5d13579e0a57b5e5ce8018a65f6f444c8b20f7f2dd2da",
+  "real_check_with_draft": {"native_exit_code": 2, "data_ready": true, "fit_ready": false, "blocked": "FIT_AUTHORIZATION_REQUIRED"},
+  "real_train_with_draft": {"native_exit_code": 2, "data_ready": true, "fit_ready": false, "blocked": "FIT_AUTHORIZATION_REQUIRED", "output_created": false},
+  "contract_signature_status": "PENDING_USER_APPROVAL",
+  "coverage_verified": false,
+  "deployment_authorized": false
+}

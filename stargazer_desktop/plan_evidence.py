@@ -86,7 +86,7 @@ def for_snapshot(snapshot):
                 selected = next((c for c in pack.candidates if str(c.get('code')) == code), {})
                 if row.get('selection_model') is None:
                     selection['personal_score'] = selected.get('p_close_score')
-                if (row.get('entry_rule') or {}).get('policy') == 'GOLDEN_LADDER_STOP_V3':
+                if (row.get('entry_rule') or {}).get('policy') in ('GOLDEN_LADDER_STOP_V3','GOLDEN_RESONANCE_CROSSDAY_V4'):
                     selection['risk_pack_original_node'] = selected.get('f618')
                     selection['risk_pack_original_distance_atr'] = selected.get('plan_dist_atr')
                 else:
@@ -97,7 +97,7 @@ def for_snapshot(snapshot):
                 if not reasons:
                     # Annotation is separate from the signed pack, never written back.
                     context=dict(context)
-                    if (row.get('entry_rule') or {}).get('policy') == 'GOLDEN_LADDER_STOP_V3':
+                    if (row.get('entry_rule') or {}).get('policy') in ('GOLDEN_LADDER_STOP_V3','GOLDEN_RESONANCE_CROSSDAY_V4'):
                         context['score_origin_observation'] = {'node': selected.get('f618'),
                             'distance_atr': selected.get('plan_dist_atr'),
                             'note': '原评分包的观察位置，仅为历史引用；当前计划阶梯另列，幅度未因换图重算'}

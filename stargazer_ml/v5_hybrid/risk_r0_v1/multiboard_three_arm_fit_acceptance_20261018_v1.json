@@ -1,0 +1,16 @@
+{
+  "status": "PASS_FIXED_RESEARCH_FIT_SERIALIZATION_AND_RISK_READBACK",
+  "models": 6,
+  "common_rows": 86319,
+  "probability_values_replayed": 1035828,
+  "report_sha256": "762c621e5c5aea6821181b6236d2912a729edad5f2d21db0242b1bbce3047097",
+  "manifest_sha256": "2d5a1ea7a9980885569672820ca3e5862fdf42047d3afc198b4674df6a94f6ff",
+  "plan_sha256": "c9e4ca837e1da655d4f1eb6fe8d787acd2dd0cfcd9bdf5f3e63212eb2bbd2369",
+  "old_d2_sha256": "5d8402cd530cb83778d901e33eb87788f21ebc8619414f335b6d56905a81e005",
+  "config_sha256": "1ea339247bcf3f09fc7f3e8634e283c4e8b2b815e9f9ff82ca34c434a105a9ab",
+  "promotion_gate_passed": false,
+  "deployment_authorized": false,
+  "independent_blind_test": false,
+  "http_requests": 0,
+  "pnl_evaluated": false
+}

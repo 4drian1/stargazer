@@ -1,0 +1,60 @@
+{
+ "inputs": [
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\independent_fetch\\batch_b_dividend_probe\\standard_event_table_v1.json",
+   "sha256": "a511f61ce36585fb126f76e8ecf233bff7a1e676110d993aac02c884bbb1f2e0"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\adjustment_snapshot_v2_20261015\\000001.json.raw",
+   "sha256": "7aff55c5b39e557fb1a6190ff23f71fe83b1ada238787b6619bfa674f734635f"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\adjustment_snapshot_v2_20261015\\002594.json.raw",
+   "sha256": "051e133a0700c0edb4ab68cdfa74d097ee8a2e2cb65ea0917e30692f5a91573a"
+  }
+ ],
+ "matched_dates": 21,
+ "new_labels_generated": 0,
+ "results": [
+  {
+   "code": "000001",
+   "conclusion": "DATE_CORROBORATION_ONLY_NOT_EVENT_COMPLETENESS",
+   "coverage_verified": false,
+   "external_only": [],
+   "local_only": [],
+   "matched": [
+    20180712,
+    20190626,
+    20200528,
+    20210514,
+    20220722,
+    20230614,
+    20240614,
+    20241010,
+    20250612,
+    20251015,
+    20260612,
+    20260924
+   ]
+  },
+  {
+   "code": "002594",
+   "conclusion": "DATE_CORROBORATION_ONLY_NOT_EVENT_COMPLETENESS",
+   "coverage_verified": false,
+   "external_only": [],
+   "local_only": [],
+   "matched": [
+    20180817,
+    20190726,
+    20200818,
+    20210806,
+    20220729,
+    20230728,
+    20240729,
+    20250729,
+    20260731
+   ]
+  }
+ ],
+ "training_eligible": false
+}

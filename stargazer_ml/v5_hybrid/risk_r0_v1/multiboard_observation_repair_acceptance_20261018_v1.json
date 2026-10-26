@@ -1,0 +1,13 @@
+{
+  "status": "PASS_COVERAGE_PROVENANCE_AND_NEW_HIGH_COMMON_MOTION_NOT_FIT",
+  "tests": 22,
+  "original_rows": 100704,
+  "rate_and_coverage_fields": 32,
+  "market_state_fields": 4,
+  "original_columns_labels_and_model_unchanged": true,
+  "report_sha256": "b0283e857948a48787162bbae4e83ea2e8b546e09083c7b4b8d43dc4ef5684eb",
+  "manifest_sha256": "3ad948a3cd4e497e28b2d8ec9250aa2ac9f185810260b1bf1ec032fe64634809",
+  "financial_effectiveness_tested": false,
+  "fit": false,
+  "new_http_requests": 0
+}

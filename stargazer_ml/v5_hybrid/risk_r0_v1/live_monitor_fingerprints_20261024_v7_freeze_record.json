@@ -1,0 +1,19 @@
+{
+  "manifest": "live_monitor_fingerprints_20261024_v7_flow.json",
+  "manifest_path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\live_monitor_fingerprints_20261024_v7_flow.json",
+  "manifest_sha256": "fa169b40457391dc30a8084c5deb6154212ad0a2c9697a5381751222cf7a3968",
+  "entries": 154,
+  "python_files": 140,
+  "python_files_matching": 154,
+  "missing": 0,
+  "mismatch": 0,
+  "consumers_pointing_here": [
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\tarot_intraday_risk_v2.py",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\live_postclose_job_v1.py",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\accept_live_postclose_v1.py"
+  ],
+  "frozen_at": "2026-10-24",
+  "status": "FROZEN",
+  "basis": "sync-code-fix phase accepted by user; 60 tests OK (desktop 13 + formal 9 + v1 17 + v2 21); 140/140 python source files match; state() zero-arg dispatch fix verified with a real-state test covering both worker and checker launch paths",
+  "note": "v7 is frozen and immutable. Any future source change requires a new manifest version (v8+). v4/v5/v6 retained as historical references and are referenced by no entry point."
+}

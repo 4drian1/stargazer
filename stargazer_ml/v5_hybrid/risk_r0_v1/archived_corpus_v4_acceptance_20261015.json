@@ -1,0 +1,248 @@
+{
+ "audit_code": {
+  "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\check_archived_corpus_v4.py",
+  "sha256": "91d399b4e42d4ad5123f35a1b200a28722cff592d691ad415ceb09f432d126d1"
+ },
+ "batch_actual_bytes": 16339415,
+ "board_counts": {
+  "GEM": {
+   "events": 12682,
+   "nonpositive": 9929,
+   "positive": 2753
+  },
+  "SH_MAIN": {
+   "events": 10052,
+   "nonpositive": 8632,
+   "positive": 1420
+  },
+  "STAR": {
+   "events": 14772,
+   "nonpositive": 11664,
+   "positive": 3108
+  },
+  "SZ_MAIN": {
+   "events": 22417,
+   "nonpositive": 19648,
+   "positive": 2769
+  }
+ },
+ "controls": [
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\plan.json",
+   "sha256": "15b3a2350ee1614ea93f4a087aa2a3fff1b2ba8974bbfbbb1958d063da1c3397"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\stop_record.json",
+   "sha256": "3ccb2380f785f23796f4574af6ffca52ab1595c68657f1e2da099372b0b45857"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\evidence_and_gate.json",
+   "sha256": "b48b9f40190db9d9fc3a6a120e22b25d8e41b148f04604476378fb7865c32bb7"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\stop_record.json",
+   "sha256": "84089e0259b92baf9d3e2883590f6292ef4da471d164276781e9f6254d2d52f7"
+  }
+ ],
+ "coverage_verified": false,
+ "cumulative_cap": 4294967296,
+ "data_preparation_ready": true,
+ "eligible": 59923,
+ "external_requests": 0,
+ "fit_authorized": false,
+ "gate": {
+  "segments": {
+   "calibration": {
+    "dates": 120,
+    "n": 4584,
+    "nonpositive": 3862,
+    "pass_gate": true,
+    "positive": 722
+   },
+   "select": {
+    "dates": 112,
+    "n": 4270,
+    "nonpositive": 3090,
+    "pass_gate": true,
+    "positive": 1180
+   },
+   "test": {
+    "dates": 238,
+    "n": 9107,
+    "nonpositive": 7905,
+    "pass_gate": true,
+    "positive": 1202
+   },
+   "train": {
+    "dates": 1209,
+    "n": 35373,
+    "nonpositive": 30063,
+    "pass_gate": true,
+    "positive": 5310
+   }
+  },
+  "training_ready": true
+ },
+ "isolated_or_incomplete": 20917,
+ "legacy_artifacts_unchanged": 105,
+ "limitations": [
+  "archive availability selection bias",
+  "survivorship coverage unverified",
+  "vendor event omissions possible",
+  "historical availability assumed",
+  "not full-market and not a new blind test"
+ ],
+ "local_requests": 80,
+ "matrix_files": [
+  {
+   "bytes": 501287,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00000.parquet",
+   "sha256": "72f884e91e5fe9e76d168a377f693ec8b6b762fff913a1e3b39cd76228401076"
+  },
+  {
+   "bytes": 438365,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00001.parquet",
+   "sha256": "7073ee9bf8d2bc9f354b8415e45cddde36ea3d05e7aa374e3fbcae79bc58ad76"
+  },
+  {
+   "bytes": 439174,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00002.parquet",
+   "sha256": "49f33d2bbb41e5c8619faf92f55e58a430fb2ef674730958c2b8b21bcb1c8643"
+  },
+  {
+   "bytes": 502665,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00003.parquet",
+   "sha256": "e05f88fb4a8670e8bef067542fce9864d525da1b6ba766da66418e1147f511e9"
+  },
+  {
+   "bytes": 475090,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00004.parquet",
+   "sha256": "a0ef341cb0f699fc4412d15157b5c0d7563e060959b712bace73a58243a8fae1"
+  },
+  {
+   "bytes": 460562,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00005.parquet",
+   "sha256": "b9779806cc262ae2e478585ffb6676968f6272735dc5e617072f16f7aa393406"
+  },
+  {
+   "bytes": 483914,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00006.parquet",
+   "sha256": "58c4bc2b117a1e08c89950486dfd35f286e998535070242d9ed5f268b44b7103"
+  },
+  {
+   "bytes": 494304,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00007.parquet",
+   "sha256": "30415e28d97cc0ada930a3ea29eb712e63a52fa02e4582b1b14b389ca48ec8dd"
+  },
+  {
+   "bytes": 470564,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00008.parquet",
+   "sha256": "bc9a71014bc2886e5cd512483f4480835ab4927dc5b1fecfe740651469096005"
+  },
+  {
+   "bytes": 321121,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00009.parquet",
+   "sha256": "ad84dc263ef0d6dded79a9397827ac78bb40241a18e6f8b1591331b5ba201985"
+  },
+  {
+   "bytes": 198195,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00010.parquet",
+   "sha256": "ed7db43d1ecd6ab5ad466796ec968b97bf6e618839c8c06150536d0ece59c050"
+  },
+  {
+   "bytes": 438665,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00011.parquet",
+   "sha256": "06b9475a8cf2ec53aedb6c33d30bfd8781ec83255539dc6acca1f44be6bbf2df"
+  },
+  {
+   "bytes": 444590,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00012.parquet",
+   "sha256": "b8519de6336dcfe9eabce11bd29f7ef1e6e44d27dc95c97c9c1ce43a9cf34a96"
+  },
+  {
+   "bytes": 492515,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00013.parquet",
+   "sha256": "242eab58e6d667a4c68671d2665779ed5529477a49ecec78f1a8944ac9a6d62f"
+  },
+  {
+   "bytes": 398167,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00014.parquet",
+   "sha256": "25cc87b9f0b740b41f0f06030ddf72464c20456ad1431be351b8fdef2a60e23e"
+  },
+  {
+   "bytes": 426156,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00015.parquet",
+   "sha256": "e39a85ed8be62b0922f3d838dd3ba99763a9334fb5eab75a6ac271aebdf6f4df"
+  },
+  {
+   "bytes": 412206,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00016.parquet",
+   "sha256": "15af188dffa9d9f3ba24b7cb00981348549918718ceaa5d58cdab4eff0eca90a"
+  },
+  {
+   "bytes": 377585,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00017.parquet",
+   "sha256": "7146343af83006304c6a868e58450afdfb48bf5fe845d57d93428b332d0dcc66"
+  },
+  {
+   "bytes": 359656,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00018.parquet",
+   "sha256": "70c68efcdd427b5593704b4fe47865219a2e7272d6efc400e50913727677a75d"
+  },
+  {
+   "bytes": 271895,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_archived_corpus_v4_20261015\\matrix\\part_00019.parquet",
+   "sha256": "1126eab9c6dc8baf7ac76edae4441b292dc033baacd6e8e299ac5ab4bb45eaab"
+  }
+ ],
+ "persisted_rows": 80840,
+ "raw_label_and_pit_replay_cases": 200,
+ "registered_actual_bytes": 93005377,
+ "response_bytes": 44684468,
+ "reused_prior_requests": 6,
+ "scope": "CONDITIONAL_RESEARCH_DOUBLE_SOURCE_ORDINARY_ACTIONS",
+ "status": "PERSISTED_MATRIX_AUDIT_PASS",
+ "training_ready": false,
+ "year_counts": {
+  "2019": {
+   "events": 5033,
+   "nonpositive": 4419,
+   "positive": 614
+  },
+  "2020": {
+   "events": 5746,
+   "nonpositive": 4669,
+   "positive": 1077
+  },
+  "2021": {
+   "events": 7795,
+   "nonpositive": 6494,
+   "positive": 1301
+  },
+  "2022": {
+   "events": 8321,
+   "nonpositive": 6713,
+   "positive": 1608
+  },
+  "2023": {
+   "events": 8478,
+   "nonpositive": 7768,
+   "positive": 710
+  },
+  "2024": {
+   "events": 8854,
+   "nonpositive": 6952,
+   "positive": 1902
+  },
+  "2025": {
+   "events": 9107,
+   "nonpositive": 7905,
+   "positive": 1202
+  },
+  "2026": {
+   "events": 6589,
+   "nonpositive": 4953,
+   "positive": 1636
+  }
+ }
+}

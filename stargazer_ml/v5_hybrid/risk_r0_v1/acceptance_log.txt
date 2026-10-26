@@ -1,0 +1,89 @@
+{"stage": "load_auxiliary_research", "segment": "train"}
+.{"stage": "load_auxiliary_research", "segment": "select"}
+{"stage": "load_auxiliary_research", "segment": "calibration"}
+.{"stage": "load_auxiliary_research", "segment": "test"}
+..........{"stage": "native_motion_source", "files": 200, "total": 4196}
+...{"stage": "native_motion_source", "files": 400, "total": 4196}
+..{"stage": "native_motion_source", "files": 600, "total": 4196}
+..{"stage": "native_motion_source", "files": 800, "total": 4196}
+..{"stage": "native_motion_source", "files": 1000, "total": 4196}
+..{"stage": "native_motion_source", "files": 1200, "total": 4196}
+..{"stage": "native_motion_source", "files": 1400, "total": 4196}
+..{"stage": "native_motion_source", "files": 1600, "total": 4196}
+..{"stage": "native_motion_source", "files": 1800, "total": 4196}
+..{"stage": "native_motion_source", "files": 2000, "total": 4196}
+..{"stage": "native_motion_source", "files": 2200, "total": 4196}
+..{"stage": "native_motion_source", "files": 2400, "total": 4196}
+..{"stage": "native_motion_source", "files": 2600, "total": 4196}
+..{"stage": "native_motion_source", "files": 2800, "total": 4196}
+..{"stage": "native_motion_source", "files": 3000, "total": 4196}
+..{"stage": "native_motion_source", "files": 3200, "total": 4196}
+..{"stage": "native_motion_source", "files": 3400, "total": 4196}
+..{"stage": "native_motion_source", "files": 3600, "total": 4196}
+..{"stage": "native_motion_source", "files": 3800, "total": 4196}
+..{"stage": "native_motion_source", "files": 4000, "total": 4196}
+.....{"stage": "acceptance_month", "frequency": 5, "month": 202501, "candidates": 5726, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202502, "candidates": 6048, "missed": 0}
+....{"stage": "acceptance_month", "frequency": 5, "month": 202503, "candidates": 7395, "missed": 0}
+....{"stage": "acceptance_month", "frequency": 5, "month": 202504, "candidates": 6996, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202505, "candidates": 6162, "missed": 0}
+....{"stage": "acceptance_month", "frequency": 5, "month": 202506, "candidates": 6727, "missed": 0}
+.....{"stage": "acceptance_month", "frequency": 5, "month": 202507, "candidates": 7884, "missed": 0}
+....{"stage": "acceptance_month", "frequency": 5, "month": 202508, "candidates": 7644, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202509, "candidates": 6130, "missed": 0}
+.....{"stage": "acceptance_month", "frequency": 5, "month": 202510, "candidates": 5273, "missed": 0}
+.......{"stage": "acceptance_month", "frequency": 5, "month": 202511, "candidates": 6856, "missed": 0}
+....{"stage": "acceptance_month", "frequency": 5, "month": 202512, "candidates": 5942, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202601, "candidates": 3275, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 5, "month": 202602, "candidates": 274, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202603, "candidates": 999, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202604, "candidates": 919, "missed": 0}
+...{"stage": "acceptance_month", "frequency": 5, "month": 202605, "candidates": 1031, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 5, "month": 202606, "candidates": 646, "missed": 0}
+{"stage": "acceptance_month", "frequency": 5, "month": 202608, "candidates": 378, "missed": 0}
+{"stage": "acceptance_month", "frequency": 5, "month": 202609, "candidates": 14, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202501, "candidates": 5726, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202502, "candidates": 6048, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202503, "candidates": 7395, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202504, "candidates": 6996, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202505, "candidates": 6162, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202506, "candidates": 6727, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202507, "candidates": 7884, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202508, "candidates": 7644, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202509, "candidates": 6130, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202510, "candidates": 5273, "missed": 0}
+..{"stage": "acceptance_month", "frequency": 15, "month": 202511, "candidates": 6856, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202512, "candidates": 5942, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202601, "candidates": 3275, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202602, "candidates": 274, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202603, "candidates": 999, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202604, "candidates": 919, "missed": 0}
+.{"stage": "acceptance_month", "frequency": 15, "month": 202605, "candidates": 1031, "missed": 0}
+{"stage": "acceptance_month", "frequency": 15, "month": 202606, "candidates": 646, "missed": 0}
+{"stage": "acceptance_month", "frequency": 15, "month": 202608, "candidates": 378, "missed": 0}
+{"stage": "acceptance_month", "frequency": 15, "month": 202609, "candidates": 14, "missed": 0}
+.Traceback (most recent call last):
+  File "D:\stargazer\stargazer_ml\v5_hybrid\risk_r0_v1\verify_continuous_motion_common_coverage_v1.py", line 246, in <module>
+    run()
+    ~~~^^
+  File "D:\stargazer\stargazer_ml\v5_hybrid\risk_r0_v1\verify_continuous_motion_common_coverage_v1.py", line 238, in run
+    print(json.dumps(dict(stage='acceptance_done', verdict=verdict,
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          loo_5_return=acceptance[5]['loo'][segments[0]]['return_']['finite_rate'],
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          loo_15_return=acceptance[15]['loo'][segments[0]]['return_']['finite_rate']),
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    flush=True))
+                    ^^^^^^^^^^^
+  File "C:\Users\22107\.workbuddy\binaries\python\versions\3.13.12\Lib\json\__init__.py", line 238, in dumps
+    return cls(
+           ~~~^
+        skipkeys=skipkeys, ensure_ascii=ensure_ascii,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        check_circular=check_circular, allow_nan=allow_nan, indent=indent,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        separators=separators, default=default, sort_keys=sort_keys,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        **kw).encode(obj)
+        ^^^^^
+TypeError: JSONEncoder.__init__() got an unexpected keyword argument 'flush'

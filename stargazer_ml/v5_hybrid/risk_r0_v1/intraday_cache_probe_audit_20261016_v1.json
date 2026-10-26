@@ -1,0 +1,143 @@
+{
+  "counts": {
+    "prefix_equal": 192,
+    "PASS": 186,
+    "START_COMPLETE_UNDER_TIME_ASSUMPTION": 90,
+    "START_rsi_nonnull": 0,
+    "START_INCOMPLETE": 6,
+    "NOT_TESTED_NO_FUTURE_ROWS": 6,
+    "END_COMPLETE_UNDER_TIME_ASSUMPTION": 96,
+    "END_rsi_nonnull": 12,
+    "independent_rsi_values_checked": 12
+  },
+  "frozen_old_fit_files_verified": 15,
+  "old_manifests_verified": 3,
+  "canonical_exe_unchanged": true,
+  "research_bytes": 106682665,
+  "training_ready": false,
+  "inputs": [
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261008.json",
+      "sha256": "e86d35e16a35cba7563233526de22336bcbe9f17806d01b4556ead82f4185dfc"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261009.json",
+      "sha256": "be5776dfc6f5ba375b4e41e5c7a92d4440cf9930aea1d2400ca3a5d232da1d54"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261012.json",
+      "sha256": "fbad7a19368114110ad3d55f888c84b8909c9380833240185e3bb12f3b716b27"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261013.json",
+      "sha256": "5e74c438ecadc9594fc599bf983f2074a2268558f7132734fac638ef1f89b3a6"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261014.json",
+      "sha256": "72ffc836079660cb6772cea55a66317b19285f4828d4e11d33d0351e6f95d2ed"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261015.json",
+      "sha256": "8d590e7dbf4b725188083a5ea7865e4b2cd9b1d95f64a4981a27a26fd2f94d90"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_desktop\\dist\\data\\pentacles_demo\\journal\\days\\20261016.json",
+      "sha256": "1af29ee0ddbfd43235eb60b725667fff6201f53f0ca21c07ad4e216d490a0610"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\pullback_train\\minute_cache_clean\\300713.parquet",
+      "sha256": "ac1bcfff25accfd7946c6045131bb373e1af538a137f91b753a44268a54d23d7"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\pullback_train\\minute_cache_clean\\300964.parquet",
+      "sha256": "fa1662f8b02f9c668f4c7623838930fc83e29a69a0571ea95c10d633574b1e31"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_car\\605358.parquet",
+      "sha256": "0c096110520c0c6e3ce1c36fd1a75f7a82596baac55649c27c5e4a8e8d5c3069"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\001339.parquet",
+      "sha256": "7752677d7d07b27a13864ef30f7929e7aacc73c862aad0f890eba52c0e6f49fd"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\300713.parquet",
+      "sha256": "a3114c1e5f2123c38931d91eeed2f7a3a9c12bbd2fd043204322261d60d67b8a"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\300726.parquet",
+      "sha256": "57c79684008891835e622522bf2ad78dfaa1d83ebdf8058e0f96a1130bc69d16"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\300919.parquet",
+      "sha256": "0ff4b8f0cc7972d70e5dec81f1b8587cbdbce7cb1749ab5fa0f89dfd7b9f66c7"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\300964.parquet",
+      "sha256": "5fe923671b80687e9aa951e030279843a8df4c035ef1ed82dce28e3f2433fea0"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\minute_ext\\605358.parquet",
+      "sha256": "754f2c4445492524db44c6a1e7cffab5fda2a0f6ad172c5c63dc34d2f69d7dfa"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\r1_branch_at_decision_v0_1_2.json",
+      "sha256": "9c35ac5d5806803d2513f14aef79d536aff87afa8401fbead1ac357664432299"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\gcp_round_b_small_sample_v1\\r1_dip_scan_and_gap_freeze.json",
+      "sha256": "a9909b9feedcd17b4890c770af9e1043e9d04656aebf3a5b5dc3ea5f0736734d"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\panels\\sector_sametime_proxy_20250303.parquet",
+      "sha256": "3f643381722e9c4714b5426f3a2293f152b9610309b9258fe4524d56e28d85f6"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\panels\\sector_sametime_proxy_20250926.parquet",
+      "sha256": "5f5ae790b5e9faa890a693dc80453fc13c2dc7cff60ed4b558176b8c5a72344d"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\panels\\sector_sametime_proxy_20250930.parquet",
+      "sha256": "d8c584d4f2c73530d6ff42e7eefd31a508b1cb0de105f7c8c8271f95e1525606"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\panels\\sector_sametime_proxy_20260211.parquet",
+      "sha256": "90b51f78391f0e892ce194c264d7521a4dcab57d0aacc08a69ee8da9af3ae664"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\gate1c\\panels\\sector_sametime_proxy_20260430.parquet",
+      "sha256": "8a02f05a2c29a6f3edb820ab3c1d856066af1ef3441385c79076c085d08bde08"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\manifest.json",
+      "sha256": "94d87547c65ca24d7071c47de3299a24e19475b007b03483527e382dbd2518f6"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\minute_risk_features_v1.py",
+      "sha256": "af4ebc85cdd4ae8218e283d233021c4e3c0aabe62340b2916883995ca3115acf"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\research_budget_v2.py",
+      "sha256": "2cc9bbbf9b0a70b45c711a5216998445a706275f67641d4cafe1b91fe3528347"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\risk_intraday_cache_probe_v1.py",
+      "sha256": "3a934b65081ca6481e1fbe63566d482d4617b164293c0c3d197b0774644dca2d"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_minute_risk_features_v1.py",
+      "sha256": "a698e257d0378699988664e7d7844b207e5778b215442b58402e96660519ab99"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\intraday_cache_probe_20261016_v1\\diagnostics.json",
+      "sha256": "d13a7ee0c8df187053af749f0aa5ef217e7dd913ef9bba63a297addc3b8dbc91"
+    },
+    {
+      "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\intraday_cache_probe_20261016_v1\\manifest.json",
+      "sha256": "352d849b30d2574edb8e2264089f73b87dac47c01dd8a8b47af17fe18832c407"
+    }
+  ],
+  "audit_code_sha256": "310be30c21eafcf019c6ce5502f9f3bcde528ce3313178fa080fa7ec217eba3a"
+}

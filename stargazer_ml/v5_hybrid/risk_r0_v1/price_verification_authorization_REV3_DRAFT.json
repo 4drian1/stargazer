@@ -1,0 +1,18 @@
+{
+  "status": "DRAFT",
+  "scope": "INDEPENDENT_FETCH",
+  "runtime_revision": 3,
+  "approved_by": null,
+  "approval_reference": null,
+  "authorized_at": null,
+  "expires_at": null,
+  "batch_id": null,
+  "output_dir": null,
+  "manifest_sha256": "9391f1ce07f1f6915262175764dfb7157b478bf3ef45be97c2da9c66a6ffdb23",
+  "limits": {"requests": 36, "response_bytes": 5242880, "disk_bytes": 5242880},
+  "normal_request_count": 30,
+  "retries": 0,
+  "label_build_authorized": false,
+  "fit_authorized": false,
+  "note": "本轮仅零网络修复；旧批准记录不能续用。新取数需真实单独批准后登记，不代签。"
+}

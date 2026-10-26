@@ -218,15 +218,20 @@ def risk_inputs_equivalent(parent, current):
     mutable = {str((project/'stargazer_desktop'/name).resolve()) for name in (
         'server.py','assistant_workflow.py','golden_monitor.py','index_minutes_v1.py',
         'pentacles_monitor.py','plan_evidence.py','postclose_risk_runtime.py',
-        'tarot_monitor_v2.py','trade_facts_v1.py','deepseek_api.py','pentacles_demo.py','plan_board_monitor.py')}
+        'tarot_monitor_v2.py','trade_facts_v1.py','deepseek_api.py','pentacles_demo.py','plan_board_monitor.py',
+        'golden_stock_analysis.py','on_demand_model_worker.py','agent/brain.py',
+        'web/app.js','web/pentacles.js','test_tarot_selector_binding_v1.py','Stargazer_demo_safe.spec')}
     base = project/'stargazer_ml/v5_hybrid'
     mutable.update(str((base/'risk_r0_v1'/name).resolve()) for name in (
         'tarot_intraday_risk_v2.py','live_postclose_job_v1.py','accept_live_postclose_v1.py'))
     mutable.update(str((base/'green_common_profile'/name).resolve()) for name in (
-        'tarot_live_v2.py','golden_ladder_v3.py','tarot_live_signal_v2.py','gcp_golden_intraday_v1.py','tarot_manual_review_v1.py'))
+        'tarot_live_v2.py','golden_ladder_v3.py','golden_resonance_v4.py','tarot_live_signal_v2.py','gcp_golden_intraday_v1.py','tarot_manual_review_v1.py'))
     def immutable(snapshot):
         items = snapshot['rule_inputs']
-        entries = {str(Path(r['path']).resolve()):r['sha256'] for r in items}
+        def absolute(value):
+            path=Path(value)
+            return str((path if path.is_absolute() else project/path).resolve())
+        entries = {absolute(r['path']):r['sha256'] for r in items}
         if len(entries) != len(items):
             raise ValueError('DUPLICATE_RULE_INPUT')
         return {k:v for k,v in entries.items() if k not in mutable}
@@ -236,15 +241,16 @@ def risk_inputs_equivalent(parent, current):
     rows = current.get('rows', [])
     if not rows or len({r['code'] for r in rows}) != len(rows):
         return False
-    observation = {'zone','distance_atr','entry_rule','observation_map_status'}
+    observation = {'zone','distance_atr','entry_rule','observation_map_status','signal'}
     for row in rows:
         old = original.get(row['code'], {})
         if not old.get('feature_values') or not old.get('selection_model'):
             return False
-        if {k:v for k,v in old.items() if k not in observation} != {k:v for k,v in row.items() if k not in observation}:
+        compare_fields=observation|({'status'} if old.get('status') in ('GOLDEN_PLAN_READY','WAIT_RESONANCE_ZONE') and row.get('status') in ('GOLDEN_PLAN_READY','WAIT_RESONANCE_ZONE') else set())
+        if {k:v for k,v in old.items() if k not in compare_fields} != {k:v for k,v in row.items() if k not in compare_fields}:
             return False
         before, after = old.get('entry_rule', {}), row.get('entry_rule', {})
-        if after.get('policy') != 'GOLDEN_LADDER_STOP_V3':
+        if after.get('policy') not in ('GOLDEN_LADDER_STOP_V3','GOLDEN_RESONANCE_CROSSDAY_V4'):
             return False
         if any(before.get(k) != after.get(k) for k in ('version','eligible','atr_ref','stage','close_p')):
             return False

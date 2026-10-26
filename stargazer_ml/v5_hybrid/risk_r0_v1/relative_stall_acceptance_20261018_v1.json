@@ -1,0 +1,36 @@
+{
+  "status": "PASS_ENGINEERING_ONLY_NOT_RISK_EFFECTIVENESS",
+  "proof": {
+    "000001.SH": {
+      "real_rows": 46944,
+      "real_prefix_and_future_perturbation": "PASS",
+      "context_asof_day": 20250102,
+      "observations_at_sample_cutoff": 1302
+    },
+    "399006.SZ": {
+      "real_rows": 46944,
+      "real_prefix_and_future_perturbation": "PASS",
+      "context_asof_day": 20250102,
+      "observations_at_sample_cutoff": 1302
+    }
+  },
+  "test_output": ".......................................................................................................................................................................\n----------------------------------------------------------------------\nRan 167 tests in 134.236s\n\nOK\n",
+  "input_hashes_verified": 113,
+  "real_output_hashes_verified": 4,
+  "model_unchanged": true,
+  "pilot_bytes": 4105731,
+  "prospective_records": 0,
+  "http_requests": 0,
+  "fit": false,
+  "five_minute_sector_actual": false,
+  "fifteen_minute_actual": true,
+  "code_refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\intraday_relative_stall_v1.py": "5da3415d98380fb8aa4ceb01a865655d66a8a26160c9f13a8728248a4244be45",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\materialize_relative_stall_pilot_v1.py": "90bb36dc4bbc57cf7c79939d424c7042d9e42ce20d9883681664a1ba6e8235e9",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\read_relative_stall_pilot_v1.py": "e7e9b10c922b75268e7541a7ff99490a882b553e13f306573aee1d221426dfd3",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_intraday_relative_stall_v1.py": "14d5fd427aa204da8f1c913b9ff1c171071b7cecdc50efd455123295618a3b4d",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_read_relative_stall_pilot_v1.py": "d95d85e41b50b7806bb022b53767137c8015483a27f1f1e7d25160ace4760e07",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_relative_stall_pilot_v1.py": "916fe36aecce077ac9bc4893f6de44a6398a3146e65f0e70e84c21f27e9eb37d"
+  },
+  "report_sha256": "7f3e733059bcc415e423566a1cb5c00b2e46c639f41ec82d088228507aa2037d"
+}

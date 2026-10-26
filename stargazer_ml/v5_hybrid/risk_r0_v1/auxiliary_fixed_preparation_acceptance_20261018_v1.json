@@ -1,0 +1,20 @@
+{
+  "status": "PASS_FULL_FRAMEWORK_AUXILIARY_SPEC_NOT_FIT",
+  "config_sha256": "8a3ffb0cb2ea6f04f4f6d9cb32030d6fd7281f96ed92c1fd94c9aadcc7d0baaa",
+  "numeric_cells_checked": 20026008,
+  "rows": 86319,
+  "fields": 232,
+  "transformed_dimensions": 464,
+  "segments": {
+    "train": 60712,
+    "select": 18071,
+    "calibration": 4548,
+    "test": 2988
+  },
+  "real_preprocessing_fitted": false,
+  "real_model_fits": 0,
+  "refs": {
+    "config": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\auxiliary_120m_fit_preparation_20261018_v1\\config.json",
+    "report": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\auxiliary_120m_fit_preparation_20261018_v1\\report.json"
+  }
+}

@@ -1,0 +1,791 @@
+{
+  "status": "PASS_UNKNOWN_REASON_PARTITION_NOT_NEW_X",
+  "segments": {
+    "train": {
+      "mb5_current_change_negative_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_captured_change_negative_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_nonpositive_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_falling_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_not_new_high_rate": {
+        "known": 2468,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 1,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_nonpositive_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_falling_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_not_new_high_rate": {
+        "known": 2468,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 1,
+        "unresolved_other": 0
+      },
+      "mb15_current_change_negative_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_captured_change_negative_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_nonpositive_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_falling_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_not_new_high_rate": {
+        "known": 2468,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 1,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_nonpositive_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_falling_rate": {
+        "known": 2469,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_not_new_high_rate": {
+        "known": 2468,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 1,
+        "unresolved_other": 0
+      },
+      "own5_current_change_negative_rate": {
+        "known": 48806,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 78,
+        "unresolved_other": 0
+      },
+      "own5_captured_change_negative_rate": {
+        "known": 48855,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 29,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_nonpositive_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_falling_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_not_new_high_rate": {
+        "known": 1179,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 47705,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_nonpositive_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_falling_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_not_new_high_rate": {
+        "known": 1179,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 47705,
+        "unresolved_other": 0
+      },
+      "own15_current_change_negative_rate": {
+        "known": 48806,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 78,
+        "unresolved_other": 0
+      },
+      "own15_captured_change_negative_rate": {
+        "known": 48843,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 41,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_nonpositive_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_falling_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_not_new_high_rate": {
+        "known": 1179,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 47705,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_nonpositive_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_falling_rate": {
+        "known": 48884,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_not_new_high_rate": {
+        "known": 1179,
+        "no_current_positive_group": 11828,
+        "nonempty_group_no_evaluable_signal": 47705,
+        "unresolved_other": 0
+      }
+    },
+    "select": {
+      "mb5_current_change_negative_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_captured_change_negative_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_nonpositive_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_falling_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_not_new_high_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_nonpositive_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_falling_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_not_new_high_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_current_change_negative_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_captured_change_negative_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_nonpositive_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_falling_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_not_new_high_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_nonpositive_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_falling_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_not_new_high_rate": {
+        "known": 740,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_current_change_negative_rate": {
+        "known": 13906,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 24,
+        "unresolved_other": 0
+      },
+      "own5_captured_change_negative_rate": {
+        "known": 13925,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 5,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_nonpositive_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_falling_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_not_new_high_rate": {
+        "known": 367,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 13563,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_nonpositive_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_falling_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_not_new_high_rate": {
+        "known": 367,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 13563,
+        "unresolved_other": 0
+      },
+      "own15_current_change_negative_rate": {
+        "known": 13906,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 24,
+        "unresolved_other": 0
+      },
+      "own15_captured_change_negative_rate": {
+        "known": 13920,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 10,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_nonpositive_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_falling_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_not_new_high_rate": {
+        "known": 367,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 13563,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_nonpositive_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_falling_rate": {
+        "known": 13930,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_not_new_high_rate": {
+        "known": 367,
+        "no_current_positive_group": 4141,
+        "nonempty_group_no_evaluable_signal": 13563,
+        "unresolved_other": 0
+      }
+    },
+    "calibration": {
+      "mb5_current_change_negative_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_captured_change_negative_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_nonpositive_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_falling_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_not_new_high_rate": {
+        "known": 648,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 14,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_nonpositive_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_falling_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_not_new_high_rate": {
+        "known": 648,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 14,
+        "unresolved_other": 0
+      },
+      "mb15_current_change_negative_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_captured_change_negative_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_nonpositive_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_falling_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_not_new_high_rate": {
+        "known": 648,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 14,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_nonpositive_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_falling_rate": {
+        "known": 662,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_not_new_high_rate": {
+        "known": 648,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 14,
+        "unresolved_other": 0
+      },
+      "own5_current_change_negative_rate": {
+        "known": 3868,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 10,
+        "unresolved_other": 0
+      },
+      "own5_captured_change_negative_rate": {
+        "known": 3878,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_nonpositive_rate": {
+        "known": 3878,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_falling_rate": {
+        "known": 3878,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_not_new_high_rate": {
+        "known": 113,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 3765,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_nonpositive_rate": {
+        "known": 3878,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_falling_rate": {
+        "known": 3878,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_not_new_high_rate": {
+        "known": 113,
+        "no_current_positive_group": 670,
+        "nonempty_group_no_evaluable_signal": 3765,
+        "unresolved_other": 0
+      },
+      "own15_current_change_negative_rate": {
+        "known": 3870,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 11,
+        "unresolved_other": 0
+      },
+      "own15_captured_change_negative_rate": {
+        "known": 3880,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 1,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_nonpositive_rate": {
+        "known": 3881,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_falling_rate": {
+        "known": 3881,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_not_new_high_rate": {
+        "known": 113,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 3768,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_nonpositive_rate": {
+        "known": 3881,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_falling_rate": {
+        "known": 3881,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_not_new_high_rate": {
+        "known": 113,
+        "no_current_positive_group": 667,
+        "nonempty_group_no_evaluable_signal": 3768,
+        "unresolved_other": 0
+      }
+    },
+    "test": {
+      "mb5_current_change_negative_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_captured_change_negative_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_nonpositive_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_falling_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_sse_positive_not_new_high_rate": {
+        "known": 747,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 28,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_nonpositive_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_falling_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb5_cyb_positive_not_new_high_rate": {
+        "known": 747,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 28,
+        "unresolved_other": 0
+      },
+      "mb15_current_change_negative_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_captured_change_negative_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_nonpositive_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_falling_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_sse_positive_not_new_high_rate": {
+        "known": 747,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 28,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_nonpositive_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_falling_rate": {
+        "known": 775,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "mb15_cyb_positive_not_new_high_rate": {
+        "known": 747,
+        "no_current_positive_group": 0,
+        "nonempty_group_no_evaluable_signal": 28,
+        "unresolved_other": 0
+      },
+      "own5_current_change_negative_rate": {
+        "known": 2201,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_captured_change_negative_rate": {
+        "known": 2196,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 5,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_nonpositive_rate": {
+        "known": 2201,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_falling_rate": {
+        "known": 2201,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_sse_positive_not_new_high_rate": {
+        "known": 21,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 2180,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_nonpositive_rate": {
+        "known": 2201,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_falling_rate": {
+        "known": 2201,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own5_cyb_positive_not_new_high_rate": {
+        "known": 21,
+        "no_current_positive_group": 787,
+        "nonempty_group_no_evaluable_signal": 2180,
+        "unresolved_other": 0
+      },
+      "own15_current_change_negative_rate": {
+        "known": 2196,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 6,
+        "unresolved_other": 0
+      },
+      "own15_captured_change_negative_rate": {
+        "known": 2191,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 11,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_nonpositive_rate": {
+        "known": 2202,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_falling_rate": {
+        "known": 2202,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_sse_positive_not_new_high_rate": {
+        "known": 21,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 2181,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_nonpositive_rate": {
+        "known": 2202,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_falling_rate": {
+        "known": 2202,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 0,
+        "unresolved_other": 0
+      },
+      "own15_cyb_positive_not_new_high_rate": {
+        "known": 21,
+        "no_current_positive_group": 786,
+        "nonempty_group_no_evaluable_signal": 2181,
+        "unresolved_other": 0
+      }
+    }
+  },
+  "refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_transfer_diagnosis_acceptance_20261018_v1.json": "61efae95af550974dffd9ab8f810d5f48c50ae9d28ce7e0625250b3e0408a497",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_transfer_diagnosis_20261018_v1\\diagnostics.json": "ef8d4510eca7f473fec5083a3d11e28be74e50548b4622d1f5d92bf786a0aad1",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_comparison_preparation_20261018_v1\\population_audit.parquet": "10cbf5510e7114f54528bdede9bc4e3c4d754a661dcae167408d9551e0d208b3",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\explain_multiboard_unknown_rates_v1.py": "d6cff52e312a6f455924fa77aeab060636e3841cd8af562d8c06ae6d658ccbed",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_explain_multiboard_unknown_rates_v1.py": "4108413af94bcbb17686fd2efd4ba614edfe7e9cb383142f42337ab4823132f4"
+  },
+  "new_fit": false,
+  "labels_changed": false,
+  "http_requests": 0
+}

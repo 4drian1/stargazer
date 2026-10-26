@@ -1,0 +1,11 @@
+{
+  "status":"PREREGISTERED_RESEARCH_SOURCE_SCOPE_CORRECTION",
+  "evidence":"37 fixed selected signals failed whole-E OHLC reconciliation; raw daily/minute extrema differ while observed open/close may match;2 bought holding dates have complete native grid and only1-3cent extrema discrepancy",
+  "entry_basis":"Existing P raw last-close proof plus E raw pre_close=P frozen close and E open consistent; explicit ST, instrument, quantity units, no known corporate action and actual completed-prefix gates retained",
+  "not_a_realtime_gate":"Future E high/low/close never used to authorize earlier entry; differences retained as audit, never overwritten",
+  "holding_basis":"Previously established holding-range proof extended only to new captured same-open/close/ST/pre_close and unit-valid dates; actual needed-slot checks unchanged",
+  "universe_and_models":"Fixed283 selected-union keys, no rescreen, same rankings and model weights",
+  "preservation":"Original full-flow pilot decisions/paths retained, exact identical facts reuse paid judgment; no automatic paid retry",
+  "source_cache":"Require exact native input equality before reusing frozen risk RAM cache; changed source requires explicit updated cache and causal checks",
+  "no_training":true,"production_changes":false,"no_unknown_bar_fill":true
+}

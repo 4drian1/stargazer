@@ -1,5 +1,6 @@
 """One-stock frozen selection inference; stdin/stdout only, no plan writes."""
 import json
+import gzip
 import os
 import re
 import sys
@@ -15,7 +16,7 @@ def infer(request):
     sys.path.insert(0, str(risk_dir))
     import joint_shadow_compute_v2 as compute
     from joint_shadow_service_v1 import verify_fingerprints
-    expected = json.loads((risk_dir / 'live_monitor_fingerprints_20261026_v27_rel.json').read_text(encoding='utf-8'))
+    expected = json.loads(gzip.decompress((risk_dir / 'live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
     mismatch, ok = verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH')

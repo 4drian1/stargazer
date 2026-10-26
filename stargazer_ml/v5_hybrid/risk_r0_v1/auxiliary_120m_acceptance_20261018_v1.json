@@ -1,0 +1,17 @@
+{
+  "status": "PASS_AUXILIARY_120M_LABELS_NOT_FIT",
+  "rows": 86319,
+  "window_endpoints_checked": 86319,
+  "maximum_direct_slice_error": 0.0,
+  "inputs_verified": 174,
+  "report_sha256": "52f0191d3b5957992cbb5d878373afafe5335f73a63a6a715af28de211c79a06",
+  "output_bytes": 1285952,
+  "registered_bytes": 4289337477,
+  "cap": 4294967296,
+  "original_main_target_unchanged": true,
+  "main_fits": 0,
+  "calibration_fits": 0,
+  "http_requests": 0,
+  "new_binary_threshold": false,
+  "training_authorized": false
+}

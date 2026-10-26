@@ -1,0 +1,97 @@
+{
+  "status": "PASS_FULL_COHORT_FEATURE_ENGINEERING_NOT_FIT_OR_RISK_EFFECTIVENESS",
+  "test_output": ".......................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 199 tests in 195.716s\n\nOK\n",
+  "tests_modules": [
+    "test_intraday_relative_stall_v2",
+    "test_intraday_native_5m_extra_v1",
+    "test_read_relative_stall_v2",
+    "test_intraday_relative_stall_v1",
+    "test_read_relative_stall_pilot_v1",
+    "test_intraday_sector_leaders_v1",
+    "test_build_joint_risk_features_v1",
+    "test_golden_anchor_rules_v2",
+    "test_build_postclose_background_v1",
+    "test_postclose_daily_update_v1",
+    "test_postclose_daily_cli_v1",
+    "test_postclose_daily_job_v1",
+    "test_refresh_postclose_incremental_v1",
+    "test_refresh_postclose_incremental_v2",
+    "test_read_postclose_incremental_v2",
+    "test_postclose_local_source_bridge_v1",
+    "test_postclose_forward_offline_v1",
+    "test_postclose_next_period_evaluation_v1",
+    "test_postclose_research_scorer_v1",
+    "test_multiboard_risk_features_v1",
+    "test_build_multiboard_full_features_v1",
+    "test_read_multiboard_full_features_v1"
+  ],
+  "segment_coverage": {
+    "train": {
+      "rows": 70096,
+      "dates": 178,
+      "own_mean5_known": 69696,
+      "own_mean15_known": 69696,
+      "global5_known": 69696,
+      "global15_known": 69696
+    },
+    "select": {
+      "rows": 21488,
+      "dates": 55,
+      "own_mean5_known": 21488,
+      "own_mean15_known": 21488,
+      "global5_known": 21488,
+      "global15_known": 21488
+    },
+    "calibration": {
+      "rows": 5648,
+      "dates": 49,
+      "own_mean5_known": 5648,
+      "own_mean15_known": 5648,
+      "global5_known": 5648,
+      "global15_known": 5648
+    },
+    "test": {
+      "rows": 3472,
+      "dates": 56,
+      "own_mean5_known": 3472,
+      "own_mean15_known": 3472,
+      "global5_known": 3472,
+      "global15_known": 3472
+    }
+  },
+  "pilot_distribution_and_denominator_comparisons": 96,
+  "rows": 100704,
+  "new_fields": 106,
+  "all_null_train": [],
+  "constant_train": [
+    "mb5_current_change_negative_coverage",
+    "mb5_sse_positive_nonpositive_coverage",
+    "mb5_sse_positive_falling_coverage",
+    "mb5_cyb_positive_nonpositive_coverage",
+    "mb5_cyb_positive_falling_coverage",
+    "own5_sse_positive_nonpositive_coverage",
+    "own5_sse_positive_falling_coverage",
+    "own5_cyb_positive_nonpositive_coverage",
+    "own5_cyb_positive_falling_coverage"
+  ],
+  "raw15_valid_compared": 18430197,
+  "raw_ledger_sha256": "b5b7567b38f28fc6dcf0800722e7923905f3215e79410c3a589604308031a52f",
+  "report_sha256": "c85bb0f84f76224d61852452374d0bd42f33e803d53b6ce941e0a0d1488924a9",
+  "full_report_inputs_verified": 103,
+  "raw_files_verified_at_acceptance": 4196,
+  "code_refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\multiboard_risk_features_v1.py": "f84cc90bd311646054b980ed4daff07f2147c4a8fef60bfce4048607f0349636",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\build_multiboard_full_features_v1.py": "c92248c3d183a35ef48a626981c852f90ab140c878a3189b90f12ad3ae3b270d",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\read_multiboard_full_features_v1.py": "b8a857f4282093cf8c010a63044a00f33a46846d147400a920e65343c266d29e",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_risk_features_v1.py": "cc5dde66995f46d3c169e824b042e21d80004ad9972c491a759c7ce43e8aec82",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_build_multiboard_full_features_v1.py": "66e1468cbd63ead0699d3a24e74361e2021cdef75696de1f609c2c68ef5d4b31",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_read_multiboard_full_features_v1.py": "b8c4d08c2582d0aaffdf3b0c2fe99b1e15b5aac8d4baf5e4fa19430cb0f7ef2b",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_multiboard_full_features_v1.py": "bc166338992fc6405b8767e65c4163a8e47c4fe3d897a8a563201be599853ca2"
+  },
+  "pilot_bytes": 15836317,
+  "labels_changed": false,
+  "model_unchanged": true,
+  "http_requests": 0,
+  "fit": false,
+  "prospective_or_unbiased_gate": false
+}

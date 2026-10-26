@@ -1,0 +1,16 @@
+{
+ "approval_reference": "用户在4GiB及沪深300单批最多6请求提案后回复：好的，请继续",
+ "authorized_at": "2026-10-15T11:03:08.528654+00:00",
+ "expires_at": "2026-10-15T13:03:08.528654+00:00",
+ "limits": {
+  "disk_bytes": 2097152,
+  "requests": 6,
+  "response_bytes": 2097152,
+  "retries": 0
+ },
+ "manifest_sha256": "60fbda348f5b0aea4126c473c4f8e43894ddfbc75e3b3786f9288d70651dc0b1",
+ "output": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\independent_fetch\\batch_csi300_price_index_20261015_v1",
+ "record_type": "CHAT_APPROVAL_RECORD_NOT_CRYPTOGRAPHIC_SIGNATURE",
+ "scope": "INDEPENDENT_FETCH_CSI300_V1",
+ "status": "CHAT_APPROVED"
+}

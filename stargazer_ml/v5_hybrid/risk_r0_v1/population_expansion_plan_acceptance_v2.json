@@ -1,0 +1,21 @@
+{
+ "all_selected_evidence_admission_pending": true,
+ "audit_code_sha256": "b6abd9a2ae64f9a8bc98b9eb5c4e82b04ce06c2ea2008521c085a557b56b3e8f",
+ "fetch_authorized": false,
+ "fit_authorized": false,
+ "frozen_input_hashes_verified": 224,
+ "ignored_new_files": [
+  "D:\\a股数据\\data_daily_parts\\part_incr_20261015.parquet"
+ ],
+ "network_requests": 0,
+ "pilot_code_list_verified": 30,
+ "pilot_draft_sha256": "edf6ced3e667abf0175c18c46224c1275236aed76265c657c540ac9d970cb7dc",
+ "plan_manifest_sha256": "bec27d919bd7119408198a7544d6204681c7f0e1e76600f14c9a1700fee3d329",
+ "plan_stop_sha256": "1c7992f0ca18a74dc0810df5cd9e5203bd68450b079606c208a96058fa29dfd4",
+ "quota_and_hash_selection_independently_reproduced": true,
+ "registered_actual_bytes": 100433284,
+ "selected_code_list_equal_v1": true,
+ "selected_codes": 400,
+ "status": "MECHANICAL_PLAN_READBACK_PASS_NOT_DATA_ADMISSION",
+ "universe_codes": 5174
+}

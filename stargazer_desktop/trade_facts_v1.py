@@ -2,7 +2,7 @@
 import math
 import re
 
-CONTRACT = 'CODE_FACT_REFERENCES_V3_TRIAL'
+CONTRACT = 'CODE_FACT_REFERENCES_V4_CROSSDAY_TRIAL'
 
 
 def fact_table(cutoff,risk,signal=None,selection=None):
@@ -71,6 +71,14 @@ def fact_table(cutoff,risk,signal=None,selection=None):
     for key,value in (context.get('market_repair_research') or {}).items():
         add('research.'+key,str(value),status='RESEARCH')
     if signal:
+        if signal.get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
+            band=signal.get('band') or {};div=signal.get('divergence') or {}
+            number('signal.band_lower',band.get('lower'),'本次原始共振带下沿')
+            number('signal.band_upper',band.get('upper'),'本次原始共振带上沿（破位收回须守住此处）')
+            number('signal.anchor_price',div.get('anchor_low'),'前交易日最低价首现根价格')
+            number('signal.anchor_rsi6',div.get('anchor_rsi'),'跨日锚点RSI6')
+            number('signal.low_rsi6',div.get('event_rsi'),'本次低点根收盘RSI6')
+            add('signal.two_crosses','本次触位及最新新低之后上穿时刻：'+str(signal.get('event_cross_times',[])))
         number('signal.node',signal.get('node'),'本次观察黄金位')
         number('signal.low',signal.get('session_low'),'截至当前已观察最低价')
         low,node=signal.get('session_low'),signal.get('node')
@@ -80,6 +88,7 @@ def fact_table(cutoff,risk,signal=None,selection=None):
         add('signal.branch','已核验路径：'+str(signal.get('branch')),signal.get('branch'))
         add('signal.pierced_levels','此前刺破档位：'+str(signal.get('pierced_levels',[])),signal.get('pierced_levels',[]))
         add('signal.requirement',('未破企稳路径已确认，不额外强制收回更高失守档位' if signal.get('branch')=='STOP_ABOVE' else
+            '收回路径须两根完整五分钟收在本次同一原带上沿之上' if signal.get('branch')=='RECLAIM' and signal.get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4' else
             '收回路径须两根完整五分钟收在本次同一档位之上' if signal.get('branch')=='RECLAIM' else '沿既定规则核验，不由AI重写触发条件'))
         if signal.get('trigger_time'):add('signal.time','价格确认发生时刻：'+str(signal['trigger_time']))
         bars=signal.get('confirmation_bars') or []
@@ -108,7 +117,7 @@ PROMPT=('你是Stargazer综合判断层。只依据computed_facts选择同截止
     'supporting_ids、opposing_ids、unknown_ids（三个字符串数组，每组最多八项，只能引用computed_facts中的ID，互不重复，至少引用一条），'
     'observed_rule_status与observed_branch原样复制signal.state及signal.branch的value；无signal时两项均null。'
     'rationale为简短中文权衡，不复述任何数字、价格、代码或自创门槛；数值由程序展示，可使用RSI6/RSI15名称。'
-    '用不同事实分别表达支持和反对；同一ID绝不可跨数组重复。不得要求所有修复信号同时成立。未破企稳与破位收回是不同路径。'
+    '用不同事实分别表达支持和反对；同一ID绝不可跨数组重复。按代码已核验的组合条件解释，不追加或省略硬门；未破企稳与破位收回是二选一的不同位置路径。'
     'RSI高不自动否决、低不自动买；交叉不是底背离。Pyxis幅度不是概率或确定损失，不能与Tarot分数相减。'
     'status为UNKNOWN或RESEARCH只能入unknown_ids，不能作正反；KNOWN且value非null不归未知，预测数值与效力未知分开。'
     '待证量能或信息未知可以降低把握，不自动否决，也不追加为必需入场条件；既定风险齐全门由代码判断。'

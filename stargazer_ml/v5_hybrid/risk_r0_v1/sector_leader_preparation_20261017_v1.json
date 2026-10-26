@@ -1,0 +1,192 @@
+{
+  "status": "ENGINEERING_ONLY_NOT_TRAINING_READY",
+  "inputs": {
+    "D:\\stargazer\\stargazer_ml\\pullback_train\\sector_daily.parquet": "721979ce904012d8053154bea163b8fcfb7082467c5a60f2ac9816023dbbb6f7",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\o5_sector_lag\\pit_membership.parquet": "a1acd54477b9337e8edc4c187777814c40538a0b80877babdced5d5200b9c2de",
+    "D:\\stargazer\\_dev_venv\\Lib\\site-packages\\akshare\\stock\\stock_board_concept_em.py": "284593b24abc0aa8017e1ecde582f161572e29be96a2f40d9df027e120d7f586",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\sector_concept_prep\\energy_storage_BK0989_members_v3_verified.json": "693ac292884959b0515eaab0354324fabe3a09b9ef2e35be505de6789de4cb3d",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\prepare_sector_leaders_local_v1.py": "95ce78d9db262e1b09060553c9bf5a5bf18859d0e5f86fd1db4e6203909eb694",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\intraday_sector_leaders_v1.py": "d4cd4dbd1c4351583c711b6c04acd9a56ed739c9a792e910a9ba08fb870fe791",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_intraday_sector_leaders_v1.py": "d227351cc8289472ead2485b870aa363fa72a5ddc15cda9e506ad5ef85f440b1"
+  },
+  "sector_daily_candidates": [
+    {
+      "sector": "CPO",
+      "em_name": "CPO概念",
+      "bk_code": "BK1128",
+      "src": "concept",
+      "rows": 868,
+      "start": 20230210,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "储能",
+      "em_name": "储能概念",
+      "bk_code": "BK0989",
+      "src": "concept",
+      "rows": 1282,
+      "start": 20210527,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "军工",
+      "em_name": "军工",
+      "bk_code": "BK0490",
+      "src": "concept",
+      "rows": 2106,
+      "start": 20180102,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "农业种植",
+      "em_name": "农业种植",
+      "bk_code": "BK0888",
+      "src": "concept",
+      "rows": 1670,
+      "start": 20191022,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "创新药",
+      "em_name": "创新药",
+      "bk_code": "BK1106",
+      "src": "concept",
+      "rows": 940,
+      "start": 20221025,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "半导体",
+      "em_name": "半导体",
+      "bk_code": "BK1036",
+      "src": "industry",
+      "rows": 1341,
+      "start": 20210301,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "存储芯片",
+      "em_name": "存储芯片",
+      "bk_code": "BK1137",
+      "src": "concept",
+      "rows": 815,
+      "start": 20230427,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "房地产",
+      "em_name": "房地产",
+      "bk_code": "BK1202",
+      "src": "industry",
+      "rows": 2106,
+      "start": 20180102,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "数据中心",
+      "em_name": "数据中心",
+      "bk_code": "BK0922",
+      "src": "concept",
+      "rows": 1548,
+      "start": 20200421,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "油气",
+      "em_name": "油气设服",
+      "bk_code": "BK0606",
+      "src": "concept",
+      "rows": 2106,
+      "start": 20180102,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "通信服务",
+      "em_name": "通信服务",
+      "bk_code": "BK0736",
+      "src": "industry",
+      "rows": 2106,
+      "start": 20180102,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    },
+    {
+      "sector": "通用设备",
+      "em_name": "通用设备",
+      "bk_code": "BK0545",
+      "src": "industry",
+      "rows": 2106,
+      "start": 20180102,
+      "end": 20260904,
+      "formal_ranking_universe": false
+    }
+  ],
+  "installed_interface_functions": {
+    "stock_board_concept_name_em": [],
+    "stock_board_concept_spot_em": [
+      "symbol"
+    ],
+    "stock_board_concept_hist_em": [
+      "symbol",
+      "period",
+      "start_date",
+      "end_date",
+      "adjust"
+    ],
+    "stock_board_concept_hist_min_em": [
+      "symbol",
+      "period"
+    ],
+    "stock_board_concept_cons_em": [
+      "symbol"
+    ]
+  },
+  "installed_consumer_has_historical_date_argument": false,
+  "scope": "Only inspected installed function signatures; no vendor service availability conclusion",
+  "current_membership": {
+    "board": "BK0989",
+    "fetched_at": "2026-10-16T22:30:28",
+    "rows": 487,
+    "historical_coverage_verified": false
+  },
+  "other_taxonomy": {
+    "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\opportunity_v2\\o5_sector_lag\\pit_membership.parquet",
+    "columns": [
+      "symbol",
+      "industry_code",
+      "industry_name_l1",
+      "industry_name_l2",
+      "industry_name_l3",
+      "index_code_l1",
+      "index_code_l2",
+      "index_code_l3",
+      "effective_from",
+      "effective_to",
+      "update_time",
+      "name_source",
+      "source",
+      "source_version",
+      "snapshot_version"
+    ],
+    "cannot_replace_em_concept": true
+  },
+  "ranking_universe_status": "DRAFT_CANDIDATES_NOT_ALL_MARKET",
+  "unresolved": [
+    "Same-taxonomy historical membership and known-at evidence",
+    "Frozen comparable board universe and historical coverage",
+    "Tie policy and cross-day retention duration",
+    "Verified source clock, price scale and day-return reference"
+  ],
+  "http_requests": 0,
+  "training_ready": false
+}

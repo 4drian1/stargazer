@@ -1,0 +1,12 @@
+{
+  "status": "PASS_READONLY_DIAGNOSTIC_ENTRY",
+  "tests": 32,
+  "test_output": "................................\n----------------------------------------------------------------------\nRan 32 tests in 1.355s\n\nOK\n",
+  "refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\diagnose_multiboard_transfer_v1.py": "a5d4316876c669d97fd7304ab91022fe3f42b5754a79801e8dc7457bdf55300f",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_multiboard_transfer_diagnosis_v1.py": "74d222870a2823111958acec6fb0877e0983e573ec38a6e5a0f408f3ad29112b",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_multiboard_transfer_diagnosis_v1.py": "7e04f92fbf74b74cae81a49ed429344a32c4c9c435a93851c332c63cb3fc17d6"
+  },
+  "actual_fit": false,
+  "http_requests": 0
+}

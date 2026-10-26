@@ -1,0 +1,17 @@
+{
+  "status": "DRAFT",
+  "scope": "INDEPENDENT_FETCH",
+  "approved_by": null,
+  "approval_reference": null,
+  "authorized_at": null,
+  "expires_at": null,
+  "batch_id": null,
+  "output_dir": null,
+  "manifest_sha256": null,
+  "limits": {
+    "requests": 36,
+    "response_bytes": 5242880,
+    "disk_bytes": 5242880
+  },
+  "note": "仅模板，未获真实书面批准不得改为SIGNED。本轮不取数、不造标签、不训练。"
+}

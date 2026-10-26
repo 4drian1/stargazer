@@ -1,0 +1,142 @@
+{
+  "source": "D:\\a股数据\\沪指\\sh999999.lc5",
+  "source_sha256": "52237712fd51a0c67ef02b4ba5382a07049f47fe7d05818a1d8252c3e4cca708",
+  "code_sha256": "3099322c9de58d81b14656972693955ec978cd8d8ba437383c2d2208838ec74d",
+  "period": [
+    20260921,
+    20261016
+  ],
+  "rows": [
+    {
+      "day": 20260921,
+      "open": 3920.27001953125,
+      "close": 3949.909912109375,
+      "bearish_body_pct": 0,
+      "day_decline_pct": -0.9724196811836894,
+      "three_day_decline_pct": -1.498350626731737,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20260922,
+      "open": 3963.81005859375,
+      "close": 3952.1298828125,
+      "bearish_body_pct": 0.2946704208474057,
+      "day_decline_pct": -0.05620307177940376,
+      "three_day_decline_pct": -1.9746563945679307,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20260923,
+      "open": 3951.3701171875,
+      "close": 3936.52001953125,
+      "bearish_body_pct": 0.3758214800394345,
+      "day_decline_pct": 0.39497343822468833,
+      "three_day_decline_pct": -0.6301308991688126,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20260924,
+      "open": 3925.320068359375,
+      "close": 3888.3701171875,
+      "bearish_body_pct": 0.9413232686352271,
+      "day_decline_pct": 1.2231590873373333,
+      "three_day_decline_pct": 1.558005025208553,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20260928,
+      "open": 3878.409912109375,
+      "close": 3823.6201171875,
+      "bearish_body_pct": 1.4126870589621645,
+      "day_decline_pct": 1.6652221380313081,
+      "three_day_decline_pct": 3.251658458490414,
+      "three_lower_closes": true
+    },
+    {
+      "day": 20260929,
+      "open": 3816.14990234375,
+      "close": 3830.449951171875,
+      "bearish_body_pct": 0,
+      "day_decline_pct": -0.17862218983717426,
+      "three_day_decline_pct": 2.6945136270894787,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20260930,
+      "open": 3839.25,
+      "close": 3842.18994140625,
+      "bearish_body_pct": 0,
+      "day_decline_pct": -0.3064911533639414,
+      "three_day_decline_pct": 1.187648664851193,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261008,
+      "open": 3838.97998046875,
+      "close": 3811.89990234375,
+      "bearish_body_pct": 0.7053977427017852,
+      "day_decline_pct": 0.7883535047570778,
+      "three_day_decline_pct": 0.3065214243189729,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261009,
+      "open": 3804.090087890625,
+      "close": 3813.7900390625,
+      "bearish_body_pct": 0,
+      "day_decline_pct": -0.04958516139386138,
+      "three_day_decline_pct": 0.4349335540666188,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261012,
+      "open": 3806.97998046875,
+      "close": 3797.239990234375,
+      "bearish_body_pct": 0.2558455858540061,
+      "day_decline_pct": 0.4339528043917462,
+      "three_day_decline_pct": 1.169904451819559,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261013,
+      "open": 3760.800048828125,
+      "close": 3800.860107421875,
+      "bearish_body_pct": 0,
+      "day_decline_pct": -0.0953354856898736,
+      "three_day_decline_pct": 0.28961397740500106,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261014,
+      "open": 3790.6298828125,
+      "close": 3767.22998046875,
+      "bearish_body_pct": 0.6173090770441609,
+      "day_decline_pct": 0.8848030709537547,
+      "three_day_decline_pct": 1.2208343437069558,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261015,
+      "open": 3710.699951171875,
+      "close": 3707.47998046875,
+      "bearish_body_pct": 0.08677529160254799,
+      "day_decline_pct": 1.5860459889567302,
+      "three_day_decline_pct": 2.3638224077610848,
+      "three_lower_closes": false
+    },
+    {
+      "day": 20261016,
+      "open": 3723.800048828125,
+      "close": 3716.280029296875,
+      "bearish_body_pct": 0.2019447723466393,
+      "day_decline_pct": -0.2373593080605696,
+      "three_day_decline_pct": 2.2252878489224526,
+      "three_lower_closes": false
+    }
+  ],
+  "thresholds_frozen": false,
+  "provenance": "Daily OHLC reconstructed from local native 5min; END clock remains assumption",
+  "purpose": "Descriptive body-versus-close-return comparison, not strategy/label admission",
+  "http_requests": 0,
+  "training_ready": false
+}

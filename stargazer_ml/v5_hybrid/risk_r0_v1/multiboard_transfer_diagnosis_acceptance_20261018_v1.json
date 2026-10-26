@@ -1,0 +1,15 @@
+{
+  "status": "PASS_FIXED_TRANSFER_AND_OUTCOME_POSITION_DIAGNOSTICS",
+  "tests": 32,
+  "original_rows": 100704,
+  "common_rows": 86319,
+  "existing_positive_records": 11365,
+  "report_sha256": "ef8d4510eca7f473fec5083a3d11e28be74e50548b4622d1f5d92bf786a0aad1",
+  "manifest_sha256": "c7bb26f3ef4b9ee927cdbd6d55a9fab8f6d43d6698c0defa86000f0423e7f9e6",
+  "old_d2_sha256": "5d8402cd530cb83778d901e33eb87788f21ebc8619414f335b6d56905a81e005",
+  "new_fit": false,
+  "new_labels": false,
+  "http_requests": 0,
+  "diagnostic_future_offsets_eligible_for_X": false,
+  "causal_root_cause_proven": false
+}

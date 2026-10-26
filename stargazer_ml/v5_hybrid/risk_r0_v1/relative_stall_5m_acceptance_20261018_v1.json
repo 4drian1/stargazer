@@ -1,0 +1,72 @@
+{
+  "status": "PASS_NATIVE_5M_AND_UNCHANGED_15M_ENGINEERING_NOT_RISK_GATE",
+  "test_output": ".......................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 183 tests in 35.532s\n\nOK\n",
+  "tests_modules": [
+    "test_intraday_relative_stall_v2",
+    "test_intraday_native_5m_extra_v1",
+    "test_read_relative_stall_v2",
+    "test_intraday_relative_stall_v1",
+    "test_read_relative_stall_pilot_v1",
+    "test_intraday_sector_leaders_v1",
+    "test_build_joint_risk_features_v1",
+    "test_golden_anchor_rules_v2",
+    "test_build_postclose_background_v1",
+    "test_postclose_daily_update_v1",
+    "test_postclose_daily_cli_v1",
+    "test_postclose_daily_job_v1",
+    "test_refresh_postclose_incremental_v1",
+    "test_refresh_postclose_incremental_v2",
+    "test_read_postclose_incremental_v2",
+    "test_postclose_local_source_bridge_v1",
+    "test_postclose_forward_offline_v1",
+    "test_postclose_next_period_evaluation_v1",
+    "test_postclose_research_scorer_v1"
+  ],
+  "proofs": {
+    "000001.SH": {
+      "native5_rows": 140832,
+      "old15_all_board_rows_equal": 46944,
+      "real5_prefix_and_future_perturbation": "PASS",
+      "full_member_rows": 7872,
+      "daily_positive_current_falling_rows": 1646
+    },
+    "399006.SZ": {
+      "native5_rows": 140832,
+      "old15_all_board_rows_equal": 46944,
+      "real5_prefix_and_future_perturbation": "PASS",
+      "full_member_rows": 7872,
+      "daily_positive_current_falling_rows": 2269
+    }
+  },
+  "original_cohort_rows": 1200,
+  "context_tables": [
+    "sse_5m",
+    "cyb_5m",
+    "sse_15m",
+    "cyb_15m"
+  ],
+  "labels_changed": false,
+  "risk_effectiveness_evaluated": false,
+  "original_raw_hash_bound": 646,
+  "newly_observed_raw_refs": 4196,
+  "http_requests": 0,
+  "fit": false,
+  "model_unchanged": true,
+  "reseal_evidence": "UNKNOWN",
+  "sse_golden_asof_day": 20250102,
+  "context_source_refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\golden_anchor_replay_20261017_v2\\replay.json": "b14f844237ef9f9a5fe92320f62af8784f2a007b0b7aa2cbd6513e46d73470e3",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\market_momentum_proposal_20261017_v1\\market_momentum.parquet": "e2545a9527c03398207b0c61e2f79fb5ccea893ce77b69950aef8ebb9abe7227"
+  },
+  "code_refs": {
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\intraday_relative_stall_v2.py": "ed65f9ba0358e275f06dacde652c412f5da29c15d16dc395ece51cbd82ed083b",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\materialize_relative_stall_5m_v1.py": "c92be81d91c5a9642bcc384bb4311dbf4fde7e7d268bcba7d4a427db060830a6",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\read_relative_stall_v2.py": "656630c0717539d4569026b622f06451f259405c42da0278f68ecdddffad3d51",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_intraday_relative_stall_v2.py": "ae10b5e3c464d4a395b6b20e87de93f34df07a798a8f4e16d53e185f970a5815",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_intraday_native_5m_extra_v1.py": "4338c9059cd39e8bd0369050f52dcc0e7b3c4d55347439631a7f578b912cba72",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\test_read_relative_stall_v2.py": "240ad74295ecc514100b396c5da359763d81d915982e38b649b4155d4e617fc6",
+    "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_relative_stall_5m_v1.py": "bfc1fa378dc04f15c30019c2b27c0f3be8d3c3da52edaa390f14b928e7012baf"
+  },
+  "report_sha256": "372b94dca92bf49a928480a1bee87f2b7681c20678d2de89dfa3f8f5bb9081b9",
+  "pilot_bytes": 14467805
+}

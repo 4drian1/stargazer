@@ -1,0 +1,16 @@
+{
+  "status": "USER_AUTHORIZED_BOUNDED_TWO_ARM_FULL_FLOW_PILOT",
+  "requested_P_window": [20260701, 20261022],
+  "selection": "Same admitted A/SECOND population; model arm fixed20261023 Ridge descending; rule arm node_gap_atr ascending, ties code; min5 perP, no stage bonus or hindsight backfill",
+  "entry": "Completed-bar original RSI/stop path plus two-close reclaim, actual touch required; initial and subsequent frozen P golden levels; no retrospective intrabar ordering invention",
+  "exit": "Same existing1.5ATR stop distance clamped3percent-6percent, T+1/fees/capacity/deferrals; H3 primary/H5 separate. Holding risk may request early exit at next legally available fill, never at an already observed price",
+  "risk": "Real frozen Pyxis232/266 with same-cutoff index/sector/leader/stock evidence. Missing risk stays unknown, never safety or no-risk zero; DeepSeek judges entry and positioned risk. No fake risk fields or substitute models",
+  "paid_authorization": "User explicitly permits paidAPI until balance insufficient; pilot limited to10-20 successful buys across arms; rejected/unknown records retained but not counted toward buy quota",
+  "call_controls": "At most64 paid attempts, max20000 input-token estimate and1536 output tokens perrequest; no automatic retries; memoize identical evidence+position state; preserve real usage and uncertain charges. Account/budget exhaustion stops, never resets ledger",
+  "historical_limits": "No claim fresh blind or live acceptance; historical membership/arrival uncertainty disclosed and gates retained. No narrowing universe or replacing missing raw context to obtain a score",
+  "dependency_preflight": "Before paid calls, verify real same-cutoff risk pipeline on first chronological selected existing signal, not a handpicked available case; capture errors and data scope. Do not request DeepSeek to manufacture missing Pyxis evidence",
+  "data_limits": "Reuse fixed candidates and accepted sources; no全市场重筛, no external collection, no new model fits; October compatible candidate/feature coverage must be recorded explicitly",
+  "limits": {"phase_bytes": 2097152, "fit_bytes": 33554432, "joint_bytes": 5368709120, "memory_bytes": 2147483648, "single_risk_probe_read_bytes": 34359738368},
+  "deployment": false,
+  "production_changes": false
+}

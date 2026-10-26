@@ -58,7 +58,7 @@ def accept(runtime, refresh_selection=False):
         raise ValueError('INPUT_SNAPSHOT_HASH_MISMATCH')
     snapshot=json.loads(raw)
     # Full v8 manifest is losslessly compressed; v7 remains immutable history.
-    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261026_v26_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))

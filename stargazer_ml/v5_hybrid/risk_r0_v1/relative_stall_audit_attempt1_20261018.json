@@ -1,0 +1,11 @@
+{
+  "status": "FAILED_ACCEPTANCE_NOT_MATERIALIZATION",
+  "date": "2026-10-18",
+  "stage": "serialized_sample_vs_recomputed_real_sample",
+  "error": "sector_interval_return dtype: persisted float64 versus recomputed all-NULL object",
+  "original_pilot_preserved": true,
+  "fit_or_fetch_retried": false,
+  "scope_of_fix": "Cast only columns NULL on both sides to the persisted dtype; retain exact value/schema comparison otherwise",
+  "previous_regression_subprocess_returned_success": true,
+  "note": "First audit exited before writing acceptance. Preserve this deviation; do not infer financial effectiveness."
+}

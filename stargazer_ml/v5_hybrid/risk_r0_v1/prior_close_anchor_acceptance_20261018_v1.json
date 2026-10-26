@@ -1,0 +1,14 @@
+{
+  "status": "PASS_STRUCTURAL_ANCHOR_POTENTIAL_NOT_FORMAL_ADMISSION",
+  "tests": 16,
+  "test_output": "................\n----------------------------------------------------------------------\nRan 16 tests in 0.076s\n\nOK\n",
+  "independently_replayed_code_days": 65293,
+  "inputs_verified": 93,
+  "old_fit_artifacts_verified": 21,
+  "d2_unchanged": true,
+  "http_requests": 0,
+  "fit": false,
+  "formal_admitted_rows": 0,
+  "report_sha256": "45fbd7e70d4a6c95d63a38394795b234b3097f24a6cbef5829aec744a5ae2caa",
+  "auditor_sha256": "bc675a6909b59d1ceb4a9587f74b31fbb727a44c6d1e547d6c4f66bace9fdf3c"
+}

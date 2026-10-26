@@ -5,6 +5,7 @@ import os
 import yaml
 
 import services
+from golden_stock_analysis import stock_golden_levels
 
 try:
     import paths
@@ -38,6 +39,14 @@ def load_system_prompt(cfg):
             "用户明确要求Tarot/Pyxis/星币侍从模型分析时才调用模型工具；旧绑定结果必须说明不是本次新推理，"
             "池外工具若返回on_demand.selection且quality_state=OK，可解释本次冻结选股头研究分数，但不能说它已进入正式候选。"
             "on_demand.risk为NOT_COMPUTED时，Pyxis仍未知，不能把选股分数说成风险。"
+            "黄金节点、共振位和关注区通过stock_golden_levels取得，未通过选股门也可计算位置；"
+            "这是项目现有黄金规则的代码结果，不是模型学习出的预测或LLM手算。不得因手册没写就否认工具能力。"
+            "逐股报告数据日、收盘、ATR、工具返回的关注区和原始共振带；两者分列，非买点。V4使用至少三来源低位共振、上沿受昨收×0.96限制的ATR观察区，多档全列；不得擅自改回贴收盘单档。"
+            "共振须按source_waves计不同波段，共享高点相关；无共振就明确无，不把单节点说成共振。"
+            "临时端点和STALE_REFERENCE_ONLY不得当已确认的次日计划位置。用户可复制plan_instruction到计划流程，仍须人工确认。"
+            "NO_CONFIRMED_MAP表示本规则暂无合格已确认端点，报告现有收盘/ATR和缺口，不编位置；各项事实逐项标数据日，不能把不同日期拼成同日综合。"
+            "PRIOR_CONFIRMED_FALLBACK是已确认历史波段回退图，不称最新上涨段已确认；披露锚点是否后来被跌破。"
+            "temporary_references的当前临时高点位置可单列参考，不并入已确认共振来源，不说正式计划已经启用。"
             "无同规格输入时保持未知。Pyxis输出是未来120交易分钟不利下探幅度，不是概率或整个次日方向。"
             "交易计划的生成、修改、确认走独立流程；本对话不得修改已确认计划、提醒或自动下单。"
             "询问持仓买卖时，先读真实持仓和check_portfolio风控证据，再讨论条件与不确定性；取数失败时说明未知，不替用户决定。"
@@ -46,6 +55,9 @@ def load_system_prompt(cfg):
 
 
 TOOLS = [
+    {"type": "function", "function": {
+        "name": "stock_golden_levels", "description": "只读本地单股黄金地图：已确认波段节点、节点+0.2ATR关注区、至少两来源的共振带及临时端点。独立于选股准入，不伪造分数/风险，不改计划。",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string", "description": "六位A股代码"}}, "required": ["code"]}}},
     {"type": "function", "function": {
         "name": "confirmed_plan", "description": "只读已确认交易计划和股票/板块条件；不生成或修改草案。",
         "parameters": {"type": "object", "properties": {}}}},
@@ -175,7 +187,8 @@ class Brain:
         self.max_rounds = self.cfg["agent"].get("max_tool_rounds", 6)
 
     def _dispatch(self, name, args):
-        fn = {"model_stock_analysis": services.model_stock_analysis,
+        fn = {"stock_golden_levels": stock_golden_levels,
+              "model_stock_analysis": services.model_stock_analysis,
               "model_stock_inference": services.model_stock_inference,
               "scan_sector": services.scan_sector, "score_stocks": services.score_stocks,
               "stock_check": services.stock_check, "market_flow": services.market_flow,
@@ -214,22 +227,31 @@ class Brain:
         # Ordinary stock discussion does not silently become a model request.
         from assistant_workflow import requested_analysis_codes
         prefetched = {}
-        codes = requested_analysis_codes(user_input) if asks_for_model(user_input) else []
+        wants_golden = bool(re.search(r'黄金|分割位|共振|节点|关注区', user_input))
+        codes = requested_analysis_codes(user_input) if asks_for_model(user_input) or wants_golden else []
         scope = model_scope(user_input)
         if codes:
-            calls = [{'id': f'bound-model-{len(self.messages)}-{code}', 'type': 'function',
-                      'function': {'name': 'model_stock_inference', 'arguments': json.dumps({'code': code, 'model': scope})}}
-                     for code in codes]
+            calls = []
+            for code in codes:
+                names = ['model_stock_inference'] if asks_for_model(user_input) else []
+                if wants_golden or scope != 'pyxis':
+                    names.append('stock_golden_levels')
+                for name in names:
+                    args = {'code': code, 'model': scope} if name == 'model_stock_inference' else {'code': code}
+                    calls.append({'id': f'local-model-{len(self.messages)}-{code}-{name}', 'type': 'function',
+                                  'function': {'name': name, 'arguments': json.dumps(args)}})
             self.messages.append({'role': 'assistant', 'tool_calls': calls})
             chat_archive.append(self.archive, [self.messages[-1]])
-            for code, call in zip(codes, calls):
+            for call in calls:
+                name = call['function']['name']
+                args = json.loads(call['function']['arguments'])
                 if on_tool:
-                    on_tool('model_stock_inference', {'code': code, 'model': scope})
+                    on_tool(name, args)
                 try:
-                    result = self._dispatch('model_stock_inference', {'code': code, 'model': scope})
+                    result = self._dispatch(name, args)
                 except Exception as exc:
-                    result = {'code': code, 'status': 'UNAVAILABLE', 'reason': type(exc).__name__}
-                prefetched[(code, scope)] = result
+                    result = {'code': args['code'], 'status': 'UNAVAILABLE', 'reason': type(exc).__name__}
+                prefetched[(args['code'], scope if name == 'model_stock_inference' else 'golden')] = result
                 self.messages.append({'role': 'tool', 'tool_call_id': call['id'],
                                       'content': chat_archive.tool_content(result, self.archive)})
                 chat_archive.append(self.archive, [self.messages[-1]])
@@ -258,6 +280,7 @@ class Brain:
             active_tools = [t for t in TOOLS if t['function']['name'] not in
                             ('scan_sector', 'score_stocks', 'model_stock_analysis')
                             and (asks_for_model(user_input) or t['function']['name'] != 'model_stock_inference')
+                            and (asks_for_model(user_input) or wants_golden or t['function']['name'] != 'stock_golden_levels')
                             and (watch_edit or t['function']['name'] not in
                                  ('wl_add_watch', 'wl_add_position', 'wl_remove'))
                             and (trade_report or t['function']['name'] != 'record_trade')]
@@ -274,6 +297,8 @@ class Brain:
                 try:
                     if tc.function.name == 'model_stock_inference' and (args.get('code'), args.get('model', 'both')) in prefetched:
                         result = prefetched[(args['code'], args.get('model', 'both'))]
+                    elif tc.function.name == 'stock_golden_levels' and (args.get('code'), 'golden') in prefetched:
+                        result = prefetched[(args['code'], 'golden')]
                     else:
                         result = self._dispatch(tc.function.name, args)
                 except Exception as e:

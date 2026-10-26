@@ -51,7 +51,12 @@ def observation_reviews(plan, quotes, now, alerts):
     from golden_rules import digest
     reviews = []
     for row in plan.get('rows', []):
-        levels = (row.get('entry_rule') or {}).get('levels') or []
+        rule=row.get('entry_rule') or {}
+        levels = rule.get('levels') or []
+        limits={v:v for v in levels}
+        if rule.get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
+            limits={b['lower']:b['zone_upper'] for b in rule.get('observation_bands',[])}
+            levels=sorted(limits,reverse=True)
         if not levels:
             continue
         quote = quotes.get(row['code']) or {}
@@ -66,14 +71,14 @@ def observation_reviews(plan, quotes, now, alerts):
         if not math.isfinite(low) or not 0 < low <= price:
             continue
         prefix = f"touch:{digest(plan)}:{now:%Y%m%d}:{row['code']}:"
-        reached = [v for v in levels if low <= v and 'tarot-v2:'+prefix+str(v) not in alerts]
+        reached = [v for v in levels if low <= limits[v] and 'tarot-v2:'+prefix+str(v) not in alerts]
         if not reached:
             continue
         reviews.append(dict(status='ADVICE_READY', decision='OBSERVE', code=row['code'],
             cutoff=int(quote['time']), event_id=prefix+str(min(reached)),
             covered_event_ids=[prefix+str(v) for v in reached], action='观察位已到达，请查看原因',
-            reason=f"截至本次报价，日内最低 {low:.4f}，已到达或跌破计划观察档 "+
-                '、'.join(f'{v:.4f}' for v in reached)+f"；当前报价 {price:.4f}。\n"
+            reason=f"截至本次报价，日内最低 {low:.4f}，已进入或越过计划观察区 "+
+                '、'.join(f'{v:.4f}—{limits[v]:.4f}' for v in reached)+f"；当前报价 {price:.4f}。\n"
                 '这是价格到位提醒，尚不代表止跌或买入条件成立；等待完整5分钟K线、风险及AI意见，结果另行推送。'))
     return reviews
 

@@ -1,0 +1,51 @@
+{
+  "status": "PASS_DIRECT_WARNING_RESEARCH_SPEC_NOT_FIT",
+  "tests": 14,
+  "test_output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.119s\n\nOK\n",
+  "config_sha256": "7c179a33e5260936e8a6cb084e77e4045df24cf7c97cfc8905c33743b30398d7",
+  "arm_common_rows": {
+    "train": {
+      "C0": 60712,
+      "C1": 60712
+    },
+    "select": {
+      "C0": 18071,
+      "C1": 18071
+    },
+    "calibration": {
+      "C0": 4548,
+      "C1": 4548
+    },
+    "test": {
+      "C0": 2988,
+      "C1": 2988
+    }
+  },
+  "logical_cells_profiled": 23363328,
+  "transformed_dimensions": {
+    "C0": 400,
+    "C1": 464
+  },
+  "source_aliases": {
+    "C0": 96,
+    "C1": 128
+  },
+  "new_warning_rate_columns": 16,
+  "new_warning_coverage_columns": 16,
+  "new_coverage_columns_exactly_equal_to_baseline_in_train": 16,
+  "interpretation": "PREDICTIVE_FIELD_PACKAGE_COMPARISON_NOT_ISOLATED_CAUSAL_EFFECT_OF_SIGNAL_LOGIC",
+  "interpretation_limitations": [
+    "duplicate columns alter effective LR regularization",
+    "duplicate columns may alter LightGBM feature-sampling opportunities",
+    "keep registered fields; no posthoc selection from reused test"
+  ],
+  "old_model_artifacts_unchanged": 21,
+  "d2_unchanged": true,
+  "real_preprocessing_fitted": false,
+  "fit_authorized": false,
+  "fit": false,
+  "calibration_fit": false,
+  "http_requests": 0,
+  "report_sha256": "9926379697e03ced6a1baa0f2a5f18b5c77db3ef974186fc4cfa07eb904810ed",
+  "auditor_sha256": "6bd18010ac96086d7215653877def3f6bb2ef271f52fbbafb455668c97280be6"
+}

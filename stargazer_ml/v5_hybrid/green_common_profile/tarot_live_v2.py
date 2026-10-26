@@ -23,7 +23,7 @@ from golden_rules import digest
 VERSION='TAROT_A_SECOND_CASH_V2'
 FIT=HERE/'tarot_a_second_leg_fit_20261022_v1'
 MODEL=FIT/'initial_node_cash_fit_20261023_v1/model.pkl'
-MANIFEST=HERE/'tarot_live_manifest_v18_20261026_rel.json.gz'
+MANIFEST=HERE/'tarot_live_manifest_v24_20261026_rel.json.gz'
 
 
 def _project_root():
@@ -95,19 +95,22 @@ def row_for(g,rec,core,score,model_sha,policy_v3=True):
     if not levels or abs(levels[0]-rec['node'])>1e-8:
         raise ValueError('FROZEN_NODE_LADDER_MISMATCH')
     node=levels[0]
-    from golden_ladder_v3 import price_map
-    observation_map=price_map(g,atr) if policy_v3 else None
+    from golden_resonance_v4 import build_map
+    observation_map=build_map(g,atr) if policy_v3 else None
     model_reference_node=node
-    if observation_map:levels=observation_map['levels'];node=levels[0]
+    if observation_map:levels=observation_map['levels'];node=levels[0] if levels else model_reference_node
     rule=dict(version=VERSION,eligible=True,f618=node,atr_ref=atr,levels=levels,
         anchor_hi=float(high),anchor_lo=float(low),close_p=close,stage=rec['stage'],
         condition='RSI_STOP_OR_TWO_COMPLETED_5M_RECLAIM_WITH_SAME_CUTOFF_RISK',
         scope='P日冻结阶梯；触位观察，破位继续下一档；旧档保留用于收复确认')
     if observation_map:
+        observable=[b for b in observation_map['bands'] if b['observable']]
         rule.update(policy=observation_map['policy'],observation_map=observation_map,
+            observation_bands=[{k:b[k] for k in ('lower','upper','zone_upper','source_waves','shared_peak_groups')} for b in observable],
+            p_date=int(last.date),history_days=observation_map['history_days'],
             model_reference_node=model_reference_node,
             anchor_hi=observation_map['primary_wave']['high'],anchor_lo=observation_map['primary_wave']['low'],
-            condition='GOLDEN_LADDER_STOP_OR_TWO_COMPLETED_5M_RECLAIM_WITH_SAME_CUTOFF_RISK')
+            condition='CROSSDAY_RSI6_DIVERGENCE_AND_TWO_CROSSES_AND_RESONANCE_REPAIR_WITH_RISK')
     value=dict(code=str(last.code),name=str(last.get('name','')),date=int(last.date),
         setup='A_SDP' if rec['stage']=='A' else 'SECOND_PULLBACK',stage=rec['stage'],
         reference_price=close,atr_ref=atr,rsi14=rec['rsi14'],distance_atr=(close-node)/atr,
@@ -117,7 +120,12 @@ def row_for(g,rec,core,score,model_sha,policy_v3=True):
             semantics='H3_INITIAL_NODE_CANDIDATE_CASH_RETURN_ESTIMATE_NOT_PROBABILITY'),
         feature_values={k:(float(rec[k]) if np.isfinite(rec[k]) else None) for k in core.FEATURES},
         status='GOLDEN_PLAN_READY',signal='触黄金位观察；完成5分止跌背离或双根收复后核验同刻风险，人工决定')
-    if observation_map:value['observation_map_status']='NEW_RULE_MAP_NOT_MODEL_RETURN_TARGET'
+    if observation_map:
+        value['zone']=(dict(zone_lower=observable[0]['lower'],zone_upper=observable[0]['zone_upper'],
+            zone_sources=['V4_LOW_RESONANCE_PLUS_ATR']) if observable else None)
+        value['observation_map_status']='V4_TRIAL_EXECUTION_NOT_EXISTING_MODEL_TRAINING_TARGET'
+        value['signal']='跨日RSI6背离候选＋本次触位后两次上穿＋共振带修复；同截止风险综合后人工决定'
+        if not observable:value.update(status='WAIT_RESONANCE_ZONE',distance_atr=None)
     return value
 
 

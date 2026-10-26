@@ -1,0 +1,67 @@
+{
+ "actual_or_synthetic_fit_performed": false,
+ "all_folds_sample_gate_passed": true,
+ "audit_code": {
+  "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\accept_risk_crossyear_entry_v1.py",
+  "sha256": "c3ae79974d9166f1acad11b8f71594d515901d8f1f279248cc5496bb9843cbf4"
+ },
+ "cumulative_cap": 4294967296,
+ "data_ready": true,
+ "f3_new_readonly_comparisons": {
+  "deep_tail_red_flag": false,
+  "lightgbm_minus_lr_tail_rate": {
+   "ci95": [
+    -0.0028444493419376186,
+    0.0024235977646289665
+   ],
+   "mean": 0.0001350074254083955
+  },
+  "method": "Same 10-P-date moving blocks; raw retained MAE quantile recomputed; ties included.",
+  "sign": "Tail-rate delta: negative better. MAE delta: negative WORSE, positive less adverse.",
+  "worst5pct_mae_differences": {
+   "lightgbm_minus_atr_rule": {
+    "ci95": [
+     -0.007995903278015718,
+     0.007565226234183024
+    ],
+    "mean": 0.0013094502801667685
+   },
+   "lightgbm_minus_lr": {
+    "ci95": [
+     -0.004496137904709987,
+     0.0006367680247015933
+    ],
+    "mean": -0.002095662366825235
+   }
+  }
+ },
+ "f3_same_day_ranking": {
+  "atr_rule": {
+   "dates_with_both_classes": 219,
+   "opposite_class_pairs": 32174,
+   "same_day_pair_weighted_auc": 0.8044694473798719
+  },
+  "lightgbm": {
+   "dates_with_both_classes": 219,
+   "opposite_class_pairs": 32174,
+   "same_day_pair_weighted_auc": 0.8215018337788276
+  },
+  "lr": {
+   "dates_with_both_classes": 219,
+   "opposite_class_pairs": 32174,
+   "same_day_pair_weighted_auc": 0.8254802014048611
+  }
+ },
+ "fit_authorized": false,
+ "fit_ready": false,
+ "frozen_inputs_verified": 245,
+ "manifest_sha256": "1ff309da5d300bcbeb471f128e5e36e94fb678573434a5f1b2f7beeeda7b857a",
+ "network_requests": 0,
+ "new_output_cap": 67108864,
+ "note": "New comparisons are post-label historical research; no new F1/F2 predictions or fit have been created.",
+ "original_f3_metrics_reproduced_exactly": true,
+ "original_f3_run_untouched": true,
+ "registered_actual_bytes_before": 97297977,
+ "status": "ENGINEERING_ENTRY_ACCEPTED_PENDING_SEPARATE_FIT_AUTHORIZATION",
+ "training_directory_exists": false
+}

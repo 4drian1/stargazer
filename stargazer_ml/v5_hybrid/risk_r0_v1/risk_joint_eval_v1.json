@@ -1,0 +1,276 @@
+{
+ "schema": "PENTACLES_RISK_JOINT_V1_1",
+ "population": 2106,
+ "horizon_note": "七日结局评价五日风险过滤;期限差异不抹平",
+ "benchmark_note": "diffs_vs_A1=对精确随机期望之差(同保留随机保留均值期望=当日A1均值);A1_random单次蒙特卡洛仅sanity",
+ "by_year": {
+  "2025": {
+   "stats": {
+    "A1": {
+     "n": 865,
+     "chg_mean": 2.593,
+     "mae_mean": -4.728,
+     "win": 0.6821
+    },
+    "A1_risk": {
+     "n": 748,
+     "chg_mean": 2.455,
+     "mae_mean": -4.561,
+     "win": 0.6765,
+     "excl_up_share": 0.7179,
+     "false_removal_rate": 0.1776,
+     "excl_chg_mean_pp": 3.475,
+     "excl_chg_median_pp": 3.954
+    },
+    "A1_random": {
+     "n": 748,
+     "chg_mean": 2.578,
+     "mae_mean": -4.785,
+     "win": 0.6738,
+     "excl_up_share": 0.735,
+     "false_removal_rate": 0.1818,
+     "excl_chg_mean_pp": 2.687,
+     "excl_chg_median_pp": 2.481
+    },
+    "A1_atr": {
+     "n": 748,
+     "chg_mean": 2.479,
+     "mae_mean": -4.576,
+     "win": 0.6765,
+     "excl_up_share": 0.7179,
+     "false_removal_rate": 0.1776,
+     "excl_chg_mean_pp": 3.322,
+     "excl_chg_median_pp": 4.069
+    }
+   },
+   "diffs_vs_A1": {
+    "A1_risk": {
+     "chg7": {
+      "point_pp": 0.031,
+      "p5_pp": -0.046,
+      "p95_pp": 0.109,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.108,
+      "p5_pp": 0.047,
+      "p95_pp": 0.175,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_random": {
+     "chg7": {
+      "point_pp": 0.035,
+      "p5_pp": -0.036,
+      "p95_pp": 0.114,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": -0.02,
+      "p5_pp": -0.062,
+      "p95_pp": 0.018,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_atr": {
+     "chg7": {
+      "point_pp": 0.034,
+      "p5_pp": -0.029,
+      "p95_pp": 0.1,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.064,
+      "p5_pp": 0.026,
+      "p95_pp": 0.102,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    }
+   },
+   "paired_filter_diffs": {
+    "A1_risk_minus_A1_random": {
+     "chg7": {
+      "point_pp": -0.004,
+      "p5_pp": -0.14,
+      "p95_pp": 0.134,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.127,
+      "p5_pp": 0.048,
+      "p95_pp": 0.213,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_risk_minus_A1_atr": {
+     "chg7": {
+      "point_pp": -0.002,
+      "p5_pp": -0.074,
+      "p95_pp": 0.084,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.044,
+      "p5_pp": -0.008,
+      "p95_pp": 0.112,
+      "n_days": 148,
+      "n_blocks": 34,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    }
+   }
+  },
+  "2026": {
+   "stats": {
+    "A1": {
+     "n": 1241,
+     "chg_mean": 0.266,
+     "mae_mean": -5.676,
+     "win": 0.4416
+    },
+    "A1_risk": {
+     "n": 1034,
+     "chg_mean": 0.374,
+     "mae_mean": -5.412,
+     "win": 0.4574,
+     "excl_up_share": 0.3623,
+     "false_removal_rate": 0.1518,
+     "excl_chg_mean_pp": -0.272,
+     "excl_chg_median_pp": -2.66
+    },
+    "A1_random": {
+     "n": 1034,
+     "chg_mean": 0.234,
+     "mae_mean": -5.697,
+     "win": 0.44,
+     "excl_up_share": 0.4493,
+     "false_removal_rate": 0.1883,
+     "excl_chg_mean_pp": 0.431,
+     "excl_chg_median_pp": -0.585
+    },
+    "A1_atr": {
+     "n": 1034,
+     "chg_mean": 0.44,
+     "mae_mean": -5.373,
+     "win": 0.4565,
+     "excl_up_share": 0.3671,
+     "false_removal_rate": 0.1538,
+     "excl_chg_mean_pp": -0.598,
+     "excl_chg_median_pp": -2.618
+    }
+   },
+   "diffs_vs_A1": {
+    "A1_risk": {
+     "chg7": {
+      "point_pp": 0.034,
+      "p5_pp": -0.116,
+      "p95_pp": 0.185,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.159,
+      "p5_pp": 0.073,
+      "p95_pp": 0.249,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_random": {
+     "chg7": {
+      "point_pp": -0.01,
+      "p5_pp": -0.132,
+      "p95_pp": 0.103,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": -0.016,
+      "p5_pp": -0.068,
+      "p95_pp": 0.039,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_atr": {
+     "chg7": {
+      "point_pp": 0.053,
+      "p5_pp": -0.113,
+      "p95_pp": 0.211,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.165,
+      "p5_pp": 0.063,
+      "p95_pp": 0.276,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    }
+   },
+   "paired_filter_diffs": {
+    "A1_risk_minus_A1_random": {
+     "chg7": {
+      "point_pp": 0.044,
+      "p5_pp": -0.098,
+      "p95_pp": 0.182,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": 0.175,
+      "p5_pp": 0.097,
+      "p95_pp": 0.253,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    },
+    "A1_risk_minus_A1_atr": {
+     "chg7": {
+      "point_pp": -0.019,
+      "p5_pp": -0.126,
+      "p95_pp": 0.086,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     },
+     "mae7": {
+      "point_pp": -0.007,
+      "p5_pp": -0.045,
+      "p95_pp": 0.033,
+      "n_days": 116,
+      "n_blocks": 27,
+      "ci": "90%暂定;块=7日历交易日;块长=标签窗不消除边界依赖"
+     }
+    }
+   }
+  }
+ }
+}

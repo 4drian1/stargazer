@@ -1,0 +1,918 @@
+{
+  "status": "SAME_CLOSE_DIAGNOSTIC_ONLY",
+  "http_requests": 0,
+  "tolerance_yuan": 0.01,
+  "code_count": 32,
+  "stock_days": 96,
+  "dates": [
+    20250102,
+    20250103,
+    20250106
+  ],
+  "counts": {
+    "SAME_CLOSE_WITHIN_001": 90,
+    "MISSING_DAILY_OR_EXACT_1500": 6
+  },
+  "results": [
+    {
+      "code": "000021",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 18.15,
+      "minute_1500_close": 18.15,
+      "difference": 0.0
+    },
+    {
+      "code": "000021",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 17.51,
+      "minute_1500_close": 17.51,
+      "difference": 0.0
+    },
+    {
+      "code": "000021",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 17.42,
+      "minute_1500_close": 17.42,
+      "difference": 0.0
+    },
+    {
+      "code": "000651",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 46.34,
+      "minute_1500_close": 46.34,
+      "difference": 0.0
+    },
+    {
+      "code": "000651",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 45.74,
+      "minute_1500_close": 45.74,
+      "difference": 0.0
+    },
+    {
+      "code": "000651",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 46.02,
+      "minute_1500_close": 46.02,
+      "difference": 0.0
+    },
+    {
+      "code": "001258",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 8.06,
+      "minute_1500_close": 8.06,
+      "difference": 0.0
+    },
+    {
+      "code": "001258",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.32,
+      "minute_1500_close": 7.32,
+      "difference": 0.0
+    },
+    {
+      "code": "001258",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 6.92,
+      "minute_1500_close": 6.92,
+      "difference": 0.0
+    },
+    {
+      "code": "002015",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.45,
+      "minute_1500_close": 7.45,
+      "difference": 0.0
+    },
+    {
+      "code": "002015",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.22,
+      "minute_1500_close": 7.22,
+      "difference": 0.0
+    },
+    {
+      "code": "002015",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.56,
+      "minute_1500_close": 7.56,
+      "difference": 0.0
+    },
+    {
+      "code": "002028",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 72.79,
+      "minute_1500_close": 72.79,
+      "difference": 0.0
+    },
+    {
+      "code": "002028",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 70.9,
+      "minute_1500_close": 70.9,
+      "difference": 0.0
+    },
+    {
+      "code": "002028",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 70.32,
+      "minute_1500_close": 70.32,
+      "difference": 0.0
+    },
+    {
+      "code": "002138",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 30.33,
+      "minute_1500_close": 30.33,
+      "difference": 0.0
+    },
+    {
+      "code": "002138",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 29.62,
+      "minute_1500_close": 29.62,
+      "difference": 0.0
+    },
+    {
+      "code": "002138",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 29.55,
+      "minute_1500_close": 29.55,
+      "difference": 0.0
+    },
+    {
+      "code": "002202",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 10.01,
+      "minute_1500_close": 10.01,
+      "difference": 0.0
+    },
+    {
+      "code": "002202",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 9.88,
+      "minute_1500_close": 9.88,
+      "difference": 0.0
+    },
+    {
+      "code": "002202",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 10.09,
+      "minute_1500_close": 10.09,
+      "difference": 0.0
+    },
+    {
+      "code": "002309",
+      "date": 20250102,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": 2.44
+    },
+    {
+      "code": "002309",
+      "date": 20250103,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": 2.44
+    },
+    {
+      "code": "002309",
+      "date": 20250106,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": 2.44
+    },
+    {
+      "code": "002407",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 11.6,
+      "minute_1500_close": 11.6,
+      "difference": 0.0
+    },
+    {
+      "code": "002407",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 11.41,
+      "minute_1500_close": 11.41,
+      "difference": 0.0
+    },
+    {
+      "code": "002407",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 11.47,
+      "minute_1500_close": 11.47,
+      "difference": 0.0
+    },
+    {
+      "code": "002460",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 34.07,
+      "minute_1500_close": 34.07,
+      "difference": 0.0
+    },
+    {
+      "code": "002460",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 33.05,
+      "minute_1500_close": 33.05,
+      "difference": 0.0
+    },
+    {
+      "code": "002460",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 33.85,
+      "minute_1500_close": 33.85,
+      "difference": 0.0
+    },
+    {
+      "code": "002579",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.66,
+      "minute_1500_close": 7.66,
+      "difference": 0.0
+    },
+    {
+      "code": "002579",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.34,
+      "minute_1500_close": 7.34,
+      "difference": 0.0
+    },
+    {
+      "code": "002579",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.29,
+      "minute_1500_close": 7.29,
+      "difference": 0.0
+    },
+    {
+      "code": "002580",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 8.57,
+      "minute_1500_close": 8.57,
+      "difference": 0.0
+    },
+    {
+      "code": "002580",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 8.79,
+      "minute_1500_close": 8.79,
+      "difference": 0.0
+    },
+    {
+      "code": "002580",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 9.18,
+      "minute_1500_close": 9.18,
+      "difference": 0.0
+    },
+    {
+      "code": "002594",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 271.1,
+      "minute_1500_close": 271.1,
+      "difference": 0.0
+    },
+    {
+      "code": "002594",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 270.73,
+      "minute_1500_close": 270.73,
+      "difference": 0.0
+    },
+    {
+      "code": "002594",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 271.28,
+      "minute_1500_close": 271.28,
+      "difference": 0.0
+    },
+    {
+      "code": "002837",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 38.13,
+      "minute_1500_close": 38.13,
+      "difference": 0.0
+    },
+    {
+      "code": "002837",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 36.4,
+      "minute_1500_close": 36.4,
+      "difference": 0.0
+    },
+    {
+      "code": "002837",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 36.42,
+      "minute_1500_close": 36.42,
+      "difference": 0.0
+    },
+    {
+      "code": "002851",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 60.38,
+      "minute_1500_close": 60.38,
+      "difference": 0.0
+    },
+    {
+      "code": "002851",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 58.22,
+      "minute_1500_close": 58.22,
+      "difference": 0.0
+    },
+    {
+      "code": "002851",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 59.24,
+      "minute_1500_close": 59.24,
+      "difference": 0.0
+    },
+    {
+      "code": "300014",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 44.9,
+      "minute_1500_close": 44.9,
+      "difference": 0.0
+    },
+    {
+      "code": "300014",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 43.79,
+      "minute_1500_close": 43.79,
+      "difference": 0.0
+    },
+    {
+      "code": "300014",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 44.34,
+      "minute_1500_close": 44.34,
+      "difference": 0.0
+    },
+    {
+      "code": "300124",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 56.3,
+      "minute_1500_close": 56.3,
+      "difference": 0.0
+    },
+    {
+      "code": "300124",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 55.94,
+      "minute_1500_close": 55.94,
+      "difference": 0.0
+    },
+    {
+      "code": "300124",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 55.76,
+      "minute_1500_close": 55.76,
+      "difference": 0.0
+    },
+    {
+      "code": "300274",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 71.91,
+      "minute_1500_close": 71.91,
+      "difference": 0.0
+    },
+    {
+      "code": "300274",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 69.83,
+      "minute_1500_close": 69.83,
+      "difference": 0.0
+    },
+    {
+      "code": "300274",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 71.66,
+      "minute_1500_close": 71.66,
+      "difference": 0.0
+    },
+    {
+      "code": "300373",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 41.38,
+      "minute_1500_close": 41.38,
+      "difference": 0.0
+    },
+    {
+      "code": "300373",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 40.48,
+      "minute_1500_close": 40.48,
+      "difference": 0.0
+    },
+    {
+      "code": "300373",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 40.64,
+      "minute_1500_close": 40.64,
+      "difference": 0.0
+    },
+    {
+      "code": "300390",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 22.4,
+      "minute_1500_close": 22.4,
+      "difference": 0.0
+    },
+    {
+      "code": "300390",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 21.88,
+      "minute_1500_close": 21.88,
+      "difference": 0.0
+    },
+    {
+      "code": "300390",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 22.13,
+      "minute_1500_close": 22.13,
+      "difference": 0.0
+    },
+    {
+      "code": "300450",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 19.14,
+      "minute_1500_close": 19.14,
+      "difference": 0.0
+    },
+    {
+      "code": "300450",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 18.47,
+      "minute_1500_close": 18.47,
+      "difference": 0.0
+    },
+    {
+      "code": "300450",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 18.43,
+      "minute_1500_close": 18.43,
+      "difference": 0.0
+    },
+    {
+      "code": "300750",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 258.78,
+      "minute_1500_close": 258.78,
+      "difference": 0.0
+    },
+    {
+      "code": "300750",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 257.63,
+      "minute_1500_close": 257.63,
+      "difference": 0.0
+    },
+    {
+      "code": "300750",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 256.75,
+      "minute_1500_close": 256.75,
+      "difference": 0.0
+    },
+    {
+      "code": "300903",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.84,
+      "minute_1500_close": 7.84,
+      "difference": 0.0
+    },
+    {
+      "code": "300903",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.32,
+      "minute_1500_close": 7.32,
+      "difference": 0.0
+    },
+    {
+      "code": "300903",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 7.29,
+      "minute_1500_close": 7.29,
+      "difference": 0.0
+    },
+    {
+      "code": "301018",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 38.12,
+      "minute_1500_close": 38.12,
+      "difference": 0.0
+    },
+    {
+      "code": "301018",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 35.62,
+      "minute_1500_close": 35.62,
+      "difference": 0.0
+    },
+    {
+      "code": "301018",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 38.34,
+      "minute_1500_close": 38.34,
+      "difference": 0.0
+    },
+    {
+      "code": "301217",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 10.55,
+      "minute_1500_close": 10.55,
+      "difference": 0.0
+    },
+    {
+      "code": "301217",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 9.84,
+      "minute_1500_close": 9.84,
+      "difference": 0.0
+    },
+    {
+      "code": "301217",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 10.0,
+      "minute_1500_close": 10.0,
+      "difference": 0.0
+    },
+    {
+      "code": "600089",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 12.36,
+      "minute_1500_close": 12.36,
+      "difference": 0.0
+    },
+    {
+      "code": "600089",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 12.23,
+      "minute_1500_close": 12.23,
+      "difference": 0.0
+    },
+    {
+      "code": "600089",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 12.24,
+      "minute_1500_close": 12.24,
+      "difference": 0.0
+    },
+    {
+      "code": "600330",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 6.98,
+      "minute_1500_close": 6.98,
+      "difference": 0.0
+    },
+    {
+      "code": "600330",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 6.78,
+      "minute_1500_close": 6.78,
+      "difference": 0.0
+    },
+    {
+      "code": "600330",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 6.75,
+      "minute_1500_close": 6.75,
+      "difference": 0.0
+    },
+    {
+      "code": "600522",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 13.69,
+      "minute_1500_close": 13.69,
+      "difference": 0.0
+    },
+    {
+      "code": "600522",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 13.65,
+      "minute_1500_close": 13.65,
+      "difference": 0.0
+    },
+    {
+      "code": "600522",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 13.69,
+      "minute_1500_close": 13.69,
+      "difference": 0.0
+    },
+    {
+      "code": "600869",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 4.58,
+      "minute_1500_close": 4.58,
+      "difference": 0.0
+    },
+    {
+      "code": "600869",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 4.47,
+      "minute_1500_close": 4.47,
+      "difference": 0.0
+    },
+    {
+      "code": "600869",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 4.44,
+      "minute_1500_close": 4.44,
+      "difference": 0.0
+    },
+    {
+      "code": "600900",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 29.2,
+      "minute_1500_close": 29.2,
+      "difference": 0.0
+    },
+    {
+      "code": "600900",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 29.0,
+      "minute_1500_close": 29.0,
+      "difference": 0.0
+    },
+    {
+      "code": "600900",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 28.89,
+      "minute_1500_close": 28.89,
+      "difference": 0.0
+    },
+    {
+      "code": "688141",
+      "date": 20250102,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 29.06,
+      "minute_1500_close": 29.06,
+      "difference": 0.0
+    },
+    {
+      "code": "688141",
+      "date": 20250103,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 26.88,
+      "minute_1500_close": 26.88,
+      "difference": 0.0
+    },
+    {
+      "code": "688141",
+      "date": 20250106,
+      "status": "SAME_CLOSE_WITHIN_001",
+      "daily_close": 28.0,
+      "minute_1500_close": 28.0,
+      "difference": 0.0
+    },
+    {
+      "code": "688411",
+      "date": 20250102,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": null
+    },
+    {
+      "code": "688411",
+      "date": 20250103,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": null
+    },
+    {
+      "code": "688411",
+      "date": 20250106,
+      "status": "MISSING_DAILY_OR_EXACT_1500",
+      "daily_close": null,
+      "minute_1500_close": null
+    }
+  ],
+  "price_scale_verified": false,
+  "corporate_actions_verified": false,
+  "previous_close_baseline_verified": false,
+  "training_admitted": false,
+  "warning": "Same-day closing-price agreement does not prove cross-day scale or prior-session reference",
+  "batch_terminal_sha256": "6ee9aec21140f1e7da934a9aea2e2e35191e431e24ae1d1b79cfaa8f1cf41be3",
+  "raw_sha256": {
+    "001_raw.msgpack": "05a5a2d3defc96eb995d836f35090d7d7a90e306ef53313c134601603a77ab6f",
+    "002_raw.msgpack": "d9d3318735f3508b8b25f9c89d563ae8a2f0ec0ee6ac2e9be1db4c7e66075a0e",
+    "003_raw.msgpack": "70e24d2b2a581451d1a3f3b6cf22859666603b5c6fe3c387dd9bbba96ea15a74",
+    "004_raw.msgpack": "90a13d56ec3f03e8cca5c2021c4c21f24229584cf110a6f47751b0e89ef58608",
+    "005_raw.msgpack": "49de13185d54958b2d46b6e762b530212153304c81aed1f13bfb33a0f8423ae6",
+    "006_raw.msgpack": "8728b61659c8c5df5ff8d33514541aba988d9642697cf5678587a80884fee900",
+    "007_raw.msgpack": "e0bd3f868f882c21071b4179723bf258ecc45b6ae5e27c280deec736df22557b",
+    "008_raw.msgpack": "83761be758bde63173dc74a5e83879cb2d2b9f74a1f62966e6c4838463f8e5df",
+    "009_raw.msgpack": "f74926d88b736103befa2d3affec0c523240707e742cb0d7c0f6e740d813cb5b",
+    "010_raw.msgpack": "c4f1137a89163245f852ea52c38edc012f54f328ca19ca7096f43accd4b12b69",
+    "011_raw.msgpack": "98267041df4d9cf151930dd22a65de701e130cdccf5ea7679bd341489f31ab07",
+    "012_raw.msgpack": "9a86d905c40ce6f271a2f168b68e8b819accaeb7ef8d59170c9079a5b0ce9f47",
+    "013_raw.msgpack": "aa419d2491ca3faed1d0209d7791e51b58e3495167f24ab8b41ff6c3208f4c4c",
+    "014_raw.msgpack": "1e05922ace66d1334309f735ea7bf8019cb9a0262e7fe5cc7251c4bb9e1da691",
+    "015_raw.msgpack": "a02edaa23b214b987b8699ecd2d2f64e073fbeeb399c6e2057b2548c547831f9",
+    "016_raw.msgpack": "50517de2d69d8e99bb420d0674ed3dbc091ed4ccdadf6d08c81a529f478e9fff",
+    "017_raw.msgpack": "2147bc6ecbc6c6640026e3f38feff93240c8644aabb1e518cb0e4885000dbe19",
+    "018_raw.msgpack": "856a44866ff9e013fc290d8e70429e2bce75dfe3c56bc717dcdf013c57cf5f69",
+    "019_raw.msgpack": "3c2606db53ea1f9b93462af5ebe2bffa9705ef944de00932418c1e4f37860754",
+    "020_raw.msgpack": "1a45c8e278647602965f92eaf3866a50f3f8867cd3a4551065072c13eb2ca184",
+    "021_raw.msgpack": "bd7898c1c7a4171cbd84fd88150610ea411e42f9d87d0add8309b23d053f6594",
+    "022_raw.msgpack": "528726282e20fe96f95920c33f325708ceaf5a0ac5294c39e1bab67bf3902f18",
+    "023_raw.msgpack": "16fec5b01da8dfb17ca193eb86451a8d96166284289743f6a139f52ffd713445",
+    "024_raw.msgpack": "ce804cb9b3c89ad94f6be314f1855a0d32b24f60a1d295e5c76b49af839533ea",
+    "025_raw.msgpack": "261280cc01f22544f179a9bdb7f834b3bf5025342fbf84b809fa6e352e01b096",
+    "026_raw.msgpack": "2a9f3963a19c8d4a49de874a12b01f85e6d8cb71c9adbe79ec7d4b484a05051f",
+    "027_raw.msgpack": "119be4e457fb635cd4455e3913f32d2a8f2dbac52bcd38a4c80356b061a20e30",
+    "028_raw.msgpack": "68d7cccac8621dc184f05eab2685bebec8b2157c130aad8e2070df39fbc87a61",
+    "029_raw.msgpack": "f1e17d0bbe878ebd1a35748ed5b3edb14c2aef2d04b7ea810ab8883c0bd35bf4",
+    "030_raw.msgpack": "551fa72ebf5e30d4e1637a43e04317b7a87dc0c0e096a798b09213b9acb4733a",
+    "031_raw.msgpack": "53364e4833cf67dd80876e6894c22afa929bf80f70c2cae59c701eb9ec159327",
+    "032_raw.msgpack": "109f192502854cf85d6e1534bad5f09af6fe0d8496c955e58ce931ea4a4d3b34",
+    "033_raw.msgpack": "b948f8ef0f0790daafd0602a61f0ac4f090a8886bc656ed9c87a267708ec33c8",
+    "034_raw.msgpack": "3a3e2e8b3c52db404009d78564ba560e51d0d8a012007034d5ca4c5100e310fe",
+    "035_raw.msgpack": "4de6db03080fe9eb6607ead526399deee8e540e474d54fec1dbbf4c7f661efb7",
+    "036_raw.msgpack": "e994229048469198da6ab7729bc646bb7f4a065697c9661cebc88cf31c8fe93e",
+    "037_raw.msgpack": "ad9b0fd1127cb8dc7e1298c2e1f44849924c58e8a0b723865d865cdc8c781c54",
+    "038_raw.msgpack": "3f31d9cf06997327dfc442dc159edf99c34a4ad15c1580477d61e6c400af2d92",
+    "039_raw.msgpack": "ff40a7d74417a8d519446a62f0987df9d3a8d68b69a63d5b5962055a8a346fcc",
+    "040_raw.msgpack": "c14932db6ed325e2d6c2d94465e1df5cc9053d9232e6ba07705f13259c73f649",
+    "041_raw.msgpack": "9c1d554b7fe62cf92fbe982c64835f19b710437edf088f3fa4c3857f6f0a3353",
+    "042_raw.msgpack": "5af62af140bb4f705b3cf8afbd41924a4390a70f9df1d2889144e6a6450b69fb",
+    "043_raw.msgpack": "3448c7cc34d134d51515a8ea0be8b57bdc99fe84ce935f131768c45c2f1ca081",
+    "044_raw.msgpack": "c305c73ab53ea3e4b21af8dbdabdd1ecf9211fca73975f1b33a1dd4be9cb0bd2",
+    "045_raw.msgpack": "a028665e38f7e25c24cb8c1649b3ad4689323d19fce3157da762d1acfb59f1bd",
+    "046_raw.msgpack": "367bc37d451d976b067dc9478b615cd49b537506386388a973c69a5170d2f2d3",
+    "047_raw.msgpack": "fda7d916ca08d06f87082e6b2785afb13f6daac9065be0526f52029242983ad4",
+    "048_raw.msgpack": "c39b1b2f734f7d3dc272af76cfa4eec00b1f4533fe5718dd3f349f052664de2f",
+    "049_raw.msgpack": "3885e1a9b142c23807dc14036bea3cb801f274f67c2047b87b3308134a44862a",
+    "050_raw.msgpack": "889f7439228281aed91c8beba1a786ee7ca0ac1158abb8766df66a4b7d6c7c88",
+    "051_raw.msgpack": "900a5e9f7be7e5ed00344b50a455c37efcd03c9e18c6ed9bbffc59ddf2752904",
+    "052_raw.msgpack": "f0c5f40b27f67f49343f98cfffc1ce4d10c11dae7bef6b32d55e3d40364580a4",
+    "053_raw.msgpack": "124687f22aec822e16f24c36cbb5bc3c8ac8f0448d29c9fd634e328d608b9a35",
+    "054_raw.msgpack": "5e4936ee9da96cbd6a93f03b878112b580dce2aee76b4f436a26ee055fea1f7c",
+    "055_raw.msgpack": "b5793c28acc2c886a6d7f5a434e45d26c008ac1d8098313c1e7f039aa0ad5d82",
+    "056_raw.msgpack": "96596916536c67f71183c345b31d5ba9f33ea3767674a1cda4998d00c0734a3b",
+    "057_raw.msgpack": "64df8e0040724767633996fe804c5a3913ebc5533a62092168d48dd802542f2f",
+    "058_raw.msgpack": "77ef9795505e901de0ce9b2fff025b46aa6ca6f469876f5cb16fc1d95c0ceafa",
+    "059_raw.msgpack": "024738310008b230eb475be72e473aafcef3c004f410e17ddc0cecefe36e9ca0",
+    "060_raw.msgpack": "fcf06822583bb7e9463edf5407b77925dfa9c7120c2270fbd1af4b117fbdba01",
+    "061_raw.msgpack": "bd7b76653cec1183c551a58f86a9de3e9d2e62cd80db4fa579252d82ec8c1904",
+    "062_raw.msgpack": "5fb608ae11ad352359270a9f38fd331fcab047d0b54abeb42b90be1cb5c7ac7d",
+    "063_raw.msgpack": "a8e6df6aadaf70c60df46948ee57a9bf6f4cf1e7c0d4e1a6bf0f18a89deb1464",
+    "064_raw.msgpack": "b1f441aab5371a2bc006a8593cd67a0936d346e2e124ef6d44cee9fea01e2cde",
+    "065_raw.msgpack": "d744eb8bf031c281ff1a5e9258ba11b71d52174e7f298026cbf694c33dc1468e",
+    "066_raw.msgpack": "e1cbaba3b82b3c30e910e84e8f4e915cd2488b5da3b66eccfb093fa4e8eacc6a",
+    "067_raw.msgpack": "94e5d02346ebd3dd8c201b4fc75ee2a708b3f958f462b04b53fdfc5921515c04",
+    "068_raw.msgpack": "7f05c9318a20c2bb0ea25f61a604541caa4aff0cd388c5b39006f4bc77df49fb",
+    "069_raw.msgpack": "07b42badbaa433dc6b6f980ae58f4817b18d5d607d448fff2e043e2286a3f0ee",
+    "070_raw.msgpack": "1eca8cd91e705643984c7729fb853fed7cc4afc98c4452266a9289228756b75f",
+    "071_raw.msgpack": "3e711eea70dddc28903fdb14c9314f3438f538064c8fede2908d119c0dc94cfb",
+    "072_raw.msgpack": "e7f6a07844482d1ea694edf1a8ab654379ac64d5cc77a5f4e52c8c1608dbc417",
+    "073_raw.msgpack": "1d4b51e5f7fb0ea4e8aa9c743f3254298efd4026b39200a287cbf70ebcb6b97d",
+    "074_raw.msgpack": "d4325df21c5061d56fd58ec0f51e89eb9ebfe77de555b3a07dd7c547d1a6076c",
+    "075_raw.msgpack": "ecf55c0fdf9288d4d51586237c5789227aaecd440daa412f1fb71127b03e63b6",
+    "076_raw.msgpack": "6897fbe8e7b960a585fbd18af7bbffce77fce3238ff83e1930788b637cdd90ff",
+    "077_raw.msgpack": "04dd8c5c58fb17b2930445564315df0517bd3606a77c7b34ffff0b395c1c6d3a",
+    "078_raw.msgpack": "bbe98f4998c95a2d73c8c5346beb8778d7863da6794a78df98b90a5a3f6f350f",
+    "079_raw.msgpack": "1f55cc2d1e0c708f8e606aab555fa0432be04bd3d1b789e3cd02aa52b13f3e0d",
+    "080_raw.msgpack": "f270deffc3c3dec8e7253acfb0cad3c45f33e87cacaf213ffd682eca0d2d07e2",
+    "081_raw.msgpack": "386e312a89e520e2a303d033dbeeb8c14a84d35aac4b7df7c9846528f5f1c6c3",
+    "082_raw.msgpack": "0d87e1b15a5c361c42036b3b6b413d8027b7673e0a5c22674dd35b787cd01b1e",
+    "083_raw.msgpack": "f0feceaec5e636aa92a2c3f4b8feb76b6e80d6cc66407951b11709d01d21943f",
+    "084_raw.msgpack": "0c58bd11a1c428525d325e4d6551ad86e68fb40b355283ad06c6fcba29253016",
+    "085_raw.msgpack": "ea1a933d310e0d078d08b900f11258cc3beb60c3c75de8ecd92cda1464e2cd93",
+    "086_raw.msgpack": "01fe7c71846e3e63a5b0dbc8a8a24e0ea79b77ee79294c2f46e4b79ecbdee9b9",
+    "087_raw.msgpack": "ecc6f512f6f6a96256f345b57facee31814b7a3575c124189fa67d6f53171171",
+    "088_raw.msgpack": "04b21a1a8323df5cb0b3309bdc12108e1a60c199797ccc89c00ea80c73d2b389",
+    "089_raw.msgpack": "e265eba98a49edb1fccf1d747370df33c8d82e731ca74458fde1f210548c5328",
+    "090_raw.msgpack": "892a54b78075c2170b39ea467f95ba16dfda12b8ae9ea0eed283224207d3d7b3",
+    "091_raw.msgpack": "d2ed7f11dde9557212273e24c83a800aeaf445c4d431cb7dcdfc4b912f646bf2",
+    "092_raw.msgpack": "03ea9e1b540d13ac940969324f1c0e558e70562779c70638f121338495aeac31",
+    "093_raw.msgpack": "7403a238af8c759f158077da41188e356668979ed4115394e368f0e8dcd1d4cd",
+    "094_raw.msgpack": "16f426d0b03525edd1cf7a17e4266da71ba54fb24f391916718e6ea9ae82d1c7",
+    "095_raw.msgpack": "3b5f1e118be3ad5d1b90a98dad8ebeb7767f2393db78d5d7c58311379073313d",
+    "096_raw.msgpack": "92d63b1b90449ff6d0ad4d06bba49ae6c3bd0635b20209bbc82a71b34da22887",
+    "097_raw.msgpack": "059cb2da6095c9bd7699758b26f3353ef0f6750a47fa9f06b139a072463820ce",
+    "098_raw.msgpack": "0fcba4b3201fe2699c1317f4bb1652c7f84c2181da8861525e4d51ec4b79c60f",
+    "099_raw.msgpack": "66399257901e03358447b4a4ac6877f7d9d8778aa68c9f776edd2be616acd376",
+    "100_raw.msgpack": "1e18e9c72021ee3bf1395b382b6433398e8a69d964124110f6579d152347b880",
+    "101_raw.msgpack": "110009f9281bccd274b6d47ad740e3e661720fc5898a740ef63184bd51f89af6",
+    "102_raw.msgpack": "181f127c4feff5f66abba429a3ce00c27a0be3cfd5f4067a11b55feea9ac33bd",
+    "103_raw.msgpack": "f6f299693195ad522325809aa92477bb129b2f5150f26d9de55360040634bf98",
+    "104_raw.msgpack": "7fe57229bfa7c69778ad1ea1f75ce5851a5be4427b62f01f352c2c088ad4a092",
+    "105_raw.msgpack": "4e5c08336072c722847132f70c0f55cbdddbdd8f8dc348870edcc393d8a76c11",
+    "106_raw.msgpack": "389b0452abec32a33edab1d2e70f6bfe42bdcd367f1e7459e1979f87fc237690",
+    "107_raw.msgpack": "ac3c7a0834069ebb68de5935e0e8fcb7eb7bc738f9d39115236a5ff408a4e56d",
+    "108_raw.msgpack": "5811ebd7d2cd0ce71fd2a437f936c8b4b7cde412cd6bc9de66a71598f9423a2e",
+    "109_raw.msgpack": "86154b9a25d58d7df7197ef922d15336612c7820efa413224347310621888daa",
+    "110_raw.msgpack": "8707ee2756efab6953f2dfb363c4fb9b797ef70c76436202bd4d98ff67d23293",
+    "111_raw.msgpack": "47729aed5627484e50c44ca4a256bd668abd1ce740bfb698edc42203486a79fd",
+    "112_raw.msgpack": "441844b225dcc5d9184100ff3522bd8eeef84b778ce1c123e33faef0b3c1ede0",
+    "113_raw.msgpack": "256f7856f88878af6ebce0d2cd5a747d0450d86e994e889b8e472d4a77029f7e",
+    "114_raw.msgpack": "3bb5df4a8b61ab227c1a8d3f110c4a3876f71593593aa18901cb1dc3b8debf78",
+    "115_raw.msgpack": "c05df7f6ae7e44843573bb0fa1eeb80a43eb9938d233259184b998990dbddc5f",
+    "116_raw.msgpack": "4c65cdf0426b5e760f28cce231830cd99d3e82cb47a2367a940794b5e5f21d04",
+    "117_raw.msgpack": "404e9be29e359cf260280f15d78c848b3a5af6de158987c8dac092d3fb7b20eb",
+    "118_raw.msgpack": "3508beb11278c9d093fe58bf73557ee37c60c608123af8b858c1762d1ab818fc",
+    "119_raw.msgpack": "bb7e0bd3e142e08eb8accf6dac9304deef74384ee518600296e2e2167631f2fa",
+    "120_raw.msgpack": "d3bac2b39cb7eedb9b68b66cff4ccc37c7825df70ccdb00601a8e926af75f09c",
+    "121_raw.msgpack": "691afb02d6eb59340a8c82a64d32aae722ced593283b277a19397aaf6c4620e4",
+    "122_raw.msgpack": "25e1c17abd78691c0ff5078542a4e2a415b729793008bb4fa6a6b90a00062fa2",
+    "123_raw.msgpack": "9e076ceaf246b6003d9c2680a2b4cf0bffd069805902b0b5edeebf49039fe4bd",
+    "124_raw.msgpack": "9e076ceaf246b6003d9c2680a2b4cf0bffd069805902b0b5edeebf49039fe4bd",
+    "125_raw.msgpack": "9e076ceaf246b6003d9c2680a2b4cf0bffd069805902b0b5edeebf49039fe4bd",
+    "126_raw.msgpack": "fc75b88bfe11d9c39f8569c171dc9e1a28183e00a68f0b6e7690cf54f65f665e",
+    "127_raw.msgpack": "212f3b500a84f0dd18b9292295908835f2b94e2b435343cb530c3cc8a810f19d",
+    "128_raw.msgpack": "cfbc6013b483c1e71b19f926bee8f0c5acf46498eb36d4ea5206cc7e6792130e"
+  },
+  "code_sha256": "62eeeb1234dcae1f638244d3b78f8bbfb1b3479d74a69e9c026d04d4d1f0f54d",
+  "test_sha256": "3df59d199abc0b8b1a7d2fdd124f1656430c54a8982a136e963aa9c4c520dbf9"
+}

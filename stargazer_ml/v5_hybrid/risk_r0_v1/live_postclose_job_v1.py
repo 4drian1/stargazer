@@ -117,7 +117,7 @@ def run(snapshot_file, runtime, producer=produce_live):
             print(json.dumps({k:v for k,v in state.items() if k != 'snapshot_sha256'}), flush=True)
         try:
             from joint_shadow_service_v1 import verify_fingerprints
-            reference = json.loads(gzip.decompress(Path(__file__).with_name('live_monitor_fingerprints_20261026_v26_flow.json.gz').read_bytes()))
+            reference = json.loads(gzip.decompress(Path(__file__).with_name('live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
             mismatch, ok = verify_fingerprints(reference)
             if not ok:
                 raise ValueError('FROZEN_RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))

@@ -1,0 +1,60 @@
+{
+  "status": "PASS_PERSISTED_TARGET_AND_INCREMENTAL_ERROR_AUDIT_NOT_PROMOTION",
+  "report_sha256": "9cd248bf16a5d3a250af1aecbc1f908e1152665eba5aa78c6022e3430367b718",
+  "predictions_checked": 172638,
+  "recipe_input_refs_checked": 378,
+  "numeric_fields": 350,
+  "transformed_fields": 700,
+  "new_column_fingerprints": 472,
+  "saved_model_prediction_replay_in_training_report": 172638,
+  "independent_reconstruction_of_all_new_feature_values": false,
+  "used_columns": 51,
+  "split_count": 308,
+  "new_used_columns": [
+    {
+      "field": "cm_all5_giveback_mean",
+      "splits": 3
+    },
+    {
+      "field": "cm_all5_sse_relative_giveback_mean",
+      "splits": 2
+    },
+    {
+      "field": "cm_all5_cyb_relative_giveback_mean",
+      "splits": 1
+    },
+    {
+      "field": "cm_positive5_cyb_relative_giveback_mean",
+      "splits": 5
+    },
+    {
+      "field": "cm_own5_captured_giveback_mean",
+      "splits": 2
+    },
+    {
+      "field": "cm_all15_giveback_mean",
+      "splits": 1
+    },
+    {
+      "field": "cm_all15_sse_relative_giveback_mean",
+      "splits": 5
+    },
+    {
+      "field": "cm_positive15_deceleration_coverage",
+      "splits": 1
+    },
+    {
+      "field": "cm_positive15_cyb_relative_giveback_mean",
+      "splits": 5
+    },
+    {
+      "field": "cm_own15_captured_giveback_mean",
+      "splits": 1
+    }
+  ],
+  "old_three_arm_artifacts_unchanged": 21,
+  "d2_unchanged": true,
+  "http_requests": 0,
+  "fit": false,
+  "deployment": false
+}

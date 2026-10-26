@@ -20,6 +20,25 @@ def wave_levels(low,high):
         for ratio,price in values if price>0]
 
 
+def prior_confirmed_waves(g):
+    """Recover confirmed historical swings when a new unconfirmed high hides them."""
+    waves=[]
+    for peak in range(max(2,len(g)-60),len(g)-2):
+        hi=float(g.high.iloc[peak])
+        if hi<g.high.iloc[peak-2:peak+3].max():continue
+        for low in range(max(2,peak-60),peak):
+            lo=float(g.low.iloc[low])
+            if lo>g.low.iloc[low-2:low+3].min() or hi/lo-1<=.15:continue
+            segment=g.iloc[low:peak+1]
+            if hi<segment.high.max() or lo>segment.low.min():continue
+            waves.append(dict(low=lo,high=hi,low_day=int(g.date.iloc[low]),high_day=int(g.date.iloc[peak]),
+                low_basis='CONFIRMED_SWING_LOW',low_confirmed=True,high_confirmed=True,
+                known_at=int(g.date.iloc[max(peak+2,low+2)]),
+                source_state='PRIOR_CONFIRMED_HISTORICAL_REFERENCE',
+                anchor_low_breached_later=bool((g.low.iloc[peak+1:]<lo).any())))
+    return waves
+
+
 def price_map(daily,atr_ref=None):
     """Recent confirmed lows and completed >15% bullish bodies; no future bars."""
     g=daily.sort_values('date').reset_index(drop=True)
@@ -39,6 +58,9 @@ def price_map(daily,atr_ref=None):
             known_at=int(g.date.iloc[max(peak+2 if high_confirmed else peak,i+2 if confirmed else i)])))
     # Repeated endpoints are one source. Shared highs remain explicitly correlated.
     waves=list({(w['low_day'],w['high_day']):w for w in waves}.values())
+    fallback=not any(w['low_confirmed'] and w['high_confirmed'] for w in waves)
+    if fallback:
+        waves=prior_confirmed_waves(g)+waves
     nodes={}
     close=float(g.close.iloc[-1])
     for wave in waves:
@@ -61,11 +83,15 @@ def price_map(daily,atr_ref=None):
         sources=[dict(source,level=node) for node in values for source in nodes[node]]
         bands.append(dict(node=representative,lower=min(values),upper=max(values),sources=sources,
             shared_peak_groups=len({s['high_day'] for s in sources})))
-    return dict(policy=POLICY,asof=int(g.date.iloc[-1]),levels=sorted([b['node'] for b in bands],reverse=True),
+    result=dict(policy=POLICY,asof=int(g.date.iloc[-1]),levels=sorted([b['node'] for b in bands],reverse=True),
         sources={str(b['node']):b['sources'] for b in bands},waves=waves,bands=bands,cluster_max_span_fraction=.008,
         primary_wave=next(w for w in reversed(waves) if w['low_confirmed'] and w['high_confirmed']),
         temporary_waves=[w for w in waves if not(w['low_confirmed'] and w['high_confirmed'])],
         resonance_status='SOURCES_DISCLOSED_NOT_INDEPENDENT_VOTES',model_score_reference_unchanged=True)
+    if fallback:
+        result.update(map_strategy='PRIOR_CONFIRMED_FALLBACK',
+            fallback_reason='Latest unconfirmed high must not hide older confirmed swings; current temporary high stays separate')
+    return result
 
 
 def index_map(frame,cutoff):
@@ -129,7 +155,7 @@ def completed_bars(rows,code,day,cutoff):
             if opening in lookup:values=[lookup[opening]]+values
             volume=[r.get('volume') for r in values]
             valid_volume=all(isinstance(v,(int,float)) and math.isfinite(v) and v>=0 for v in volume)
-            b=dict(t=stop,open=float(values[0]['open']),high=float(max(r['high'] for r in values)),
+            b=dict(t=stop,day=int(date),open=float(values[0]['open']),high=float(max(r['high'] for r in values)),
                 low=float(min(r['low'] for r in values)),close=float(values[-1]['close']),
                 volume=float(sum(volume)) if valid_volume else None)
             history_closes.append(b['close'])

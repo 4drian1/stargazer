@@ -1,0 +1,627 @@
+{
+ "estimate_note": "Measured legacy-data compression only; corrected full-universe density may differ. Not a budget grant.",
+ "full_structural_rows": 8007594,
+ "legacy_subsets": [
+  {
+   "counts": {
+    "legacy_admitted": 11370,
+    "legacy_positive": 627,
+    "persisted_rows": 11520
+   },
+   "legacy_density_bytes_per_row": 180.10911458333334,
+   "part_bytes": 2074857,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1",
+   "reasons": [
+    "stored_cum_vs_canonical_mult",
+    "recorded_effective_dates_unverified",
+    "internal_continuity_does_not_certify_coverage",
+    "raw_etf_market_features"
+   ],
+   "recorded_admitted_seen": 11626,
+   "recorded_rows_seen": 11776,
+   "reencoded_density_bytes_per_row": null,
+   "repacked_in_memory_bytes": null,
+   "segments": {
+    "calibration": {
+     "persisted_rows": 750
+    },
+    "description": {
+     "persisted_rows": 1086
+    },
+    "select": {
+     "persisted_rows": 702
+    },
+    "test": {
+     "persisted_rows": 1458
+    },
+    "train": {
+     "persisted_rows": 7524
+    }
+   },
+   "terminal_status": "failed",
+   "training_use": "QUARANTINED_NOT_ADMITTED"
+  },
+  {
+   "counts": {
+    "legacy_admitted": 3710,
+    "legacy_positive": 142,
+    "persisted_rows": 3760
+   },
+   "legacy_density_bytes_per_row": 180.2534574468085,
+   "part_bytes": 677753,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1",
+   "reasons": [
+    "stored_cum_vs_canonical_mult",
+    "recorded_effective_dates_unverified",
+    "internal_continuity_does_not_certify_coverage",
+    "raw_etf_market_features"
+   ],
+   "recorded_admitted_seen": 3710,
+   "recorded_rows_seen": 3760,
+   "reencoded_density_bytes_per_row": 127.45531914893617,
+   "repacked_in_memory_bytes": 479232,
+   "segments": {
+    "calibration": {
+     "persisted_rows": 250
+    },
+    "description": {
+     "persisted_rows": 362
+    },
+    "select": {
+     "persisted_rows": 234
+    },
+    "test": {
+     "persisted_rows": 486
+    },
+    "train": {
+     "persisted_rows": 2428
+    }
+   },
+   "terminal_status": "completed",
+   "training_use": "QUARANTINED_NOT_ADMITTED"
+  }
+ ],
+ "model_fitted": false,
+ "new_real_labels_generated": 0,
+ "preserved_artifacts": [
+  {
+   "bytes": 45666,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00000.parquet",
+   "sha256": "107b93fac6fdea05bfaa6b63fdb93669c2c5c981624a0e3026f777d76981a58c"
+  },
+  {
+   "bytes": 45468,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00001.parquet",
+   "sha256": "01d3460ec794c0ece17ba59f19b75526ff86fd8a5988d3e36966a734f8e8aea4"
+  },
+  {
+   "bytes": 46572,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00002.parquet",
+   "sha256": "e3ad537650398e96be5dc18f4c2c21f5e05ede4242f6c632cdcbdc508f92dbd6"
+  },
+  {
+   "bytes": 46506,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00003.parquet",
+   "sha256": "70926946ca8d64d04ab0ed0eaf3a33d72af3428d58d41d40e639a937a7c40888"
+  },
+  {
+   "bytes": 46731,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00004.parquet",
+   "sha256": "48006fb4ee51abcf3894f62effc5d7461038365dd96ec46a49591f210843dbb1"
+  },
+  {
+   "bytes": 46481,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00005.parquet",
+   "sha256": "ecaab4afb8a7b234a54f4eb05c9c84fc3ddab97fc2c5ca8bfa11566bcfe3b7bd"
+  },
+  {
+   "bytes": 46238,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00006.parquet",
+   "sha256": "4499d560569d926240eccd58705fae04cea954377f080625b2088bbac677f5ba"
+  },
+  {
+   "bytes": 46077,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00007.parquet",
+   "sha256": "38952b9c6e2f6e1a484133c58a37e4f602167666eaf1a317a108db7d1de08f48"
+  },
+  {
+   "bytes": 45863,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00008.parquet",
+   "sha256": "6bd70bed5c5e7cdff326baa0bb8e5fb9de7780f20c4486abf2f0ea0521d8d083"
+  },
+  {
+   "bytes": 46032,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00009.parquet",
+   "sha256": "64e30ba0edc90b5821a28de9747086f291bfdda9417e41e2ee11919aead84683"
+  },
+  {
+   "bytes": 46495,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00010.parquet",
+   "sha256": "4e77b709726b0119d6ceea41580c7934b1dbe9693a8ff377036bbc8e1b97b3c4"
+  },
+  {
+   "bytes": 45893,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00011.parquet",
+   "sha256": "4374d12ea2b25386e36b2ff09ea9a23f89bd7ac218f6bd54ac646e6f91cbc2e8"
+  },
+  {
+   "bytes": 45273,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00012.parquet",
+   "sha256": "def3b36c0c4c3eae342579e8592c426ad74a180394862931b22b9cebcdc9bbc7"
+  },
+  {
+   "bytes": 44300,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00013.parquet",
+   "sha256": "bf54ca372c6eef62ded49949b32de4453c8f5fc4b4fc20fbd5bed34884b9ec78"
+  },
+  {
+   "bytes": 45001,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00014.parquet",
+   "sha256": "52d3ded2b96f1da7b0d12b2855a089a649f81f8fae99aaf71afe463870896a1a"
+  },
+  {
+   "bytes": 46232,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00015.parquet",
+   "sha256": "f07622d4c8cef84cd31235c2811d16e7efb7428b582e903b0541f6f0edc19bd4"
+  },
+  {
+   "bytes": 45651,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00016.parquet",
+   "sha256": "ef33e4e9e2ef975cb5a41bdbcc5029d5795ae970160bfc97f02b35d19d39f6d3"
+  },
+  {
+   "bytes": 46606,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00017.parquet",
+   "sha256": "814b64c88fe6d871bded04ea4a7b76cf448a9c189d1b56e6463a1688a0bb518f"
+  },
+  {
+   "bytes": 46304,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00018.parquet",
+   "sha256": "2c132a45a2b5058433c9ca40a638a9273953f4da3cb2c558786bbc7cd4c70b81"
+  },
+  {
+   "bytes": 46074,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00019.parquet",
+   "sha256": "7b730878ad0cc6932f56c90c9bc8d99417696ae3fd025fdeacaf3ba1f25967f9"
+  },
+  {
+   "bytes": 45499,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00020.parquet",
+   "sha256": "65ff92a7a8f5c44781e33ec24f327fdc1a3cb878eeb6e2d5434026fbf62e974e"
+  },
+  {
+   "bytes": 45962,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00021.parquet",
+   "sha256": "2a76bdd83e0881ebf37f2e8c79915a6a77cada3120c3b7c408ed8586c00aaa5e"
+  },
+  {
+   "bytes": 45910,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00022.parquet",
+   "sha256": "6668e736bd8396fc75709f2b2c042a437b41bb922cb2be792fb7d032fb183a1c"
+  },
+  {
+   "bytes": 45214,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00023.parquet",
+   "sha256": "44c1c238684a5ac378fe1bad89be0d00b30a43e0d8a3dbb8c1ecb1fa06eaab5b"
+  },
+  {
+   "bytes": 46515,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00024.parquet",
+   "sha256": "3868e247de919e7f878734704e3256d838505acf785f6ad756fa7cbb8840a5e3"
+  },
+  {
+   "bytes": 46432,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00025.parquet",
+   "sha256": "ce49b512c4276567e557a285376f524d149a726d5afef0d8aec1858c3d5b33e8"
+  },
+  {
+   "bytes": 46668,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00026.parquet",
+   "sha256": "abd4f208e6335e2261b9f1dc07e8a5472a957a9d57971a13f049abcfa161e835"
+  },
+  {
+   "bytes": 46605,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00027.parquet",
+   "sha256": "98f204e545c30c9447803a4650d0e090294ef03c974da363d216c167f66516d7"
+  },
+  {
+   "bytes": 46101,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00028.parquet",
+   "sha256": "c3cf3d026e89780dc497312b19a3d5218d53b6704d36acd0f5761dd3c13a34f8"
+  },
+  {
+   "bytes": 46611,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00029.parquet",
+   "sha256": "144948cbe5331c48a0a4db44a7ecf426a48726ccf6088f0ff639155d475132b9"
+  },
+  {
+   "bytes": 45781,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00030.parquet",
+   "sha256": "f23937c5cf7bebbbf33b44823d3651be5a0fdc01885f91069a52774e84fc68f1"
+  },
+  {
+   "bytes": 46214,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00031.parquet",
+   "sha256": "4eb6d7b9fa841b3e8d5e264bb48c567b0a9b242d5b9af6aa355ba8e111317e22"
+  },
+  {
+   "bytes": 46661,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00032.parquet",
+   "sha256": "e10225db3fae3b1fa4bedb20f17e073b3cd3daeb14b5a94b0f0f8b8ae1abfb9a"
+  },
+  {
+   "bytes": 46717,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00033.parquet",
+   "sha256": "292f41e092b05b761a7fa41d3663776f35d356bd94e0bd287b0cdc151c5a7dc5"
+  },
+  {
+   "bytes": 46402,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00034.parquet",
+   "sha256": "3a82873a5b4e6aec3c2da65d851b7c10e10eae99c5d34a2a3e2290655fda4b87"
+  },
+  {
+   "bytes": 46135,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00035.parquet",
+   "sha256": "68a0261ac84e0e8e9eedc10253ca4d0432db155d63f0cb1982faf1df81d48f9b"
+  },
+  {
+   "bytes": 46292,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00036.parquet",
+   "sha256": "020ebbb1d8be7f40d259ef5c52513aa51779eb86282efac414facd5ad51c8de0"
+  },
+  {
+   "bytes": 46574,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00037.parquet",
+   "sha256": "a948d71c1f849ce5c50c8cf1bb00938b235489a76b8e9f109849526d4743accd"
+  },
+  {
+   "bytes": 46159,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00038.parquet",
+   "sha256": "0801ed02ae29c51ef228f3186fe7be39b2a4b7d8781184de3dd1650ac9e2336d"
+  },
+  {
+   "bytes": 46700,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00039.parquet",
+   "sha256": "83a820f2a1611e6b54813d3aaeb4ccd12ae2811baee1f55e02313f8fb11a7115"
+  },
+  {
+   "bytes": 46266,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00040.parquet",
+   "sha256": "3c4c9f8ae6dfc5a7d3df2b7309db574ae79c40b31db8665317aedb730230c5c6"
+  },
+  {
+   "bytes": 46422,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00041.parquet",
+   "sha256": "50d45f0410d8f9df3ef4c5685f7b4bb11a4bf5f712325b0cdb98f48940062671"
+  },
+  {
+   "bytes": 45676,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00042.parquet",
+   "sha256": "17db58a1e2671f549e41bf8624be12c9ef17fb29d77c191cf0ab437845b02274"
+  },
+  {
+   "bytes": 46232,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00043.parquet",
+   "sha256": "89e178bc4160a062b5cc28c0f14b2270e2ecd8cba45490a9e803650ca4382595"
+  },
+  {
+   "bytes": 45646,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\part_00044.parquet",
+   "sha256": "707acfe7bd2f990c93ba809e3ef12dda5b6e6c9316ddd31dc2d73dab66f9680a"
+  },
+  {
+   "bytes": 6707,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1\\stop_record.json",
+   "sha256": "b5d2f69ce1b5d9ff4dcd29626c6b7c38ebb88697292260f92f0613546e5ce134"
+  },
+  {
+   "bytes": 45665,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00000.parquet",
+   "sha256": "0db99d1a0a9fbf1efc6e5033e8583c5765e35bc535e5408dd3328f41b62103ae"
+  },
+  {
+   "bytes": 45467,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00001.parquet",
+   "sha256": "eb4dde245d56b01bcff9f89a7d40a41fd354633881739e02275d942b257cdec1"
+  },
+  {
+   "bytes": 46571,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00002.parquet",
+   "sha256": "cb5d64bc3adefda5df20be77aae15bd4af556328a3c845e93653d171e8c147f9"
+  },
+  {
+   "bytes": 46505,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00003.parquet",
+   "sha256": "fa4f691c444b4e6e421b84c5366852908f86b017eda064ad119bb48d4e1b2621"
+  },
+  {
+   "bytes": 46730,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00004.parquet",
+   "sha256": "34131f9c2d61d12adb2ed6f30bf47864d95f6b1fd4af56305cf2268c1208e3a5"
+  },
+  {
+   "bytes": 46480,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00005.parquet",
+   "sha256": "fa4629bb43089418968a02aa30f5b7603bd0ded6d095ae4c68de62ab5df5fed9"
+  },
+  {
+   "bytes": 46237,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00006.parquet",
+   "sha256": "09338e19957b90ae28e7d87e83971d80f0770e6183e9ad6fc2a816262276da61"
+  },
+  {
+   "bytes": 46076,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00007.parquet",
+   "sha256": "c762a24af3f409ee48e1b0826bb2aa0157b7fa53d7ec023e1a8a7f476083815a"
+  },
+  {
+   "bytes": 45866,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00008.parquet",
+   "sha256": "fefbb8ba5432df25036bc113d1483b763ede0ef78f44d53d7aa0c2a33008d772"
+  },
+  {
+   "bytes": 46035,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00009.parquet",
+   "sha256": "81bb0bfdfd9a967640279c848bcc3e10080fbe6c988399a9e71b33abd2674d8c"
+  },
+  {
+   "bytes": 46498,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00010.parquet",
+   "sha256": "eebba33ed9f40bb459a28a38cbd9d17812caf4958af18f381f83f0ffecee091a"
+  },
+  {
+   "bytes": 45896,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00011.parquet",
+   "sha256": "cce6502669456630bcefd6ab58e25a023fc86e210fa7ae8cf02c73b78d236f0d"
+  },
+  {
+   "bytes": 45276,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00012.parquet",
+   "sha256": "b1e2b8c3330d4ee17ee75f70281d69cd03eb165f5415d4f056a6dd532cbb456e"
+  },
+  {
+   "bytes": 44303,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00013.parquet",
+   "sha256": "aa286579cecda421ea76f259ec0bcfb7751fc895e9bc692cc92edd27604bc20e"
+  },
+  {
+   "bytes": 34148,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\part_00014.parquet",
+   "sha256": "a2ef2764aefd70d8b6efffc72218cab93c2a49495d706b0c25bcd28c11329b49"
+  },
+  {
+   "bytes": 2438,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1\\stop_record.json",
+   "sha256": "a635c0a4f0bb74cad3b651bc7f0f060c2a485fecfe24bcc6186e1b1857540b56"
+  },
+  {
+   "bytes": 64870,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\calendar.json",
+   "sha256": "48513c22e2396841fdd5e3780a5b21832e76c63288972821828adb86264da335"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_000001.json",
+   "sha256": "0be6ccbf3aa37baf6dbce7cfb990da37ceca341bafbb64f7eaaa4f49ea28009d"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_000858.json",
+   "sha256": "4ccc4bc4919da8ccba14d71f01b85a1ec52bbc2caee1e8f30a984b03c957229c"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_002594.json",
+   "sha256": "186cf46fe58ea5e6c144d66e1b8fac22bb58abe179b8cd1461c9c6d9e90cfe23"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_300750.json",
+   "sha256": "156d2466e3eb1ad1dbf0b24aff95d7be5876f481753a9c125c692defa4534946"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_600036.json",
+   "sha256": "4ba8ecd18f8c13caf719525c59bc6ebeda3997a591324b2f7e24362b84c15323"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_600276.json",
+   "sha256": "356ee5fdca3aba376e1dc281fcfb7163564cf116a53791561b622f6226843703"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_600519.json",
+   "sha256": "c53b488938fdb755b3952c327524c12ed77aa1910b4f3aab8acb377766e89053"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_600900.json",
+   "sha256": "7027a7f9c29c386e5ec6e74bc7a22fef876ba1ff8e7e6f2dc812a64c5bfe5ece"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_601318.json",
+   "sha256": "1d19533e2cfeb8815173094f998c96b9a0d94d8f7542b1cdd2c062c1385dff86"
+  },
+  {
+   "bytes": 831,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\evidence_688981.json",
+   "sha256": "9b3014d6e557feaab258a9168b09d08f5aac8a801bc3647d1a368f8a4bab03c0"
+  },
+  {
+   "bytes": 37080,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_000001.parquet",
+   "sha256": "bb8e9e0f70ead1c0d15535fe547ece71509a4fd5bdbe719e5b071d85ac0f1709"
+  },
+  {
+   "bytes": 37255,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_000858.parquet",
+   "sha256": "af7ba6d644fc5a52b98dad6cb837729938e891197873d6e839d8f4e58f24db63"
+  },
+  {
+   "bytes": 21638,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_002594.parquet",
+   "sha256": "ba68bf3afe88b5d7b573185d33220c43c7a848e0993183c53eed33d0717cf0c5"
+  },
+  {
+   "bytes": 12114,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_300750.parquet",
+   "sha256": "5a5553117e6e4d6383e466dd1af50bf9549e3ca381d37f169185b686215cf4cd"
+  },
+  {
+   "bytes": 34600,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_600036.parquet",
+   "sha256": "c656a7c2ed0c720dba02247f3c5895440dd3e4a5e0418a80259832b7754ebaf6"
+  },
+  {
+   "bytes": 36715,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_600276.parquet",
+   "sha256": "ccf908636bdb034786e979a6a3071b44301e139cd13a88e306010f0040c15414"
+  },
+  {
+   "bytes": 35414,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_600519.parquet",
+   "sha256": "416c6348c94bfff8fd9448df130b7a10f9a2e93630d265932b800009a61d2841"
+  },
+  {
+   "bytes": 30386,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_600900.parquet",
+   "sha256": "83c53ff024b3b6adcd4c9f4e7ad5e910c86adf2a49625204139c31ae04bc2867"
+  },
+  {
+   "bytes": 28064,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_601318.parquet",
+   "sha256": "83ca5d8212ae38f0e2d632619d5a40aff30cb123582e8e4a8bee7a57a76e755c"
+  },
+  {
+   "bytes": 9222,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\factors_688981.parquet",
+   "sha256": "8457e433eddde39701610561589fd93661a94e34fa5ad50867cbe25bff099c3b"
+  },
+  {
+   "bytes": 102683,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_000001.parquet",
+   "sha256": "29a4c0f2a9c728594910edb457cc6974c5aedd506f1968e6a2108a14237de2dd"
+  },
+  {
+   "bytes": 150406,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_000858.parquet",
+   "sha256": "4f8d86d9d52e24a44b790163d88ecd2fd93d2a4e017ea077c808fb9aee59e856"
+  },
+  {
+   "bytes": 96196,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_002594.parquet",
+   "sha256": "af470cfe2a9a0141204da056810459d5187fa31d55fb936ac9cd6a9e47436ea6"
+  },
+  {
+   "bytes": 56468,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_300750.parquet",
+   "sha256": "2bbb9817de5d1c1e73a0a1136536b08f0dccded59cbb87dfd49142c451e5025b"
+  },
+  {
+   "bytes": 117553,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_600036.parquet",
+   "sha256": "9cd77205bcad497f69dddb8d8996931d146656ee2c948d3b7c232e7b29b5d766"
+  },
+  {
+   "bytes": 137562,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_600276.parquet",
+   "sha256": "be1a9be4a71df99c754a376c4f714ba32794c1f3bea1ce7953ab00db698a6024"
+  },
+  {
+   "bytes": 162086,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_600519.parquet",
+   "sha256": "6ea2f8683e27ad3f2f8e0e4a5a62b799e904ce715c230f31946206b7773f16d1"
+  },
+  {
+   "bytes": 90014,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_600900.parquet",
+   "sha256": "3840e7be701dba4da84543a497adabaf5706d5492f97e49130b96d3730882d70"
+  },
+  {
+   "bytes": 108610,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_601318.parquet",
+   "sha256": "a0f15d1df92d2fe560ef076cd0a4f06f266af97a3aa6c2927f03ea978556509a"
+  },
+  {
+   "bytes": 40372,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\prices_688981.parquet",
+   "sha256": "b8cba0955c66a769d825526cf27cd9643254506644b274cd781edd50190a7f09"
+  },
+  {
+   "bytes": 8952,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_v1\\source_binding.json",
+   "sha256": "af9890967db32cda9ab210aa4b952221214971876f310f318689a8c149bf91ca"
+  },
+  {
+   "bytes": 64840,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\calendar.json",
+   "sha256": "c7172102d83d75dffbeef5b9dcedf64e699241ce0899daa90dd041862d34b983"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\evidence_000001.json",
+   "sha256": "8330ad1a04f47819d32b40bb3d798b199627c3bb466591802d64a1da401e8d9b"
+  },
+  {
+   "bytes": 832,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\evidence_600519.json",
+   "sha256": "c3a12772972662ff5985ab639fff702a8c7b090eda5452936922cd4359e85c9c"
+  },
+  {
+   "bytes": 37080,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\factors_000001.parquet",
+   "sha256": "bb8e9e0f70ead1c0d15535fe547ece71509a4fd5bdbe719e5b071d85ac0f1709"
+  },
+  {
+   "bytes": 35414,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\factors_600519.parquet",
+   "sha256": "416c6348c94bfff8fd9448df130b7a10f9a2e93630d265932b800009a61d2841"
+  },
+  {
+   "bytes": 102683,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\prices_000001.parquet",
+   "sha256": "29a4c0f2a9c728594910edb457cc6974c5aedd506f1968e6a2108a14237de2dd"
+  },
+  {
+   "bytes": 162086,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\prices_600519.parquet",
+   "sha256": "6ea2f8683e27ad3f2f8e0e4a5a62b799e904ce715c230f31946206b7773f16d1"
+  },
+  {
+   "bytes": 2738,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\real_binding_2code_v1\\source_binding.json",
+   "sha256": "ab1a6b053af28c44e440024ffe39fc96551137038a9cf30aadbaf7432279be6f"
+  },
+  {
+   "bytes": 22345,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\corporate_action_verification_v1.json",
+   "sha256": "71c59749a6253ab77842174b31261365dc132b87f07db54cb2189aced73c0915"
+  },
+  {
+   "bytes": 55526,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\csi300_tracker_510300.csv",
+   "sha256": "046164a586444ca6e7e63baa0758f478954a6f5e769b0f878b2d816e6173fb11"
+  },
+  {
+   "bytes": 654,
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_preparation_v1\\csi300_tracker_510300.csv.binding.json",
+   "sha256": "f436b2aebb972aa73179982d5e75889b9f8ca3c53dbac1a9d21eaf71251eefa3"
+  }
+ ],
+ "status": "AUDIT_ONLY_QUARANTINED",
+ "storage_extrapolations": [
+  {
+   "basis": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_v1",
+   "full_matrix_bytes_at_legacy_density": 1442240665,
+   "full_matrix_bytes_at_reencoded_density": null
+  },
+  {
+   "basis": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_stock_day_real_subset_2code_v1",
+   "full_matrix_bytes_at_legacy_density": 1443396504,
+   "full_matrix_bytes_at_reencoded_density": 1020610448
+  }
+ ],
+ "training_ready": false
+}

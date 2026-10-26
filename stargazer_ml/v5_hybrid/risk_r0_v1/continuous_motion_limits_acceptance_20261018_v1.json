@@ -1,0 +1,19 @@
+{
+  "status": "PASS_STATIC_SET_AND_SCORE_ARITHMETIC_AUDIT_NO_FIT",
+  "report_sha256": "114a4eef5c9aa877b49be8d32fe4ba7315d8e9552fa4360df5def74b8cb8d421",
+  "structurally_blocked_codes": 27,
+  "structurally_blocked_rows": 82753,
+  "model_or_admission_changed": false,
+  "fit": false,
+  "http_requests": 0,
+  "io_wording_correction": {
+    "original_raw_minute_reads_field_is_imprecise": true,
+    "actual_bar_tables_parsed": 0,
+    "explicit_hash_bound_minute_files": 27,
+    "bytes_per_explicit_hash_pass": 49158308,
+    "successful_diagnostic_explicit_hash_passes": 2,
+    "note": "Raw parquet bytes were read for integrity hashes, not parsed. This audit adds another hash pass. No full 4196-file minute replay."
+  },
+  "added_118_block_is_algebraic_residual": true,
+  "individual_new_field_cause_not_identified": true
+}

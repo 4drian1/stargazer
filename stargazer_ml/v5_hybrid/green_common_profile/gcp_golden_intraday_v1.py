@@ -117,17 +117,22 @@ def bound_history(root,day,code):
 
 def verify_plan_sources(plan):
     """Explicit predecessor bridge; verify every current bound file before legacy plans."""
-    from tarot_live_v2 import MANIFEST
+    from tarot_live_v2 import MANIFEST,_project_root
     manifest=json.loads(gzip.decompress(MANIFEST.read_bytes()))
-    current=manifest['frozen_inputs'];previous=manifest.get('approved_predecessor_inputs',{})
+    def absolute(value):
+        path=Path(value)
+        return str((path if path.is_absolute() else _project_root()/path).resolve())
+    current={absolute(k):v for k,v in manifest['frozen_inputs'].items()}
+    previous={absolute(k):v for k,v in manifest.get('approved_predecessor_inputs',{}).items()}
+    runtime_updates={absolute(k) for k in manifest.get('approved_runtime_updates',[])}
     for file,sha in current.items():
         if hashlib.sha256(Path(file).read_bytes()).hexdigest()!=sha:
             raise ValueError('CURRENT_RULE_SOURCE_FINGERPRINT_MISMATCH')
-    legacy=all((r.get('entry_rule') or {}).get('policy')!='GOLDEN_LADDER_STOP_V3' for r in plan['rows'])
+    legacy=all((r.get('entry_rule') or {}).get('policy') not in ('GOLDEN_LADDER_STOP_V3','GOLDEN_RESONANCE_CROSSDAY_V4') for r in plan['rows'])
     for item in plan['rule_inputs']:
-        path=item['path'];expected=item['sha256']
+        path=absolute(item['path']);expected=item['sha256']
         if path not in current:raise ValueError('RULE_SOURCE_UNBOUND')
-        runtime_update=path in manifest.get('approved_runtime_updates',[])
+        runtime_update=path in runtime_updates
         if expected!=current[path] and not ((legacy or runtime_update) and expected in previous.get(path,[])):
             raise ValueError('RULE_SOURCE_FINGERPRINT_MISMATCH')
 
@@ -196,6 +201,9 @@ def run(body):
         try:
             if failed:
                 raise ValueError('PREVIOUS_FETCH_FAILED_NO_EXPANSION')
+            if rule_policy:=row['entry_rule'].get('policy'):
+                if rule_policy!='GOLDEN_RESONANCE_CROSSDAY_V4':
+                    raise ValueError('RULE_POLICY_RECONFIRM_REQUIRED')
             previous = [v for k,v in fetch('分钟k',code,str(plan['data_date'])+'*',True)]
             previous = sorted((v for v in previous if int(v['date'])//1000000==int(plan['data_date'])),key=lambda v:int(v['date']))
             if not previous or any(str(v.get('code')).zfill(6)!=code for v in previous):
@@ -203,10 +211,26 @@ def run(body):
             if int(previous[-1]['date'])%1000000 < 145900:
                 raise ValueError('PREVIOUS_DAY_FINAL_CLOSE_MISSING')
             minute = [v for k,v in fetch('分钟k',code,str(day)+'*')]
-            if row['entry_rule'].get('policy')=='GOLDEN_LADDER_STOP_V3':
+            if rule_policy=='GOLDEN_RESONANCE_CROSSDAY_V4':
                 history,refs=bound_history(root,plan['data_date'],code)
                 receipts.extend(refs)
-                minute=history+minute
+                days=row['entry_rule'].get('history_days') or [int(plan['data_date'])]
+                if (not 1<=len(days)<=4 or days!=sorted(set(days)) or days[-1]!=int(plan['data_date'])):
+                    raise ValueError('HISTORY_DAY_CONTRACT_INVALID')
+                history=[v for v in history if int(v['date'])//1000000 in days]
+                for seed_day in days:
+                    if seed_day==int(plan['data_date']):continue
+                    existing=[v for v in history if int(v['date'])//1000000==seed_day]
+                    if not existing:history.extend(v for k,v in fetch('分钟k',code,str(seed_day)+'*',True) if int(v['date'])//1000000==seed_day)
+                unique={}
+                for item in history+previous+minute:
+                    stamp=int(item['date'])
+                    if stamp>cutoff:continue
+                    if str(item.get('code')).zfill(6)!=code:raise ValueError('HISTORY_IDENTITY_MISMATCH')
+                    if stamp in unique and any(unique[stamp].get(k)!=item.get(k) for k in ('open','high','low','close','volume')):
+                        raise ValueError('HISTORY_OVERLAP_CONFLICT')
+                    unique[stamp]=item
+                minute=[unique[k] for k in sorted(unique)]
             adjustments = fetch('复权',code,'*')
             if not adjustments:
                 raise ValueError('CORPORATE_ACTION_SOURCE_EMPTY_UNVERIFIED')

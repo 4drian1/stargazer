@@ -1,0 +1,15 @@
+{
+  "status": "PASS_CONDITIONAL_REFERENCE_SIDECAR_NOT_FIT",
+  "tests": 27,
+  "candidates_preserved": 65293,
+  "independent_decimal_returns": 6286,
+  "independently_reconstructed_coverage_cutoffs": 5408,
+  "input_hashes_verified": 165,
+  "old_fit_artifacts_unchanged": 21,
+  "d2_unchanged": true,
+  "formal_coverage_verified": false,
+  "http_requests": 0,
+  "fit": false,
+  "report_sha256": "17484e07f8402938276cabea412a2ae39fd0560e44436e98a19982e0839479ad",
+  "auditor_sha256": "9c56142abc499112fc5df024d129f2d883a5846fb56f36896ec2f923a3c5d887"
+}

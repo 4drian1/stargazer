@@ -1,0 +1,95 @@
+{
+ "audit_code": {
+  "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\audit_risk_crossyear_result_v1.py",
+  "sha256": "db83fec07e0b21fdea490ec46f31390630b431c797ff3ae12c4c980163282ac7"
+ },
+ "files": [
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F1_models.joblib",
+   "sha256": "ec11ec6ed5fa9e6418bf38b01b911144411badf2108245506f017206983b3a8b"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F1_report.json",
+   "sha256": "aaed26e73326b40d667656b5afdd689438ad51185cb91e0299a0d8e85ee0cb46"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F1_test_predictions.parquet",
+   "sha256": "58659c75ca213ceff189dba7c74059cf057757f95fac71c7ab31c4f6acf99183"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F2_models.joblib",
+   "sha256": "91f425f957eefdfa04a35ecd44743b929fc5731e420bc2cd88e1b374b934fcf3"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F2_report.json",
+   "sha256": "5bb17aef70497f5bc1ae6939fdc2fbcf71f26547d6956b71ca5ec09c230a4518"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F2_test_predictions.parquet",
+   "sha256": "4b247326232097b44c985103c00e0180bd34c05cee0113c77dc12563434c3160"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F3_report.json",
+   "sha256": "bce8a16ed450159546d086605acd629b15a5908a6ada5734c2b2f686d06f0bc3"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\F3_test_predictions.parquet",
+   "sha256": "7687cefb06a44aa95bcac1d750284a67a925bbbe71d239b5a8b603816259859b"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\input_and_authorization.json",
+   "sha256": "8fa07096b5ecd08abf50a401e669f6726212918c48f8b580155f3c5bf9ba5593"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\stop_record.json",
+   "sha256": "635304610397f2584f19328ef605df254bc24a24d53e368a9d943132c8d62f4b"
+  },
+  {
+   "path": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\historical_risk_crossyear_v1_run\\summary.json",
+   "sha256": "3d4e94164dcbec4d3f8edd1cb36e6dd6400de3e41650b36cb1e898e4a96e3bc4"
+  }
+ ],
+ "fit_refit_performed": false,
+ "folds": {
+  "F1": {
+   "all_three_filter_proportions_replayed": true,
+   "dates": 237,
+   "deep_mae_cis_independently_weighted_recomputed": true,
+   "n": 8478,
+   "paired_tail_cis_recomputed": true,
+   "probabilities_brier_logloss_verified": true
+  },
+  "F2": {
+   "all_three_filter_proportions_replayed": true,
+   "dates": 237,
+   "deep_mae_cis_independently_weighted_recomputed": true,
+   "n": 9034,
+   "paired_tail_cis_recomputed": true,
+   "probabilities_brier_logloss_verified": true
+  },
+  "F3": {
+   "all_three_filter_proportions_replayed": true,
+   "dates": 238,
+   "deep_mae_cis_independently_weighted_recomputed": true,
+   "n": 9107,
+   "paired_tail_cis_recomputed": true,
+   "probabilities_brier_logloss_verified": true
+  }
+ },
+ "frozen_inputs_unchanged": 245,
+ "network_requests": 0,
+ "predictions_verified": 26619,
+ "registered_actual_bytes": 99095985,
+ "run_actual_bytes": 1775286,
+ "status": "CROSSYEAR_RESULT_AUDIT_PASS",
+ "summary_flags_verified": {
+  "deep_tail_red_flag_folds": [
+   2
+  ],
+  "deployment_authorized": false,
+  "probability_consistency": true,
+  "production_gate_passed": false,
+  "research_consistency": false,
+  "tail_consistency": false
+ }
+}

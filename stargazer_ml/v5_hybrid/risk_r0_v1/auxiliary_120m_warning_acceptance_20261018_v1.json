@@ -1,0 +1,16 @@
+{
+  "status": "PASS_CONTINUOUS_SHORT_WARNING_DIAGNOSIS_NOT_FIT",
+  "inputs_verified": 183,
+  "bands_checked": 320,
+  "unequal_outcome_pairs_checked": 1215164,
+  "daily_effects_checked": 3433,
+  "source_rows": 86319,
+  "report_sha256": "4217d28096cbd27a5fc3dec67ff38b552df88abdcea7799752300ea9360cf858",
+  "bytes": 797359,
+  "registered_bytes": 4290151777,
+  "cap": 4294967296,
+  "main_fits": 0,
+  "calibration_fits": 0,
+  "http_requests": 0,
+  "binary_threshold_added": false
+}

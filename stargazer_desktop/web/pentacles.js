@@ -5,6 +5,7 @@
   const number = (n, digits = 2) => typeof n === 'number' && Number.isFinite(n) ? n.toFixed(digits) : '—';
   function goldenLabel(row) {
     const rule = row.entry_rule || {}, hi = rule.anchor_hi, lo = rule.anchor_lo, node = rule.f618;
+    if (rule.policy === 'GOLDEN_RESONANCE_CROSSDAY_V4') return '低位多档共振＋ATR · 下杀4%观察';
     if (![hi, lo, node].every(Number.isFinite) || hi <= lo) return 'P日冻结黄金阶梯';
     const ratio = [.236, .382, .5, .618, .786].find(r => Math.abs(hi-r*(hi-lo)-node) <= .00011);
     return ratio === undefined ? 'P日冻结黄金阶梯' : `波段${number(ratio*100, 1)}%回撤位`;
@@ -17,7 +18,9 @@
     return bands.map(b => {
       const count = new Set(b.sources.map(s => `${s.low_day}:${s.high_day}`)).size;
       const peaks = new Set(b.sources.map(s => s.high_day)).size;
-      return `${number(b.lower,4)}—${number(b.upper,4)} · ${count}源${peaks === 1 ? '（共享高点，非独立投票）' : `／${peaks}组高点`}`;
+      const zone = row.entry_rule?.policy === 'GOLDEN_RESONANCE_CROSSDAY_V4'
+        ? (b.observable ? ` · 观察${number(b.lower,4)}—${number(b.zone_upper,4)}` : ' · 历史参考，未满足本轮低位观察门') : '';
+      return `${number(b.lower,4)}—${number(b.upper,4)} · ${count}源${peaks === 1 ? '（共享高点，非独立投票）' : `／${peaks}组高点`}${zone}`;
     }).join('\n') || '暂无两源共振带；单档不冒充共振';
   }
   const gateNames = {VOLUME_GATE_NOT_PASSED:'量能组合未过门',RISE_NOT_ABOVE_15PCT:'前波涨幅未超15%',
@@ -109,10 +112,10 @@
       const cells = [manual ? `人工${row.rank}` : row.rank, `${row.code} ${row.name || ''}\n${({A_SDP:'一段强势回调', SECOND_PULLBACK:'二段回踩', B_LVB:'低位稳量底部'})[row.setup] || row.setup || '形态未登记'}`,
         number(row.reference_price), zone ? `${number(zone.zone_lower)} — ${number(zone.zone_upper)}` : '暂无合格区域',
         resonanceText(row),
-        zone ? zone.zone_sources.map(s => ({MA20:'MA20',BOLL_L:'BOLL下轨',PREV_LOW:'前日低点',PREVIOUS_DAY_F618:'前日0.618（等待完整触发）',P_FROZEN_GOLDEN_LADDER:goldenLabel(row)}[s] || s)).join(' + ') : '—',
+        zone ? zone.zone_sources.map(s => ({MA20:'MA20',BOLL_L:'BOLL下轨',PREV_LOW:'前日低点',PREVIOUS_DAY_F618:'前日0.618（等待完整触发）',P_FROZEN_GOLDEN_LADDER:goldenLabel(row),V4_LOW_RESONANCE_PLUS_ATR:goldenLabel(row)}[s] || s)).join(' + ') : '—',
         number(row.distance_atr), number(row.rsi14, 1), live ?
           `现价 ${number(live.price)} · ${statuses[live.status] || live.status}\n${alert ? delivery[alert.delivery] || alert.delivery : live.time || ''}` :
-          row.status === 'GOLDEN_PLAN_READY' ? '黄金计划已登记，等待次日完成5分条件' : row.status === 'REFERENCE_ONLY' ? (state.stale ? '过期参考，不提醒' : '关注区域已登记') : '数据 / 区域不可用'];
+          row.status === 'GOLDEN_PLAN_READY' ? '黄金计划已登记，等待次日完成5分条件' : row.status === 'WAIT_RESONANCE_ZONE' ? '候选分数保留；暂无合格低位共振观察区，不自动触发' : row.status === 'REFERENCE_ONLY' ? (state.stale ? '过期参考，不提醒' : '关注区域已登记') : '数据 / 区域不可用'];
       if (manual) cells[cells.length-1] = `未过门：${(row.failed_gates || []).map(k=>gateNames[k] || k).join('；')}\n参考分 ${number(row.selection_score,6)}；不自动触发`;
       for (const value of cells) tr.insertCell().textContent = String(value ?? '—');
     }

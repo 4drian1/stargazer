@@ -1,0 +1,13 @@
+{
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\auxiliary_120m_fixed_fit_20261018_v1\\lightgbm_model.txt.gz": "e589ea52c60c1a14344b50b871c49d8476b0c0c1779f192fe368d26f90972f8f",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\auxiliary_120m_fixed_fit_20261018_v1\\lightgbm_preprocessing.json": "42e902b862109147b0f6e744c4ae37e2df23569d8ecb366e4059b39a6f66b201",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\common_candidate_fixed_fit_20261019_v1\\lightgbm_model.txt.gz": "45672661d8bda9f15e2105f573866a890ebd04bc37f9c8188675ffb4759e7e13",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\common_candidate_fixed_fit_20261019_v1\\lightgbm_preprocessing.json": "25abea5a0458ceeb77b20d4ecf5325bdb1a432ea34aa1f800404241cb9d6f65f",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\rebuild_features_v1.py": "0bc151f3bed470b494ab2f65d5f14a055c0aff2e668bcb05f748ca61f7fcbf80",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\rebuild_features_v2.py": "0830093cf62cdeec3b1262b0f062e995d49b554c224ae5ea96b8f1aa792e3571",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\rebuild_features_v3.py": "dfb2a7c3b661d15a0130d1d015b997dfc43e4fd85590d1ea2cdfd88e56828913",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\joint_shadow_service_v1.py": "b2de56b43dfc9694fee1f314601992169f6d4252963b124f49a295addc5ad304",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\round_a_v0_1_impl_fix\\rolling_lr_v2_predictions.parquet": "8e4f9fa8be8e86d2bc3b04c8d90d8a0794141e7bdbbdee9c8acb9128eb0efdd1",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\round_a_v0_1_impl_fix\\full_master_table_v2.parquet": "bef9923e7f9f525ca504fea6e6febf8cdeaaee6eb573a054ef736aac89830014",
+ "D:\\stargazer\\stargazer_ml\\v5_hybrid\\green_common_profile\\round_a_v0_1_impl_fix\\full_intraday_replay_v2.parquet": "0cbeba73bc55cc069445cb7a42555771f7f87a63a3687e0edf2d260c31e704ed"
+}

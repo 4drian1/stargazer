@@ -1,0 +1,29 @@
+{
+  "status": "USER_AUTHORIZED_SINGLE_EXPLORATORY_FIT_PREREGISTERED",
+  "target": "candidate_cash_return H3, continuous net capital-return ratio under initial-node research policy",
+  "scope": "No Pyxis approval, no lower-node migration, no source requests, no production replacement",
+  "population": "Fixed6050 candidate keys; fit only479 known2025H1 H3 endpoints before20250701000000; unknown retained in evaluation denominator",
+  "features": "Same24 frozen continuous P features, no stage bonus, future states or old scores",
+  "pipeline": {
+    "imputer": "SimpleImputer median keep_empty_features=True, fitted on train only",
+    "scaler": "StandardScaler fitted on train only",
+    "regressor": "Ridge alpha=10.0 solver=svd fit_intercept=True",
+    "sample_weights": "Equal candidate rows",
+    "justification": "Fixed regularized linear continuous-return baseline; alpha10 chosen before fit for shrinkage with24 features and479 rows, not validated optimum",
+    "target_clipping": false,
+    "score_clipping": false,
+    "model_fit_count": 1,
+    "parameter_search": false
+  },
+  "evaluation": "2025H1 in-sample description;2025H2 sequential development validation;2026 coverage-biased stress; neither is fresh untouched holdout",
+  "ranking": "Rank full daily universe before observing labels; min(5,N), deterministic code tie, no backfill. H3 primary/H5 auxiliary reuse SAME score, no H5 model",
+  "primary_comparison": "2025H2 N>5 days where all candidate cash targets known; paired mean daily top5 vs same-day pool and frozen old scores",
+  "uncertainty": "2000 circular moving-block bootstrap draws, blocks of5 ordered evaluable dates, seed20261023; exploratory95percent interval, not full-market significance or correction for missingness",
+  "research_gate": "Positive mean H3 uplift vs pool AND old; lower95percent paired-uplift intervals above0 for both; daily H3 q05 no worse than both; all2025H2 top5 known-label fraction no lower than old. Every gate reported separately; no automatic deployment even if all pass",
+  "subgroups": "A/SECOND attribution and monthly results, no subgroup refit or subgroup score adjustment",
+  "failure_policy": "Retain single result, no retries with alternative alpha/model/threshold/samples; estimator checkpoint prevents second fit",
+  "limits": {"phase_bytes": 2097152, "fit_bytes": 33554432, "joint_bytes": 5368709120, "memory_bytes": 2147483648},
+  "http_count": 0,
+  "paid_count": 0,
+  "production_changes": 0
+}

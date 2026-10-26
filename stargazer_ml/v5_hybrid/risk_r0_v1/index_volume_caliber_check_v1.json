@@ -1,0 +1,207 @@
+{
+  "mirror": "D:\\stargazer\\stargazer_ml\\v5_hybrid\\risk_r0_v1\\index_minutes_v1",
+  "symbols": {
+    "000001.SH": {
+      "bars": 21744,
+      "days": 453,
+      "first_day": 20241209,
+      "last_day": 20261023,
+      "last_day_amount_sum": 898666881536.0,
+      "last_day_volume_sum": 8986666395.0,
+      "last_day_close": 3690.47998046875,
+      "daily_ratio_median": 100.00002762738636,
+      "daily_ratio_min": 100.00001304389473,
+      "daily_ratio_max": 100.00006139091822,
+      "vwap_if_volume_is_shares": 100.00002762738636,
+      "vwap_if_volume_is_lots": 1.0000002762738636,
+      "within_day_ratio_cv_median": 1.4891752584015724e-07,
+      "ratio_jumps_ge_20pct": [],
+      "ratio_jumps_count": 0,
+      "last_10_days": [
+        {
+          "day": 20261012,
+          "amount_sum": 714909905408.0,
+          "volume_sum": 7149096723.0,
+          "ratio": 100.00003260663676,
+          "bars": 48,
+          "close": 3797.239990234375
+        },
+        {
+          "day": 20261013,
+          "amount_sum": 779302284288.0,
+          "volume_sum": 7793020488.0,
+          "ratio": 100.0000302178084,
+          "bars": 48,
+          "close": 3800.860107421875
+        },
+        {
+          "day": 20261014,
+          "amount_sum": 662491839488.0,
+          "volume_sum": 6624915988.0,
+          "ratio": 100.00003633072487,
+          "bars": 48,
+          "close": 3767.22998046875
+        },
+        {
+          "day": 20261015,
+          "amount_sum": 774391971328.0,
+          "volume_sum": 7743917375.0,
+          "ratio": 100.00003019505357,
+          "bars": 48,
+          "close": 3707.47998046875
+        },
+        {
+          "day": 20261016,
+          "amount_sum": 732475183104.0,
+          "volume_sum": 7324749577.0,
+          "ratio": 100.00003077292918,
+          "bars": 48,
+          "close": 3716.280029296875
+        },
+        {
+          "day": 20261019,
+          "amount_sum": 687009717760.0,
+          "volume_sum": 6870094865.0,
+          "ratio": 100.00003366183503,
+          "bars": 48,
+          "close": 3730.919921875
+        },
+        {
+          "day": 20261020,
+          "amount_sum": 699969744896.0,
+          "volume_sum": 6999695187.0,
+          "ratio": 100.00003231512144,
+          "bars": 48,
+          "close": 3735.3701171875
+        },
+        {
+          "day": 20261021,
+          "amount_sum": 642751555584.0,
+          "volume_sum": 6427513243.0,
+          "ratio": 100.00003598343423,
+          "bars": 48,
+          "close": 3713.030029296875
+        },
+        {
+          "day": 20261022,
+          "amount_sum": 706095644160.0,
+          "volume_sum": 7060954153.0,
+          "ratio": 100.00003241205013,
+          "bars": 48,
+          "close": 3658.030029296875
+        },
+        {
+          "day": 20261023,
+          "amount_sum": 898666881536.0,
+          "volume_sum": 8986666395.0,
+          "ratio": 100.00002693279013,
+          "bars": 48,
+          "close": 3690.47998046875
+        }
+      ]
+    },
+    "399006.SZ": {
+      "bars": 21744,
+      "days": 453,
+      "first_day": 20241209,
+      "last_day": 20261023,
+      "last_day_amount_sum": 536851087360.0,
+      "last_day_volume_sum": 5368508591.0,
+      "last_day_close": 2684.10009765625,
+      "daily_ratio_median": 100.00004370882904,
+      "daily_ratio_min": 100.00001945626468,
+      "daily_ratio_max": 100.00009662222193,
+      "vwap_if_volume_is_shares": 100.00004370882904,
+      "vwap_if_volume_is_lots": 1.0000004370882905,
+      "within_day_ratio_cv_median": 2.3014821088836985e-07,
+      "ratio_jumps_ge_20pct": [],
+      "ratio_jumps_count": 0,
+      "last_10_days": [
+        {
+          "day": 20261012,
+          "amount_sum": 394480222208.0,
+          "volume_sum": 3944799909.0,
+          "ratio": 100.00005863618063,
+          "bars": 48,
+          "close": 2963.820068359375
+        },
+        {
+          "day": 20261013,
+          "amount_sum": 452004282368.0,
+          "volume_sum": 4520040568.0,
+          "ratio": 100.00004990397687,
+          "bars": 48,
+          "close": 2958.340087890625
+        },
+        {
+          "day": 20261014,
+          "amount_sum": 361941893120.0,
+          "volume_sum": 3619416677.0,
+          "ratio": 100.0000622807541,
+          "bars": 48,
+          "close": 2866.760009765625
+        },
+        {
+          "day": 20261015,
+          "amount_sum": 417050787840.0,
+          "volume_sum": 4170505606.0,
+          "ratio": 100.00005448739829,
+          "bars": 48,
+          "close": 2783.169921875
+        },
+        {
+          "day": 20261016,
+          "amount_sum": 396225937408.0,
+          "volume_sum": 3962257117.0,
+          "ratio": 100.00005696450113,
+          "bars": 48,
+          "close": 2772.3798828125
+        },
+        {
+          "day": 20261019,
+          "amount_sum": 358375194624.0,
+          "volume_sum": 3583749655.0,
+          "ratio": 100.00006393415335,
+          "bars": 48,
+          "close": 2746.2900390625
+        },
+        {
+          "day": 20261020,
+          "amount_sum": 376451301376.0,
+          "volume_sum": 3764510762.0,
+          "ratio": 100.00005981547517,
+          "bars": 48,
+          "close": 2739.199951171875
+        },
+        {
+          "day": 20261021,
+          "amount_sum": 399853617152.0,
+          "volume_sum": 3998533910.0,
+          "ratio": 100.00005655873005,
+          "bars": 48,
+          "close": 2694.7099609375
+        },
+        {
+          "day": 20261022,
+          "amount_sum": 406179348480.0,
+          "volume_sum": 4061791185.0,
+          "ratio": 100.00005662034052,
+          "bars": 48,
+          "close": 2576.89990234375
+        },
+        {
+          "day": 20261023,
+          "amount_sum": 536851087360.0,
+          "volume_sum": 5368508591.0,
+          "ratio": 100.0000425183263,
+          "bars": 48,
+          "close": 2684.10009765625
+        }
+      ]
+    }
+  },
+  "unit_invariant_cross_check": {
+    "cyb_over_sse_ratio": 1.0000001608143825,
+    "note": "same under either unit hypothesis (a constant factor cancels); 创业板 average price should exceed 主板 average price"
+  }
+}

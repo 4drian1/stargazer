@@ -1,0 +1,9 @@
+{
+  "status": "PASS_SAVED_AUXILIARY_REGRESSION_REPLAY_NOT_PROMOTION",
+  "predictions_checked": 172638,
+  "output_bytes": 1179598,
+  "registered_bytes": 4291484359,
+  "cap": 4294967296,
+  "http_requests": 0,
+  "deployed": false
+}

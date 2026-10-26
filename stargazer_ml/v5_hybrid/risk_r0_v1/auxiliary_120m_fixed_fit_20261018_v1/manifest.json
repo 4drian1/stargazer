@@ -1,0 +1,32 @@
+{
+  "outputs": {
+    "plan.json": {
+      "bytes": 33623,
+      "sha256": "23a696dcfc5e22c458b38102f1621d82591cfded4b1a52bc1ac3705919ab9ad2"
+    },
+    "ridge_preprocessing.json": {
+      "bytes": 24013,
+      "sha256": "42e902b862109147b0f6e744c4ae37e2df23569d8ecb366e4059b39a6f66b201"
+    },
+    "ridge_model.json": {
+      "bytes": 9515,
+      "sha256": "ca8cb3b0d22cf3e8f1c09ecd3323a82aa5afebd14cc5d10d9b5d6c5a1606fe57"
+    },
+    "lightgbm_preprocessing.json": {
+      "bytes": 24013,
+      "sha256": "42e902b862109147b0f6e744c4ae37e2df23569d8ecb366e4059b39a6f66b201"
+    },
+    "lightgbm_model.txt.gz": {
+      "bytes": 19360,
+      "sha256": "e589ea52c60c1a14344b50b871c49d8476b0c0c1779f192fe368d26f90972f8f"
+    },
+    "predictions.parquet": {
+      "bytes": 1008820,
+      "sha256": "76fc2db8fae889a939f35b8eb68a84bae2ece10fcaafa78d0a73b86aeebcb890"
+    },
+    "report.json": {
+      "bytes": 59123,
+      "sha256": "1f40df6b44e2dc3bb9bc206069d610eed7c67d5eba5f407cbc0c43eb86890cd0"
+    }
+  }
+}
