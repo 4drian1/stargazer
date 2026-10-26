@@ -200,11 +200,15 @@ class ShellTests(unittest.TestCase):
     def test_navigation_retirement_and_holdings_controls(self):
         from bs4 import BeautifulSoup
         html = BeautifulSoup(Path(__file__).with_name('web').joinpath('index.html').read_text(encoding='utf-8'), 'html.parser')
-        self.assertEqual([b.get('data-page') for b in html.select('#mainNav .nav-item')], ['monitor','pentacles','chat','context'])
+        # Stargazer 1.0 UI 框架：星币侍从/信息与风险页签下线，新增交易计划页签
+        self.assertEqual([b.get('data-page') for b in html.select('#mainNav .nav-item')], ['monitor','planTrade','chat'])
         self.assertIsNone(html.find(id='pmSaveBtn'))
-        for identifier in ('addPosBtn','addWatchBtn','addTradeBtn','swSaveBtn','pentaclesLearning'):
+        for identifier in ('addPosBtn','addWatchBtn','addTradeBtn','pentaclesLearning','planTradeDraft','infoFeedBar'):
             self.assertIsNotNone(html.find(id=identifier))
-        self.assertTrue(html.find(id='pagePlan').has_attr('hidden'))
+        # 自由输入板块框随"信息与风险"页下线；旧 T5 双名单页移除（路由保留 410）
+        self.assertIsNone(html.find(id='swSaveBtn'))
+        self.assertIsNone(html.find(id='pagePlan'))
+        self.assertIsNotNone(html.find(id='pagePlanTrade'))
         self.assertIsNotNone(html.find(id='pageMonitor').find(id='overviewPositions'))
 
     def test_legacy_mutation_routes_refuse_without_touching_services(self):

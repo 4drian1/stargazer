@@ -33,35 +33,32 @@ def load_system_prompt(cfg):
             p = os.path.join(RES_DIR, cfg["agent"].get("strategy_file", "STRATEGY.md"))
     with open(p, encoding="utf-8") as f:
         handbook = f.read()
-    return ("你是 Stargazer，一个 A 股交易助手。以下是你的完整交易模型手册，是你的行为准则与知识体系，"
-            "所有判断必须严格遵守手册纪律（四层漏斗、三层止损、轮动五阶段、回调框架、风险旗标）。\n"
-            "工作规则：\n"
-            "1. 需要数据时调用工具，不要凭记忆报价；工具返回的数据是事实，你的解读是判断，两者要区分。\n"
-            "2. 交付完整筛选路径：最终名单+被剔除者+剔除原因；标注哪些是硬数据、哪些是主观判断。\n"
-            "3. 不替用户做仓位决定，不给保本承诺；止损止盈信号严格按手册执行，不含糊。\n"
-            "4. 回答用中文，简洁直接，先说结论。\n"
-            "5. 用户问新闻、美股、晨报、'今天怎么看'这类问题时，必须先调 us_market / news_digest / market_flow "
-            "拿到数据再分析，分析要落到对持仓和观察名单的具体影响上，不要只罗列消息。\n"
-            "6. 需要求证题材真伪（照妖镜）、找投行/券商研报观点、查公司公告或海外深度消息时，用 research_search；"
-            "news_digest 只是快讯流，两者互补。\n"
-            "7. 分析大盘/盘面/情绪时必须先调 market_overview；分析某个板块强不强时必须先调 sector_detail 看龙头和广度，"
-            "需要龙头个股细节再调 stock_check。数据不够就明说缺什么，不要凭印象编盘面。\n"
-            "8. 用户问龙虎榜、主力资金在哪打架时调 lhb_today；分析连板股/涨停股的接力环境、"
-            "或想知道某只异动股是谁在买（机构/游资/北向/散户）时调 lhb_stock 看席位。"
-            "龙虎榜是T日傍晚发布的数据，盘中查到的都是上一交易日，回答时说明数据日期。\n"
-            "9. 解读任何板块新闻/题材消息时必须做7天回溯：用 research_search（days=7）查同一板块近7天内"
-            "是否已有过同类消息，并说明当时市场的实际反应（涨没涨、谁涨了、持续性如何）。"
-            "结论要区分：'首次出现的新催化'与'7天内已炒过的旧消息'，后者要提示边际效应递减。\n"
-            "10. 分析个股是否值得建仓时必须输出「标签性感度评分卡」：时效性(消息是否新鲜)0-5分、"
-            "映射度(公司业务与题材的真实关联)0-5分、稀缺性(A股标的是否稀缺)0-5分，"
-            "三项合计<10分时明确提示'标签不够性感，按纪律不建议建仓'。\n"
-            "11. 用户明确说明自己买入或卖出了某只股票（例如'我按策略买了安彩高科'、'今天清仓了XX'、'加仓YY到半仓'）时，"
-            "必须调用 record_trade 工具把真实成交记入交易数据库（这是用户日后回测验证的依据），并在回复里向用户确认已记录、"
-            "不要只口头答应。记录要准确：区分买/卖、填对代码名称与成交价；用户没说日期默认今天，没说股数可不填。\n\n"
-            "==== 手册全文 ====\n" + handbook)
+    return ("你是 Stargazer，默认用中文自然对话。普通问题直接回答，不套选股或计划模板。"
+            "需要当前计划、持仓、行情、新闻或模型事实时先调用对应只读工具；标明数据日期，区分事实、解释和未知，不凭记忆编实时数据。"
+            "用户明确要求Tarot/Pyxis/星币侍从模型分析时才调用模型工具；旧绑定结果必须说明不是本次新推理，"
+            "池外工具若返回on_demand.selection且quality_state=OK，可解释本次冻结选股头研究分数，但不能说它已进入正式候选。"
+            "on_demand.risk为NOT_COMPUTED时，Pyxis仍未知，不能把选股分数说成风险。"
+            "无同规格输入时保持未知。Pyxis输出是未来120交易分钟不利下探幅度，不是概率或整个次日方向。"
+            "交易计划的生成、修改、确认走独立流程；本对话不得修改已确认计划、提醒或自动下单。"
+            "询问持仓买卖时，先读真实持仓和check_portfolio风控证据，再讨论条件与不确定性；取数失败时说明未知，不替用户决定。"
+            "用户明确报告已成交且给出足够成交信息时，可按原记录规则调用record_trade。"
+            "以下交易手册仅用于相关交易问题，不约束闲聊的答复格式。\n==== 手册全文 ====\n" + handbook)
 
 
 TOOLS = [
+    {"type": "function", "function": {
+        "name": "confirmed_plan", "description": "只读已确认交易计划和股票/板块条件；不生成或修改草案。",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "portfolio_positions", "description": "只读本地真实持仓；不含最新价格，行情需要另查。",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "model_stock_analysis", "description": "查询个股真实Tarot/Pyxis同日绑定模型输出与风险上下文；未覆盖明确报告，零取数/不重训/不修改计划。个股分析优先调用。",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string", "description": "六位A股代码"}}, "required": ["code"]}}},
+    {"type": "function", "function": {
+        "name": "model_stock_inference", "description": "明确要求模型分析时调用。已绑定则读同日证据；池外仅尝试单股冻结选股头新推理，Pyxis缺完整板块分钟上下文时保持未知；不修改计划。",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string", "description": "六位A股代码"},
+            "model": {"type": "string", "enum": ["tarot", "pyxis", "both"], "description": "用户指定的模型；未指定时both"}}, "required": ["code"]}}},
     {"type": "function", "function": {
         "name": "scan_sector",
         "description": "对指定板块跑妖股胚子四层漏斗扫描(技术三层+吸筹信号+v2.3因子)。耗时约1-3分钟。默认排除ST股。",
@@ -178,7 +175,9 @@ class Brain:
         self.max_rounds = self.cfg["agent"].get("max_tool_rounds", 6)
 
     def _dispatch(self, name, args):
-        fn = {"scan_sector": services.scan_sector, "score_stocks": services.score_stocks,
+        fn = {"model_stock_analysis": services.model_stock_analysis,
+              "model_stock_inference": services.model_stock_inference,
+              "scan_sector": services.scan_sector, "score_stocks": services.score_stocks,
               "stock_check": services.stock_check, "market_flow": services.market_flow,
               "news_digest": services.news_digest, "wl_add_watch": services.wl_add_watch,
               "us_market": services.us_market,
@@ -189,6 +188,10 @@ class Brain:
               "wl_remove": services.wl_remove}.get(name)
         if name == "research_search":
             return services.research_search(self.cfg, **args)
+        if name == "confirmed_plan":
+            return services.confirmed_plan()
+        if name == "portfolio_positions":
+            return services.portfolio_positions(self.cfg)
         if name == "check_portfolio":
             return services.check_portfolio(self.cfg)
         if name == "wl_add_position":
@@ -203,24 +206,76 @@ class Brain:
 
     def chat(self, user_input, on_tool=None):
         import chat_archive
+        import re
+        from conversation_intent import asks_for_model, asks_for_plan, asks_for_portfolio, asks_for_portfolio_risk, model_scope
         from assistant_context import bounded_messages
         self.messages.append({"role": "user", "content": user_input})
         chat_archive.append(self.archive, [self.messages[-1]])
+        # Ordinary stock discussion does not silently become a model request.
+        from assistant_workflow import requested_analysis_codes
+        prefetched = {}
+        codes = requested_analysis_codes(user_input) if asks_for_model(user_input) else []
+        scope = model_scope(user_input)
+        if codes:
+            calls = [{'id': f'bound-model-{len(self.messages)}-{code}', 'type': 'function',
+                      'function': {'name': 'model_stock_inference', 'arguments': json.dumps({'code': code, 'model': scope})}}
+                     for code in codes]
+            self.messages.append({'role': 'assistant', 'tool_calls': calls})
+            chat_archive.append(self.archive, [self.messages[-1]])
+            for code, call in zip(codes, calls):
+                if on_tool:
+                    on_tool('model_stock_inference', {'code': code, 'model': scope})
+                try:
+                    result = self._dispatch('model_stock_inference', {'code': code, 'model': scope})
+                except Exception as exc:
+                    result = {'code': code, 'status': 'UNAVAILABLE', 'reason': type(exc).__name__}
+                prefetched[(code, scope)] = result
+                self.messages.append({'role': 'tool', 'tool_call_id': call['id'],
+                                      'content': chat_archive.tool_content(result, self.archive)})
+                chat_archive.append(self.archive, [self.messages[-1]])
+        for name, wanted in (('confirmed_plan', asks_for_plan(user_input)),
+                             ('portfolio_positions', asks_for_portfolio(user_input)),
+                             ('check_portfolio', asks_for_portfolio_risk(user_input))):
+            if not wanted:
+                continue
+            call = {'id': f'local-{len(self.messages)}-{name}', 'type': 'function',
+                    'function': {'name': name, 'arguments': '{}'}}
+            self.messages.append({'role': 'assistant', 'tool_calls': [call]})
+            chat_archive.append(self.archive, [self.messages[-1]])
+            if on_tool:
+                on_tool(name, {})
+            try:
+                result = self._dispatch(name, {})
+            except Exception as exc:
+                result = {'status': 'UNAVAILABLE', 'reason': type(exc).__name__}
+            self.messages.append({'role': 'tool', 'tool_call_id': call['id'],
+                                  'content': chat_archive.tool_content(result, self.archive)})
+            chat_archive.append(self.archive, [self.messages[-1]])
         from deepseek_api import complete
         for _ in range(self.max_rounds):
-            active_tools = [t for t in TOOLS if t['function']['name'] not in ('scan_sector', 'score_stocks')]
+            watch_edit = bool(re.search(r'加入观察名单|添加观察|登记持仓|移除观察|删除观察', user_input))
+            trade_report = bool(re.search(r'成交|买入了|卖出了|清仓了|我买了|我卖了', user_input))
+            active_tools = [t for t in TOOLS if t['function']['name'] not in
+                            ('scan_sector', 'score_stocks', 'model_stock_analysis')
+                            and (asks_for_model(user_input) or t['function']['name'] != 'model_stock_inference')
+                            and (watch_edit or t['function']['name'] not in
+                                 ('wl_add_watch', 'wl_add_position', 'wl_remove'))
+                            and (trade_report or t['function']['name'] != 'record_trade')]
             rsp = complete(self.cfg, bounded_messages(self.messages[:1], self.messages[1:]), tools=active_tools)
             msg = rsp.choices[0].message
             self.messages.append(msg.model_dump(exclude_none=True))
             chat_archive.append(self.archive, [self.messages[-1]])
             if not msg.tool_calls:
-                return msg.content
+                return (msg.content or '').strip() or 'DeepSeek本次未返回正文；没有自动重试，也没有修改计划。'
             for tc in msg.tool_calls:
                 args = json.loads(tc.function.arguments or "{}")
                 if on_tool:
                     on_tool(tc.function.name, args)
                 try:
-                    result = self._dispatch(tc.function.name, args)
+                    if tc.function.name == 'model_stock_inference' and (args.get('code'), args.get('model', 'both')) in prefetched:
+                        result = prefetched[(args['code'], args.get('model', 'both'))]
+                    else:
+                        result = self._dispatch(tc.function.name, args)
                 except Exception as e:
                     result = {"error": f"工具执行失败: {e}"}
                 self.messages.append({"role": "tool", "tool_call_id": tc.id,

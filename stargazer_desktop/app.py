@@ -6,6 +6,16 @@ import sys
 import time
 import urllib.request
 
+if getattr(sys, 'frozen', False):
+    import os
+    from pathlib import Path
+    temporary = Path(sys.executable).parent/'data/postclose_risk/tmp'
+    temporary.mkdir(parents=True, exist_ok=True)
+    os.environ['TEMP'] = os.environ['TMP'] = str(temporary)
+    os.environ['MPLCONFIGDIR'] = str(temporary/'matplotlib')
+    os.environ['PYTHONPYCACHEPREFIX'] = str(temporary/'bytecode')
+    os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
 import server
 
 
@@ -21,6 +31,37 @@ def wait_ready(port, timeout=15):
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == '--self-check':
+        import json
+        from pathlib import Path
+        import paths
+        import shadow_ui
+        import trade_plan_v1
+        import shadow_journal
+        import oracles_v1
+        import decision_layer
+        import index_minutes_v1
+        import assistant_workflow
+        import plan_evidence
+        import postclose_risk_runtime
+        client = server.app.test_client()
+        result = dict(
+            frozen=paths.FROZEN, app_dir=paths.APP_DIR,
+            page_ok=client.get('/').status_code == 200,
+            catalog=client.get('/api/shadow_evidence').get_json(),
+            missing=client.get('/api/shadow_evidence?code=000000&date=20260908').get_json(),
+            index_status=client.get('/api/index_freshness').get_json(),
+            index_source_updater_available=callable(index_minutes_v1._load_updater().parse_lc5),
+            packs_path=str(shadow_ui.PACKS_FILE),
+            plan_path=str(trade_plan_v1.TRADE_PLAN_FILE),
+            journal_path=str(shadow_journal.JOURNAL),
+            paid_calls=0, monitor_started=False)
+        current_snapshot = assistant_workflow.snapshot()
+        result['current_plan_evidence'] = plan_evidence.status(current_snapshot)
+        result['postclose_rebuild_required'] = postclose_risk_runtime.needs_rebuild(current_snapshot)
+        with Path(sys.argv[2]).open('x', encoding='utf-8') as stream:
+            json.dump(result, stream, ensure_ascii=False, indent=2)
+        return
     port = server.start()
     url = f"http://127.0.0.1:{port}/"
     if not wait_ready(port):

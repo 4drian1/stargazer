@@ -96,14 +96,16 @@ def _validate_raw(payload: dict, symbol: str) -> list:
 
 
 def _default_transport(url: str, timeout: float, read_cap: int) -> bytes:
-    """限量读取（最多 read_cap 字节，多读即抛 ByteBudgetExceeded）+ 禁重定向。"""
+    """Strict body-read cap. At-limit responses are not certified complete."""
     opener = urllib.request.build_opener(
         urllib.request.ProxyHandler({}), _NoRedirect())
     req = urllib.request.Request(url, headers={'Accept': 'application/json'})
     with opener.open(req, timeout=timeout) as resp:
-        data = resp.read(read_cap + 1)
-    if len(data) > read_cap:
-        raise ByteBudgetExceeded(f'响应超过剩余字节预算（>{read_cap} B 未读完即弃）')
+        data = resp.read(read_cap)
+    if len(data) >= read_cap:
+        exc = ByteBudgetExceeded('响应到达剩余读取限额，完整性未证，停止且不再多读探针字节')
+        exc.received_bytes = data
+        raise exc
     return data
 
 
@@ -124,6 +126,7 @@ class TencentDailyClient:
         self._last_ts = 0.0
         self.disk = disk_counter  # 提供时才落盘留证
         self._seq = 0
+        self.received_total = 0  # Actual received body bytes, including rejected/failed responses.
         self._run_dir = None      # 每次进程一个独占运行目录，重启不覆盖旧证据
 
     def fetch_raw_daily(self, code6: str, start: str, end: str, *,
@@ -136,12 +139,16 @@ class TencentDailyClient:
         attempt_cap = 0 if smoke else self.max_retries
         attempt = 0
         while True:
+            if self.bytes.remaining <= 0:
+                raise ByteBudgetExceeded('响应预算已用尽，拒绝发起下一请求')
+            raw = b''
             self.counter.consume(1)
             self._throttle()
             fetched_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
             try:
                 read_cap = max(self.bytes.remaining, 0)
                 raw = self._transport(url, self.timeout_s, read_cap)
+                self.received_total += len(raw)
                 self.bytes.consume(len(raw))          # 含将被拒收的响应
                 rows = _validate_raw(json.loads(raw.decode('utf-8')), symbol)
                 self._archive(archive_dir, symbol, param, url, fetched_at, raw, 'ok')
@@ -152,10 +159,18 @@ class TencentDailyClient:
                               locals().get('raw', b''), f'rejected:{type(exc).__name__}')
                 raise
             except (FetchBudgetExceeded, ByteBudgetExceeded,
-                    RedirectRefused):
+                    RedirectRefused) as exc:
+                partial = getattr(exc, 'received_bytes', b'')
+                if partial:
+                    raw = partial
+                    self.received_total += len(partial)
+                    self.bytes.consume(len(partial))
+                # A raw response may not fit disk. Preserve this fact rather than claiming archival.
+                self.last_failed_response = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),
+                                             'archive_status': 'NOT_ARCHIVED_BUDGET_OR_REDIRECT'}
                 raise                              # 预算/重定向：即停不重试
             except Exception as exc:
-                self._archive(archive_dir, symbol, param, url, fetched_at, b'',
+                self._archive(archive_dir, symbol, param, url, fetched_at, raw,
                               f'error:{type(exc).__name__}')
                 attempt += 1
                 if attempt > attempt_cap:

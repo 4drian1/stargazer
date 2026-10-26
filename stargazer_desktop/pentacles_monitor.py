@@ -22,6 +22,10 @@ def session(now):
     return now.weekday() < 5 and (930 <= hm < 1130 or 1300 <= hm < 1500)
 
 
+def risk_session(now):
+    return session(now) or (now.weekday()<5 and ((now.hour==11 and 30<=now.minute<=36) or (now.hour==15 and now.minute<=6)))
+
+
 def check_quote(row, quote, now):
     """Return a quality reason; snapshot close and live previous close must agree."""
     try:
@@ -38,6 +42,40 @@ def check_quote(row, quote, now):
         return None
     except (KeyError, TypeError, ValueError):
         return 'QUOTE_OR_ZONE_UNKNOWN'
+
+
+def observation_reviews(plan, quotes, now, alerts):
+    """Quote touches are notifications, never execution confirmations."""
+    if int(plan['monitor_date']) != int(now.strftime('%Y%m%d')) or not session(now):
+        return []
+    from golden_rules import digest
+    reviews = []
+    for row in plan.get('rows', []):
+        levels = (row.get('entry_rule') or {}).get('levels') or []
+        if not levels:
+            continue
+        quote = quotes.get(row['code']) or {}
+        basis = dict(row, zone=dict(zone_lower=min(levels), zone_upper=max(levels)))
+        if check_quote(basis, quote, now):
+            continue
+        price = float(quote['price'])
+        try:
+            low = float(quote.get('low', price))
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(low) or not 0 < low <= price:
+            continue
+        prefix = f"touch:{digest(plan)}:{now:%Y%m%d}:{row['code']}:"
+        reached = [v for v in levels if low <= v and 'tarot-v2:'+prefix+str(v) not in alerts]
+        if not reached:
+            continue
+        reviews.append(dict(status='ADVICE_READY', decision='OBSERVE', code=row['code'],
+            cutoff=int(quote['time']), event_id=prefix+str(min(reached)),
+            covered_event_ids=[prefix+str(v) for v in reached], action='观察位已到达，请查看原因',
+            reason=f"截至本次报价，日内最低 {low:.4f}，已到达或跌破计划观察档 "+
+                '、'.join(f'{v:.4f}' for v in reached)+f"；当前报价 {price:.4f}。\n"
+                '这是价格到位提醒，尚不代表止跌或买入条件成立；等待完整5分钟K线、风险及AI意见，结果另行推送。'))
+    return reviews
 
 
 class PriceMonitor:
@@ -92,6 +130,8 @@ class PriceMonitor:
             self.journal.record(plan, health, clock() if clock else now)
 
     def _tick(self, plan, cfg, now, quotes, broadcast, send, clock=None):
+        if plan and plan.get('rule_version'):
+            return self._tick_golden(plan, cfg, now, broadcast, send, clock, quotes)
         with self.lock:
             data = self._load()
             self.health = {'status': 'DISABLED', 'message': '次日到价提醒关闭', 'rows': {},
@@ -177,6 +217,165 @@ class PriceMonitor:
                             atomic_json(Path(self.directory()) / 'monitor.json', data)
                             return
             atomic_json(Path(self.directory()) / 'monitor.json', data)
+
+    def _tick_golden(self, plan, cfg, now, broadcast, send, clock, quotes=None):
+        from golden_rules import VERSION
+        if plan.get('rule_version') == 'TAROT_A_SECOND_CASH_V2':
+            return self._tick_tarot_v2(plan, cfg, now, broadcast, send, clock, quotes)
+        today = int(now.strftime('%Y%m%d'))
+        with self.lock:
+            data = self._load()
+            self.health = dict(status='WAITING', rows={}, checked_at=now.isoformat(), message='黄金规则等待有效交易时段')
+            if not data['enabled'] or not plan.get('plan_ready') or plan.get('rule_version') != VERSION:
+                return
+            if not plan.get('assistant_plan_id'):
+                self.health.update(status='WAIT_HUMAN_CONFIRMATION', message='新规则名单尚未人工确认，不启动触发提醒')
+                return
+            if today != int(plan['monitor_date']) or not (session(now) or (now.weekday()<5 and now.hour==15 and now.minute==0)):
+                return
+        import golden_monitor
+        result = golden_monitor.evaluate(plan, now)
+        with self.lock:
+            data = self._load()  # The off switch can change while the worker is running.
+            actual = clock() if clock else now
+            if not data['enabled'] or int(actual.strftime('%Y%m%d')) != today:
+                return
+            current_file = Path(self.directory())/'assistant_plan.json'
+            if current_file.exists():
+                from golden_rules import digest
+                if digest(json.loads(current_file.read_bytes())) != digest(plan):
+                    self.health.update(status='PLAN_CHANGED', message='确认计划已变化，丢弃旧工作进程结果')
+                    return
+            if not (session(actual) or (actual.hour==15 and actual.minute==0)):
+                return
+            self.health.update(status='GOLDEN_MONITORING', message='完成5分K线核验下杀、止跌、背离；不自动买入', rows=result.get('rows',{}))
+            for row in plan['rows']:
+                code = row['code']
+                view = self.health['rows'].get(code, {})
+                if view.get('status') != 'RULE_TRIGGERED':
+                    continue
+                rule = row['entry_rule']
+                key = f'{today}:{code}:{VERSION}:{plan.get("assistant_plan_id", "snapshot")}'
+                alert = data['alerts'].get(key)
+                if alert is None:
+                    title = f'星币侍从 · {code} 黄金规则观察条件成立'
+                    body = (f'{row.get("name", "")} {code}｜前日F618 {rule["f618"]:.4f}\n'
+                            f'完成5分K线：下杀到位、止跌、有效RSI背离。时刻 {view["trigger_time"]}\n'
+                            '请结合Pyxis与板块/领涨股重新人工复核；不是买入建议，不自动下单。')
+                    alert = dict(title=title, body=body, attempts=0, wechat=False, delivery='PENDING', code=code)
+                    data['alerts'][key] = alert
+                    atomic_json(Path(self.directory())/'monitor.json', data)
+                    broadcast(dict(type='push',kind='pentacles_golden',title=title,body=body,wechat=False,time=actual.strftime('%H:%M:%S')))
+                if cfg.get('push',{}).get('enabled') and not alert['wechat'] and alert['attempts'] < 3:
+                    alert['attempts'] += 1
+                    atomic_json(Path(self.directory())/'monitor.json', data)
+                    self.lock.release()
+                    try:
+                        ok, _ = send(cfg,alert['title'],alert['body'])
+                    finally:
+                        self.lock.acquire()
+                    alert.update(wechat=bool(ok),delivery='SENT' if ok else 'FAILED')
+                view['delivery'] = alert['delivery']
+            latest = self._load()
+            data['enabled'] = latest['enabled']
+            atomic_json(Path(self.directory())/'monitor.json', data)
+
+    def _tick_tarot_v2(self, plan, cfg, now, broadcast, send, clock, quotes=None):
+        import tarot_monitor_v2 as monitor
+        with self.lock:
+            self.health = dict(status='WAITING', rows={}, message='等待确认计划和有效交易时段')
+            if not self._load()['enabled'] or not plan.get('plan_ready'):
+                return
+            if not plan.get('assistant_plan_id'):
+                self.health.update(status='WAIT_HUMAN_CONFIRMATION')
+                return
+            if int(now.strftime('%Y%m%d')) < int(plan['monitor_date']) or not risk_session(now):
+                return
+        result = monitor.evaluate(plan, cfg, now)
+        live = {}
+        if quotes and session(now) and int(now.strftime('%Y%m%d')) == int(plan['monitor_date']):
+            try:
+                live = quotes([r['code'] for r in plan.get('rows', [])]) or {}
+            except Exception:
+                pass  # Quote failure must not suppress rule/risk/AI notifications.
+        actual = clock() if clock else now
+        with self.lock:
+            data = self._load()
+            from golden_rules import digest
+            file = Path(self.directory())/'assistant_plan.json'
+            if (not data['enabled'] or not risk_session(actual) or actual.date() != now.date()
+                    or not file.exists() or digest(json.loads(file.read_bytes())) != digest(plan)):
+                return
+            self.health.update(status=result['status'], rows=result.get('rows', {}),
+                               holdings=result.get('holdings', {}), message=result.get('reason', '模型与规则监控；最终由人工决定'))
+            observed=result.get('event_cutoff') or result.get('cutoff')
+            current = observed and monitor.fresh(observed, actual)
+            reviews = observation_reviews(plan, live, actual, data['alerts'])
+            if current:
+                reviews += [v.get('advice', {}) for v in result.get('rows', {}).values()]
+                reviews += list(result.get('holdings', {}).values())
+            from risk_outlook_v1 import latest
+            bulletin=latest('INTRADAY')
+            if bulletin.get('status') in ('READY','AI_FAILED','DATA_WAIT') and bulletin.get('plan_id')==plan.get('assistant_plan_id') and bulletin.get('plan_hash') in (None,digest(plan)) and monitor.fresh(bulletin['asof'],actual):
+                reason=bulletin.get('text') or '本次AI研判失败；本地事实保留，未自动重试：'+str(bulletin.get('reason'))
+                reviews.append(dict(status='ADVICE_READY',decision='REPORT',code='市场巡检',cutoff=bulletin['asof'],reason=reason,bulletin_key=bulletin['key']))
+            for code,row in result.get('rows',{}).items():
+                advice=row.get('advice') or {}
+                waiting={'WAIT_RISK':'同截止风险证据尚不齐，继续等待，不视为安全。',
+                    'AI_ATTEMPT_RESERVED':'风险与AI综合意见正在核验。',
+                    'AI_FAILED':'AI分析失败，本地事实保留；未自动付费重试。',
+                    'AI_LEGACY_UNVERIFIED':'旧解释未通过当前事实校验，不能作为有效建议。',
+                    'ADVICE_EXPIRED':'分析返回时已过期，本次不提供有效交易建议。',
+                    'ENTRY_SESSION_CLOSED':'已结束当日入场时段，不再建议买入。'}
+                if current and row.get('status')=='RULE_TRIGGERED' and advice.get('status') in waiting:
+                    reviews.append(dict(status='ADVICE_READY',decision='OBSERVE',code=code,cutoff=observed,
+                        event_id=f'{digest(plan)}:{code}:{row.get("trigger_time")}:{row.get("node")}:{row.get("branch")}:{advice["status"]}',
+                        action='黄金位确认，风险核验中' if advice['status'] in ('WAIT_RISK','AI_ATTEMPT_RESERVED') else '到位后暂不建议买入，查看原因',
+                        reason='黄金位置价格条件已确认；'+waiting[advice['status']]+str(advice.get('reason') or '')+' 请人工判断。'))
+            for review in reviews:
+                if review.get('status') == 'T1_WAIT':
+                    review=dict(review,status='ADVICE_READY',decision='DEFER')
+                if review.get('status') != 'ADVICE_READY' or review.get('decision') not in ('BUY', 'HOLD', 'EXIT','DEFER','REPORT','OBSERVE') or not monitor.fresh(review.get('cutoff',0),actual):
+                    continue
+                key = 'tarot-v2:' + (review.get('event_id') or digest(review))
+                if key in data['alerts']:
+                    continue
+                code = review['code']
+                action = review.get('action') or {'BUY':'建议考虑买入','HOLD':'建议继续观察持仓','EXIT':'建议减仓或退出','DEFER':'到位后暂缓，查看原因','REPORT':'半小时风险巡检','OBSERVE':'黄金位确认，风险核验中'}[review['decision']]
+                title = f'Stargazer · {code} {action} · 待人工决定'
+                risk=review.get('risk') or {};context=risk.get('context') or {}
+                body=f"观察截止 {review['cutoff']}；{review['reason']}\n请人工决定；程序不下单。"
+                if all(isinstance(context.get(k),(int,float)) for k in ['amp_232','amp_266']):
+                    body+=f"\nPyxis幅度证据截止 {risk.get('asof_ts',review['cutoff'])}：232 {context['amp_232']:.2%} / 266 {context['amp_266']:.2%}，非概率、非保证最大损失。"
+                # Persist delivery intent first, including failed delivery; no automatic paid retry.
+                alert = dict(title=title, body=body, delivery='RECORDED', wechat=False, attempts=0)
+                data['alerts'][key] = alert
+                for covered in review.get('covered_event_ids', []):
+                    if 'tarot-v2:'+covered != key:
+                        data['alerts']['tarot-v2:'+covered] = dict(covered_by=key)
+                atomic_json(Path(self.directory())/'monitor.json', data)
+                if cfg.get('push', {}).get('enabled'):
+                    alert['attempts'] = 1
+                    atomic_json(Path(self.directory())/'monitor.json', data)
+                    self.lock.release()
+                    try:
+                        ok, _ = send(cfg, title, body)
+                    except Exception as exc:
+                        ok = False
+                        alert['delivery_error_type'] = type(exc).__name__
+                    finally:
+                        self.lock.acquire()
+                    alert.update(wechat=bool(ok), delivery='SENT' if ok else 'FAILED',
+                                 wechat_msg='推送服务已接受' if ok else '推送服务未确认成功')
+                    data['enabled'] = self._load()['enabled']
+                else:
+                    alert.update(delivery='DISABLED', wechat_msg='微信推送已关闭')
+                atomic_json(Path(self.directory())/'monitor.json', data)
+                broadcast(dict(type='push', kind='tarot_v2', title=title, body=body,
+                               wechat=alert['wechat'], wechat_msg=alert['wechat_msg'],
+                               delivery=alert['delivery'], time=actual.strftime('%H:%M:%S')))
+                if not data['enabled']:
+                    break
 
     def start(self, get_cfg, get_plan):
         with self.lock:

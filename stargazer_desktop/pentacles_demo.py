@@ -77,7 +77,7 @@ def run(cfg):
     app_dir = Path(paths.APP_DIR)
     root = Path(options['project_root']) if options.get('project_root') else next(
         (parent for parent in app_dir.parents if (parent / 'stargazer_ml').is_dir()), app_dir.parent)
-    script = root / 'stargazer_ml/v5_hybrid/green_common_profile/gcp_demo_snapshot.py'
+    script = root / 'stargazer_ml/v5_hybrid/green_common_profile/tarot_live_v2.py'
     python = Path(options.get('python') or root / '_dev_venv/Scripts/python.exe')
     daily = Path(options.get('daily_dir') or _default_daily(root))
     if not script.is_file() or not python.is_file():
@@ -91,7 +91,7 @@ def run(cfg):
         global _running, _error
         try:
             proc = subprocess.run([str(python), '-B', '-X', 'utf8', str(script),
-                                   '--daily-dir', str(daily)], capture_output=True, timeout=900,
+                                   '--daily-dir', str(daily),'--golden-flow-v3'], capture_output=True, timeout=900,
                                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             if proc.returncode:
                 raise RuntimeError(proc.stderr.decode('utf-8', errors='replace')[-700:])

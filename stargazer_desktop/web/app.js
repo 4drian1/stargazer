@@ -19,17 +19,18 @@ function md(text) {
 }
 
 /* ---------- 页面切换 ---------- */
+const PAGES = ['monitor', 'planTrade', 'chat'];
 function switchPage(page) {
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
-  if (!["monitor", "context", "chat", "pentacles"].includes(page)) return;
-  ["monitor", "context", "chat", "pentacles"].forEach(p => {
+  if (!PAGES.includes(page)) return;
+  PAGES.forEach(p => {
     const el = $("page" + p.charAt(0).toUpperCase() + p.slice(1));
     if (el) el.classList.toggle("active", p === page);
   });
 }
 document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => {
   switchPage(b.dataset.page);
-  if (b.dataset.page === "pentacles" && window.refreshPentacles) window.refreshPentacles();
+  if (b.dataset.page === "planTrade" && window.refreshPentacles) window.refreshPentacles();
   if (b.dataset.page === "chat") {
     const badge = b.querySelector(".badge");
     if (badge) badge.classList.remove("show");
@@ -97,7 +98,8 @@ async function send(text) {
     const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text, mode: planMode ? 'next_day_plan' : 'chat', draft_id: planDraftId }) });
     const d = await r.json();
     hideTyping();
-    addMsg("bot", d.reply || "(空回复)", d.error ? "error" : null);
+    if (d.draft?.presentation && !d.draft.awaiting_count && !d.error) renderPlanDiscussion(d.draft);
+    else addMsg("bot", d.reply || "(空回复)", d.error ? "error" : null);
     if (d.draft) renderPlanDraft(d.draft);
     if (d.graph?.error) addMsg('bot', d.graph.error, 'error');
   } catch (e) { hideTyping(); addMsg("bot", "请求失败: " + e, "error"); }
@@ -113,7 +115,6 @@ document.querySelectorAll("#quickBar button").forEach((b) => {
     if (b.dataset.plan) { window.beginNextDayPlan(); return; }
     if (b.dataset.normal) {
       planMode = false; planDraftId = null;
-      document.querySelector('.chat-sub').textContent = 'DeepSeek · 普通对话';
       return;
     }
     if (b.dataset.prompt) { send(b.dataset.prompt); return; }
@@ -122,14 +123,80 @@ document.querySelectorAll("#quickBar button").forEach((b) => {
   };
 });
 
-function renderPlanDraft(draft) {
+function renderPlanDiscussion(draft, stale=false) {
+  const view = draft.presentation, box = document.createElement('div');
+  box.className = 'msg bot plan-discussion';
+  const paragraph = (label, text) => {
+    const p = document.createElement('p'), title = document.createElement('strong');
+    title.textContent = label + '：'; p.append(title, document.createTextNode(text)); box.append(p);
+  };
+  paragraph('草案', view.draft);
+  if (draft.changes) {
+    const labels = {model_added:'新增模型候选', model_removed:'移除模型候选', manual_added:'新增人工观察',
+      manual_removed:'移除人工观察', conditions_updated:'更新人工条件原文', boards_added:'新增板块', boards_removed:'移除板块'};
+    const changes = Object.entries(labels).filter(([k])=>draft.changes[k]?.length)
+      .map(([k,label])=>`${label}：${draft.changes[k].join('、')}`);
+    paragraph('本次修改', (changes.join('；') || '名单、板块和人工条件原文无变更') + '。确认前不修改正式提醒。');
+  }
+  for (const analysis of draft.stock_analyses || []) {
+    paragraph('模型查询', `${analysis.code} · 数据日 ${analysis.data_date || '未知'} · ${analysis.status}。` +
+      (analysis.reason || '读取已验收Tarot/Pyxis结果，具体幅度与输入见风险证据；不是本次重新推理。'));
+  }
+  if (view.manual_observations?.length) {
+    paragraph('人工观察', `${view.manual_observations.map(r=>r.code).join('、')}（你主动添加，不是模型入选；尚无绑定风险评分）。`);
+    const notes = document.createElement('details'), caption = document.createElement('summary');
+    caption.textContent = '查看人工条件原文（未转换为自动触发规则）'; notes.append(caption);
+    for (const row of view.manual_observations) {
+      const p = document.createElement('p'); p.textContent = `${row.code}：${row.user_requests.join('\n')}`; p.style.whiteSpace = 'pre-wrap'; notes.append(p);
+    }
+    box.append(notes);
+    paragraph('条件待核对', '人工条件已记录；价格或跌幅的参考基准、止跌定义未结构化确认前，不执行自动价格/买入提醒。可继续补充或修改，模型候选的原规则不因此改变。');
+  }
+  if (draft.snapshot.rule_version) {
+    paragraph('关注条件', '前日F618仅作执行参照；次日须已完成五分钟K线出现下杀、止跌、有效RSI背离。触价不等于买入信号。');
+    paragraph('失效条件', '三项未齐不发触发信号；缺分钟数据为未知，不能当作条件成立。');
+  }
+  paragraph('风险', stale ? '以下为旧草案绑定证据，已失效，不能当成当前结果。' : '以下为Pyxis未来120交易分钟不利下探预测幅度，由代码读取证据；不是概率，不覆盖整个次日。');
+  if (view.market_risk_summary?.length) paragraph('大盘风险', view.market_risk_summary.join(' '));
+  for (const row of view.risks || []) {
+    const details = document.createElement('details'), summary = document.createElement('summary');
+    const lines = row.lines || [];
+    summary.textContent = `${row.code} ${row.name}：${(lines[1] || lines[0] || '未知').replace('未来120交易分钟不利下探预测幅度：', '').split('。')[0]}`;
+    details.append(summary);
+    for (const line of lines.filter((_, i) => i !== (lines[1] ? 1 : 0))) {
+      const p = document.createElement('p'); p.textContent = line; details.append(p);
+    }
+    const comment = draft.model_commentary?.[row.code]?.risk;
+    if (comment) { const p = document.createElement('p'); p.textContent = `AI解释（非新增事实）：${comment}`; details.append(p); }
+    box.append(details);
+  }
+  paragraph('待确认', view.confirmation);
+  const original = document.createElement('details'), caption = document.createElement('summary');
+  caption.textContent = '展开AI讨论原文（含数量、板块与重评说明）';
+  const text = document.createElement('div'); text.innerHTML = md(draft.reply || '未生成讨论');
+  original.append(caption, text); box.append(original); chatLog.append(box);
+}
+
+function renderPlanDraft(draft, readiness=null) {
+  planMode = true;
   planDraftId = draft.id;
+  if (draft.awaiting_count) { input.placeholder = '希望保留多少只？例如：5只'; input.focus(); return; }
   const box = document.createElement('div');
   box.className = 'msg bot';
   const info = document.createElement('p');
   info.textContent = `待确认 · 观察日 ${draft.snapshot.monitor_date} · ${draft.selected_codes.join('、') || '尚未选择股票'}。区域只作到价提醒，不自动买入。`;
+  if (draft.manual_observations?.length) info.textContent += ` 另有人工观察 ${draft.manual_observations.map(r=>r.code).join('、')}，条件仅记录、无模型评分/自动价格提醒。`;
+  if (draft.boards?.length) info.textContent += ` 监控板块：${draft.boards.map(b => b.name).join('、')}。`;
+  const noZone = draft.snapshot.rows.filter(s => draft.selected_codes.includes(s.code) && s.zone == null).map(s => s.code);
+  if (noZone.length) info.textContent += ` 仅观察、无价格提醒：${noZone.join('、')}。`;
+  if (draft.commentary_warnings?.length) info.textContent += ' 部分逐股AI解释未采纳，模型详情保留代码事实。';
+  const stale = readiness?.current === false;
+  const actualEvidence = Object.values(draft.model_evidence || {});
+  info.textContent += stale ? ` 旧草案不可确认：${readiness.reason}。当前风险证据 ${readiness.risk_available ?? '未知'}/${readiness.candidate_count ?? draft.selected_codes.length}。`
+    : ` 本草案绑定风险证据 ${actualEvidence.filter(e=>e.risk?.status==='AVAILABLE').length}/${actualEvidence.length}；不是明日涨跌概率。`;
   const button = document.createElement('button');
   button.className = 'tb-btn'; button.textContent = '确认计划并开启次日提醒';
+  button.disabled = stale;
   button.onclick = async () => {
     if (draft.id !== planDraftId || busy) { info.textContent = '请确认最新一版计划'; return; }
     if (!confirm('确认这份名单并开启次日到价提醒？不自动下单。')) return;
@@ -139,19 +206,32 @@ function renderPlanDraft(draft) {
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || '确认失败');
       info.textContent = `已冻结 ${data.count} 只，观察日 ${data.monitor_date}。程序需保持运行；微信需开启推送。`;
+      info.textContent += ' 交易计划与板块已由后端统一保存，可在模型工作台查看依据。';
+      planMode = false; planDraftId = null; freshPlanSession = false;
+      input.placeholder = '计划已确认，可以继续正常对话';
+      addMsg('bot', '计划已确认，已退出计划流程。现在可以直接正常聊天；要修改计划时再进入「制定次日计划」。');
+      if (window.refreshPlanTrade) window.refreshPlanTrade();
     } catch (error) { info.textContent = error.message; button.disabled = false; }
   };
-  box.append(info, button); chatLog.appendChild(box);
+  const regenerate = document.createElement('button');
+  regenerate.className = 'tb-btn'; regenerate.textContent = '按最新证据重新制定';
+  regenerate.onclick = () => {
+    if (busy) return;
+    planMode = true; planDraftId = draft.id;
+    send('请按最新证据重新制定次日观察计划，保留我已明确的数量与板块要求。');
+  };
+  box.append(info, button, regenerate); chatLog.appendChild(box);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 window.beginNextDayPlan = async () => {
   if (busy) return;
   switchPage('chat'); planMode = true;
-  document.querySelector('.chat-sub').textContent = 'DeepSeek · 次日计划讨论 · 确认前不生效';
   try {
     const data = await (await fetch('/api/assistant/state')).json();
-    if (data.plan && data.plan_current && !planDraftId && !freshPlanSession) {
-      addMsg('bot', data.plan.reply); renderPlanDraft(data.plan);
+    if (data.plan && !planDraftId && !freshPlanSession) {
+      if (data.plan.presentation && !data.plan.awaiting_count) renderPlanDiscussion(data.plan, !data.plan_current);
+      else addMsg('bot', data.plan_current ? data.plan.reply : `恢复的是 ${data.plan.created_at || '此前'} 的旧草案，证据已经变化；未自动调用AI，旧原文保留归档。请点击“按最新证据重新制定”。`);
+      renderPlanDraft(data.plan, data.plan_readiness || {current:data.plan_current, reason:'请重新制定'});
       input.placeholder = '继续修改这份计划；或输入重新制定'; input.focus(); return;
     }
   } catch (_) {}
@@ -422,7 +502,7 @@ function renderT5Row(r) {
   const q = String(r.quadrant || "REJECT");
   const dpl = dpLabel(r.dp);
   const head = r.head || (Number(r.dp) < 1200 ? "AM" : "PM");
-  const esc = (s) => String(s ?? "").replace(/"/g, "&quot;");
+  const esc = (s) => String(s ?? "").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, "&quot;");
   const stop = r.entry ? (Number(r.entry) * 0.95).toFixed(2) : "";
   let actions;
   if (r.action === "buy") {
@@ -512,151 +592,119 @@ async function loadModel() {
   bindT5Actions();
 }
 
-/* ---------- 盘前助手 & 监控板块 ---------- */
-
-async function loadUserSectors() {
-  let d; try { d = await (await fetch("/api/sector_pullback/user_sectors")).json(); }
-  catch (e) { $("swResult").textContent = "状态加载失败（服务端错误）"; return; }
-  $("swInput").value = (d.names || []).join(", ");
-  const mapped = d.mapped || [], missing = d.missing || [];
-  $("swStatus").textContent = mapped.length ? `监控中 ${mapped.length} 个` : "未设置";
-  $("swResult").textContent = (mapped.length ? "已映射：" + mapped.map((m) => `${m.name}→${m.em_name}`).join("；") : "") + (missing.length ? " 未找到：" + missing.join("、") : "") + (d.last_signal_at ? ` ｜ 最近信号 ${d.last_signal_at}` : "");
-  $("sectorMapBar").textContent = mapped.length ? "已映射：" + mapped.map(m => m.name).join("、") + (d.last_signal_at ? `｜最近信号 ${d.last_signal_at}` : "") : "无监控板块";
-}
-$("swSaveBtn").onclick = async () => {
-  const names = $("swInput").value.split(/[,，;；\s]+/).map(s => s.trim()).filter(Boolean).slice(0, 20);
-  if (!names.length) { $("swResult").textContent = "请至少填写一个板块名"; return; }
-  const d = await (await fetch("/api/sector_pullback/user_sectors", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ names }) })).json();
-  loadUserSectors();
-  addMsg("bot", `监控板块已保存（最多20个）：${(d.names || []).join("、")}。${(d.missing || []).length ? "未映射到东财板块：" + d.missing.join("、") : "全部映射成功"}。`);
-};
-
-/* ---------- 交易计划页（本机专属；T5 双名单设计 §5） ---------- */
-let planSessionId = null, planNextDate = null, planDualTimer = null;
-
-function localYmd(d) {
-  d = d || new Date();
-  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-}
-
-async function loadPlanDualState() {
+/* ---------- 实时监控板块（Stargazer 1.0：只看交易计划中的板块和计划中的股票） ---------- */
+async function loadPlanSectors() {
   let d;
-  try { d = await (await fetch("/api/plan/dual_list/state")).json(); } catch (e) { return; }
-  if (d.running) {
-    $("planDualStatus").textContent = "生成中…";
-    $("planDualLog").textContent = d.log_tail || "全链子进程运行中（数据增量→规则池→T5 打分），约数分钟…";
-    if (planDualTimer) clearTimeout(planDualTimer);
-    planDualTimer = setTimeout(loadPlanDualState, 3000);
+  try { d = await (await fetch("/api/trade_plan")).json(); } catch (e) { return; }
+  const plan = d.plan;
+  const pill = $("planSectorStatus"), body = $("planSectorBody");
+  if (!plan) {
+    pill.textContent = "暂无计划";
+    body.textContent = "暂无计划：到「交易计划」页盘后选股、与 Stargazer 讨论并确认计划后，这里只监控计划内板块与计划内股票。";
+    $("sectorMapBar").textContent = "无监控板块（暂无计划）";
     return;
   }
-  planDualTimer = null;
-  if (d.error) {
-    $("planDualStatus").textContent = "失败";
-    $("planDualLog").textContent = d.error;
-    return;
+  pill.textContent = `计划日 ${plan.monitor_date || "—"}`;
+  const stocks = plan.stocks || [];
+  const boards = plan.boards || [];
+  const lines = [];
+  if (boards.length) lines.push("计划板块：" + boards.map(b => b.name || b).join("、"));
+  if (stocks.length) lines.push("计划股票：" + stocks.map(s => `${s.name || ""} ${s.code}`).join("、"));
+  body.textContent = lines.join("；") || "计划中没有板块或股票条目。";
+  if (boards.length) {
+    try {
+      const monitor = await (await fetch('/api/plan_boards')).json();
+      const labels = {UNRESOLVED:'板块映射待解析', UNAVAILABLE:'行情暂不可用',
+        STALE:'行情过期', WAIT_SESSION:'等待计划交易时段', LOADING:'正在读取行情'};
+      for (const row of monitor.rows || []) {
+        const line = document.createElement('p');
+        line.textContent = `${row.name} · ${monitor.status === 'EXPIRED' ? '计划已过期' : row.status === 'OK' && typeof row.pct === 'number'
+          ? `${row.pct >= 0 ? '+' : ''}${row.pct.toFixed(2)}% · ${row.quote_ts || ''}` : labels[row.status] || row.status}`;
+        body.append(line);
+      }
+    } catch (_) { body.append(document.createTextNode(' 板块行情暂不可用')); }
   }
-  if (d.md) {
-    $("planDualStatus").textContent = `数据日 ${d.md_date || "—"}`;
-    $("planDualLog").textContent = "";
-    $("planDualMd").innerHTML = md(d.md);
-  }
+  $("sectorMapBar").textContent = (boards.length ? "计划板块：" + boards.map(b => b.name || b).join("、") : "无计划板块")
+    + (stocks.length ? `｜计划股票 ${stocks.length} 只` : "");
 }
 
-$("planRunBtn").onclick = async () => {
-  const date = String(localYmd());
-  $("planRunBtn").disabled = true;
-  $("planDualStatus").textContent = "启动中…";
-  let r;
-  try { r = await (await fetch("/api/plan/dual_list/run", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date }),
-  })).json(); }
-  catch (e) { $("planDualStatus").textContent = "失败"; $("planDualLog").textContent = "请求失败: " + e; $("planRunBtn").disabled = false; return; }
-  if (!r.ok && !r.running) {
-    $("planDualStatus").textContent = "失败";
-    $("planDualLog").textContent = r.error || "启动失败";
-    $("planRunBtn").disabled = false;
-    return;
-  }
-  $("planDualMd").innerHTML = '<div class="empty">正在生成双名单，请稍候（页面会自动刷新结果）…</div>';
-  loadPlanPool();
-  loadPlanDualState();
-  setTimeout(() => { $("planRunBtn").disabled = false; }, 10000);
-};
-
-async function loadPlanPool() {
+/* ---------- 信息面板（Stargazer 1.0：Corvus 信息流框架；缺席=信息模型未接入） ---------- */
+async function loadInfoFeed() {
   let d;
-  try { d = await (await fetch("/api/plan/pool")).json(); } catch (e) { return; }
-  const list = $("planPoolList");
-  if (!d.ok) { list.innerHTML = `<div class="empty">${d.error || "规则名单池不可用"}</div>`; return; }
-  const pool = d.pool || {};
-  planNextDate = pool.next_trading_date || null;
-  const cands = (pool.candidates || []).filter(c =>
-    c.setup === "BOTTOM_SETUP" || c.setup === "INTRADAY_DIP_SETUP");
-  if (!cands.length) { list.innerHTML = '<div class="empty">池中没有符合口径的候选（BOTTOM_SETUP / INTRADAY_DIP_SETUP）</div>'; return; }
-  const esc = (s) => String(s ?? "").replace(/"/g, "&quot;");
-  list.innerHTML = cands.map(c => {
-    const trig = c.trigger_price != null ? Number(c.trigger_price) : null;
-    return `<div class="plan-pick" data-code="${c.code}" data-preclose="${Number(c.pre_close).toFixed(2)}">
-      <label class="pp-check"><input type="checkbox" class="plan-check"> <b>${c.code}</b> ${esc(c.name || "")}</label>
-      <span class="tag">${c.setup === "BOTTOM_SETUP" ? "底部 setup" : "盘中 dip"}</span>
-      <span class="tag">${esc(c.tier || "-")}</span>
-      <span class="pp-field">触发价 <input type="number" step="0.01" class="plan-trigger"
-        value="${trig != null ? trig.toFixed(2) : ""}" ${trig != null ? "" : "disabled placeholder=\"仅观察\""}></span>
-      <span class="pp-field">昨收 ${Number(c.pre_close).toFixed(2)}</span>
-      <input class="plan-reason" placeholder="改价/否决理由（会写进 dialogues 证据）">
-    </div>`;
-  }).join("");
+  try { d = await (await fetch("/api/info_feed")).json(); } catch (e) { return; }
+  const status = $("infoFeedStatus"), items = $("infoFeedItems");
+  if (!d.connected) {
+    status.textContent = "信息模型未接入";
+    items.textContent = "";
+    return;
+  }
+  status.textContent = `已接入 · 更新 ${String(d.asof || "").replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1-$2-$3 $4:$5")}`;
+  items.textContent = (d.items || []).slice(0, 3).map(i => `[${i.kind || "-"}] ${i.title || ""}`).join(" ｜ ");
 }
 
-$("planDraftBtn").onclick = async () => {
-  const rows = [...document.querySelectorAll("#planPoolList .plan-pick")].filter(
-    row => row.querySelector(".plan-check").checked);
-  if (!rows.length) { $("planResult").textContent = "请先勾选至少一个候选"; return; }
-  const picks = rows.map(row => {
-    const trig = row.querySelector(".plan-trigger");
-    return {
-      code: row.dataset.code,
-      name: row.querySelector("b").nextSibling.textContent.trim(),
-      trigger_price: trig && trig.value !== "" ? parseFloat(trig.value) : null,
-      pre_close: parseFloat(row.dataset.preclose),
-      reason: row.querySelector(".plan-reason").value.trim(),
-    };
-  });
-  $("planDraftBtn").disabled = true;
-  $("planResult").textContent = "正在组装 draft.json 并落库…";
-  let r;
+async function loadIndexFreshness() {
+  const label = $('indexFreshnessStatus');
   try {
-    r = await (await fetch("/api/plan/draft", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trading_date: planNextDate || String(localYmd()), candidates: picks }),
-    })).json();
-  } catch (e) { $("planResult").textContent = "请求失败: " + e; $("planDraftBtn").disabled = false; return; }
-  $("planDraftBtn").disabled = false;
-  if (!r.ok) { $("planResult").textContent = "生成计划失败：" + (r.error || r.output || "未知错误"); return; }
-  planSessionId = r.session_id;
-  $("planDraftStatus").textContent = `session ${r.session_id} · DRAFT`;
-  $("planResult").textContent = `草案已落库（session ${r.session_id}，含 ${picks.length} 只，用户改动已写入 dialogues 证据）。确认无误后点「冻结并导出」。`;
-  $("planFreezeBtn").disabled = !r.session_id;
-};
+    const value = await (await fetch('/api/index_freshness')).json();
+    label.textContent = value.available
+      ? `指数截止 ${value.last_date || '未知'} · ${value.stale ? '数据过期，实时风险不可用' : '日级更新已核验，盘中截止另验'}`
+      : '指数状态不可用，实时风险不可用';
+    if (value.source_sync) {
+      label.textContent += value.source_sync.status === 'OK'
+        ? ' · 通达信直读已连接'
+        : ` · 通达信读取失败：${value.source_sync.error || '未知原因'}`;
+    }
+  } catch (_) { label.textContent = '指数状态不可用，实时风险不可用'; }
+}
 
-$("planFreezeBtn").onclick = async () => {
-  if (!planSessionId) return;
-  if (!confirm(`冻结 session ${planSessionId} v1 并导出 plan_frozen.json？冻结后任何业务字段不可修改。`)) return;
-  $("planFreezeBtn").disabled = true;
-  $("planResult").textContent = "正在冻结并导出…";
-  let r;
-  try {
-    r = await (await fetch("/api/plan/freeze_export", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: planSessionId,
-                             trading_date: planNextDate || String(localYmd()) }),
-    })).json();
-  } catch (e) { $("planResult").textContent = "请求失败: " + e; $("planFreezeBtn").disabled = false; return; }
-  if (!r.ok) { $("planResult").textContent = `冻结/导出失败（${r.step || "?"}）：${r.error || r.output || "未知错误"}`; $("planFreezeBtn").disabled = false; return; }
-  $("planDraftStatus").textContent = `session ${planSessionId} · FROZEN`;
-  $("planResult").textContent = `已冻结并导出：${r.path} —— 请把该文件拷贝到监控机 data\\plan_frozen.json（覆盖旧文件），明日盘中规则监控即按新计划执行。`;
-};
+/* ---------- 交易计划栏（已确认计划 + /api/plan_check 规则状态；模型决策待接入） ---------- */
+const PLAN_CHECK_STATUSES = {NO_PLAN: "暂无计划", NOT_IN_PLAN: "不在计划", EXPIRED: "已失效",
+  NEAR: "接近买入区", TRIGGERED: "已触发", BELOW_ZONE: "低于买入区", WATCHING: "观察中", OBSERVE_ONLY: "仅观察，无价格提醒", ERROR: "状态未知",
+  WAIT_MINUTE_EVIDENCE:'等待完成分钟证据', WAIT_SIGNAL:'等待下杀止跌背离', NON_DOWNSIDE:'非下杀路径，不触发', RULE_TRIGGERED:'黄金规则观察成立，待人工复核', DATA_INSUFFICIENT:'证据不足，不触发'};
+let planTradeCache = null;
+async function loadPlanTrade() {
+  let d;
+  try { d = await (await fetch("/api/trade_plan")).json(); } catch (e) { return; }
+  planTradeCache = d.plan || null;
+  const pill = $("planTradeStatus"), list = $("planTradeList");
+  if (!planTradeCache) {
+    pill.textContent = "暂无计划";
+    list.innerHTML = '<div class="empty">暂无计划：盘后选股 → 交易计划制定 → 讨论确认后，已确认计划的股票与关键条件显示在这里。</div>';
+    return;
+  }
+  const plan = planTradeCache;
+  pill.textContent = `观察日 ${plan.monitor_date || "—"} · ${(plan.stocks || []).length} 只`;
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  list.innerHTML = (plan.stocks || []).map(s => `
+    <div class="plan-stock" data-code="${esc(s.code)}">
+      <b>${esc(s.code)}</b> ${esc(s.name || "")}
+      <span class="tag">${s.observe_only && s.buy_zone == null ? '仅观察 · 无价格提醒' : Array.isArray(s.buy_zone) ? `关注区 ${Number(s.buy_zone[0]).toFixed(2)} — ${Number(s.buy_zone[1]).toFixed(2)}` : '关注区无效'}</span>
+      ${s.entry_rule ? '<span class="tag">前日F618 · 须完成5分下杀止跌背离，不是报价触价即买入</span>' : ''}
+      <span class="tag">有效期至 ${esc(String(s.valid_until).replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1-$2-$3 $4:$5"))}</span>
+      <span class="tag plan-status" data-plan-status="${esc(s.code)}">计划状态：加载中…</span>
+      <div class="c-note">失效条件：${(s.invalidations || []).map(esc).join("；") || "—"}</div>
+      ${s.source === 'USER' ? `<div class="c-note">人工观察 · 未评分 · 自定义条件未执行：${(s.user_requests || []).map(esc).join('；')}</div>` : ''}
+    </div>`).join("") || '<div class="empty">计划中没有股票条目。</div>';
+  refreshPlanStatuses();
+}
+async function refreshPlanStatuses() {
+  if (!planTradeCache) return;
+  for (const s of planTradeCache.stocks || []) {
+    const slot = document.querySelector(`[data-plan-status="${s.code}"]`);
+    if (!slot) continue;
+    let st = null;
+    try {
+      const q = curState.positions.find(p => p.code === s.code) || curState.watch.find(w => w.code === s.code) || {};
+      if (q.live_price != null)
+        st = await (await fetch(`/api/plan_check?code=${encodeURIComponent(s.code)}&price=${encodeURIComponent(q.live_price)}`)).json();
+    } catch (e) { /* 状态标注失败不影响列表 */ }
+    slot.textContent = "计划状态：" + (st && st.status ? (PLAN_CHECK_STATUSES[st.status] || st.status) : "行情不可用");
+    slot.className = "tag plan-status" + (st && (st.status === "TRIGGERED" || st.status === "NEAR") ? " warn" : "");
+  }
+}
+window.refreshPlanTrade = async () => { await loadPlanTrade(); await loadPlanSectors(); };
+$("planTradeDraft").onclick = () => window.beginNextDayPlan();
+
 
 /* ---------- 交易记录 ---------- */
 async function loadTrades() {
@@ -755,7 +803,7 @@ function waitForState(key, maxPolls = 300, interval = 2000) {
     }, interval);
   });
 }
-$("runModelBtn").onclick = () => { switchPage('pentacles'); window.refreshPentacles?.(); };
+$("runModelBtn").onclick = () => { switchPage('planTrade'); window.refreshPentacles?.(); window.refreshPlanTrade?.(); };
 $("runModelBtnDash").onclick = runModel;
 $("runModelBtnHorizontal").onclick = runModel;
 
@@ -911,7 +959,18 @@ $("planSettleBtn").onclick = async () => {
 if (window.Notification && Notification.permission === "default") Notification.requestPermission();
 connectEvents();
 refreshState();
-loadUserSectors();
+loadPlanTrade();
+loadPlanSectors();
+loadInfoFeed();
+loadIndexFreshness();
+// 信息面板轮询：信息流接入后自动刷新；未接入时保持占位（30s）
+setInterval(loadInfoFeed, 30000);
+setInterval(loadIndexFreshness, 30000);
+setInterval(loadPlanSectors, 30000);
+// 交易计划栏轮询：只按计划 JSON 规则判断（模型决策接入点在后端）
+setInterval(() => {
+  if ($("pagePlanTrade").classList.contains("active")) window.refreshPlanTrade();
+}, 30000);
 
 async function loadShell() {
   try {
@@ -919,16 +978,82 @@ async function loadShell() {
     const selected = data.models.selection.payload;
     const date = selected.data_date || '未知';
     $('modelStatus').textContent = `数据日 ${date} · ${selected.candidate_count || 0} 只`;
-    $('modelHint').textContent = '规则观察 · 信息/风险未接入';
+    $('modelHint').textContent = 'Tarot候选 · Pyxis按同日证据可用性展示';
     $('navHint').textContent = `观察日 ${selected.monitor_date || '未知'} · 稳定应用外壳`;
-    $('slotSelection').textContent = `规则观察 · 数据日 ${date}`;
+    $('slotSelection').textContent = `${data.display?.selection || '已接入'} · 数据日 ${date}`;
+    $('slotRisk').textContent = data.display?.risk || '模型接口已接入 · 当前证据状态未知';
     $('overviewCandidates').textContent = selected.candidate_count ?? '—';
   } catch (_) { $('slotSelection').textContent = '选股快照不可用 · UNKNOWN'; }
 }
-$('overviewCheck').onclick = () => { switchPage('chat'); send('/check'); };
-$('overviewPicks').onclick = () => { switchPage('pentacles'); window.refreshPentacles?.(); };
-$('overviewPlan').onclick = () => window.beginNextDayPlan();
-$('reviewOpenBtn').onclick = () => { switchPage('pentacles'); $('pentaclesLearning').click(); };
+document.querySelectorAll('[data-model-detail]').forEach(button => button.onclick = async () => {
+  const panel = $('modelDetailPanel'), body = $('modelDetailBody');
+  panel.hidden = false; body.textContent = '正在读取计划证据…';
+  try {
+    const value = await (await fetch(`/api/model/detail?model=${button.dataset.modelDetail}`)).json();
+    $('modelDetailTitle').textContent = `${value.name || ''} · 计划分析`;
+    body.replaceChildren();
+    if (value.reason) { body.textContent = value.reason; return; }
+    if (value.source_note) { const p = document.createElement('p'); p.textContent = value.source_note; body.append(p); }
+    if (value.market_risk_summary?.length) {
+      const p = document.createElement('p');
+      p.textContent = `大盘风险：${value.market_risk_summary.join(' ')}`;
+      body.append(p);
+    }
+    if (button.dataset.modelDetail === 'risk') {
+      const outlook = document.createElement('p'); outlook.style.whiteSpace = 'pre-wrap'; body.append(outlook);
+      const show = item => {
+        const trial = Object.values(item?.computed_facts || {}).filter(f => f.status === 'TRIAL').map(f => f.text).join('\n');
+        outlook.textContent = item?.text || `DeepSeek走势研判：${item?.status || '等待生成'}${item?.validation_error ? ' · '+item.validation_error : ''}。本地模型事实仍可查看；失败不自动付费重试。\n${trial}`;
+      };
+      show(value.outlook);
+      if (!value.outlook || value.outlook.status === 'NOT_GENERATED') {
+        const started = await (await fetch('/api/risk/outlook', {method:'POST'})).json(); show(started);
+        if (['QUEUED','RUNNING'].includes(started.status)) {
+          let polls = 0;
+          const poll = async () => {
+            if (panel.hidden || !outlook.isConnected || ++polls > 80) return;
+            try {
+              const current = await (await fetch('/api/model/detail?model=risk')).json(); show(current.outlook);
+              if (['READY','AI_FAILED','PREPARATION_FAILED','EXPIRED'].includes(current.outlook?.status)) return;
+            } catch (_) { outlook.textContent = '研判读取暂不可用；本地事实保留，不自动重新付费。'; return; }
+            setTimeout(poll, 3000);
+          };
+          setTimeout(poll, 3000);
+        }
+      }
+    }
+    for (const row of value.items || []) {
+      const card = document.createElement('div'); card.className = 'section-card';
+      const title = document.createElement('h3'); title.textContent = `${row.code} ${row.name || ''}`;
+      const text = document.createElement('p'); text.textContent = `解释：${row.commentary || '本条未生成AI解释，以下为代码提供的模型事实。'}`;
+      const brief = document.createElement('p'), f = row.facts || {};
+      if (button.dataset.modelDetail === 'selection') {
+        const setup = {A_SDP:'强势首次分歧', B_LVB:'低位稳量'}[f.setup] || f.setup || '未登记';
+        brief.textContent = `代码事实：${setup} · 参考价 ${fmtPrice(f.reference_price)} · RSI ${fmtPrice(f.rsi14)} · 距关注区 ${fmtPrice(f.distance_atr)} ATR`;
+        if (f.golden_f618 != null) brief.textContent += ` · 黄金0.618位置 ${fmtPrice(f.golden_f618)}`;
+        if (f.entry_rule) brief.textContent += ` · 周期节点距离 ${fmtPrice(f.entry_rule.cycle_distance_atr)} ATR（入围≤0.2）；前日F618 ${fmtPrice(f.entry_rule.f618)}，等待次日下杀止跌背离`;
+        if (f.status === 'USER_OBSERVATION') brief.textContent = `${f.reason}\n${(f.user_requests || []).join('\n')}`;
+      } else {
+        const context = f.context || {};
+        brief.textContent = f.status === 'AVAILABLE'
+          ? `代码事实：截止 ${f.asof_ts}，未来120交易分钟不利下探幅度 ${fmtPrice(context.amp_232 == null ? null : context.amp_232 * 100)}%；不是明日涨跌概率。`
+          : `风险证据缺失：${f.reason || '未绑定同日风险输入'}。无法据此判断明日走势。`;
+        if (row.risk_lines?.length) brief.textContent = row.risk_lines.join('\n\n');
+        brief.style.whiteSpace = 'pre-wrap';
+      }
+      const details = document.createElement('details'), caption = document.createElement('summary');
+      caption.textContent = '完整模型事实与证据引用'; details.append(caption);
+      const facts = document.createElement('pre'); facts.style.whiteSpace = 'pre-wrap';
+      facts.textContent = JSON.stringify(row.facts, null, 2);
+      details.append(facts); card.append(title, brief, text, details); body.append(card);
+    }
+    if (value.combined) {
+      const summary = document.createElement('p'); summary.textContent = `DeepSeek综合讨论：${value.combined}`;
+      body.append(summary);
+    }
+  } catch (_) { body.textContent = '模型详情暂不可用，原监控不受影响。'; }
+});
+$('reviewOpenBtn').onclick = () => { switchPage('planTrade'); $('pentaclesLearning').click(); };
 async function restoreChat(fresh=false) {
   if (busy) return;
   if (fresh && !confirm('开始新会话？旧对话保留归档，已确认的提醒计划不改变。')) return;
@@ -939,7 +1064,6 @@ async function restoreChat(fresh=false) {
     if (!response.ok) throw new Error('对话恢复失败，旧原文仍保留');
     planMode = false; planDraftId = null; freshPlanSession = fresh; chatLog.replaceChildren();
     (data.messages || []).forEach(m => addMsg(m.role === 'user' ? 'user' : 'bot', m.content));
-    document.querySelector('.chat-sub').textContent = 'DeepSeek · 最近对话已恢复 · 旧原文留在本地';
     if (fresh) addMsg('bot', '已开始新会话。切换“制定次日计划”后生成新草案，已确认提醒不自动改变。');
   } catch (error) { addMsg('bot', error.message, 'error'); }
   finally { busy = false; sendBtn.disabled = false; }

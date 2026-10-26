@@ -1,4 +1,4 @@
-"""DeepSeek only. Local DPAPI credential; bounded calls; never expose API errors/keys."""
+"""DeepSeek only. Local DPAPI credential and usage ledger; never expose API errors/keys."""
 import base64
 import ctypes
 from contextlib import closing
@@ -76,16 +76,38 @@ def status():
             'configured': bool(os.environ.get('DEEPSEEK_API_KEY') or key_path().exists())}
 
 
-def complete(cfg, messages, *, tools=None, structured=False):
+def record_result(db, model, purpose, max_tokens, *, finish_reason=None, usage=None,
+                  outcome='OK', error_type=None):
+    """Metadata only: no prompt, response text, credentials, or raw SDK exception strings."""
+    def count(name):
+        value = getattr(usage, name, None)
+        return value if type(value) is int and value >= 0 else None
+    allowed = {'stop', 'length', 'tool_calls', 'content_filter', 'insufficient_system_resource'}
+    reason = finish_reason if finish_reason in allowed else 'unknown'
+    with _lock, closing(sqlite3.connect(db)) as conn:
+        conn.execute('CREATE TABLE IF NOT EXISTS results('
+                     'created_at TEXT,model TEXT,purpose TEXT,max_tokens INTEGER,finish_reason TEXT,'
+                     'prompt_tokens INTEGER,completion_tokens INTEGER,total_tokens INTEGER,'
+                     'outcome TEXT,error_type TEXT)')
+        conn.execute('INSERT INTO results VALUES(?,?,?,?,?,?,?,?,?,?)',
+                     (datetime.now().isoformat(), str(model)[:80], purpose, max_tokens, reason,
+                      count('prompt_tokens'), count('completion_tokens'), count('total_tokens'),
+                      outcome, error_type))
+        conn.commit()
+
+
+def complete(cfg, messages, *, tools=None, structured=False, purpose='chat'):
     from openai import OpenAI
     settings = cfg.get('deepseek') or {}
+    if purpose not in ('chat', 'plan', 'review'):
+        raise ValueError('DeepSeek调用用途无效')
     key = get_key()
     max_tokens = min(int(settings.get('max_tokens', 2000)), 4000)
     if max_tokens < 1:
         raise ValueError('DeepSeek 输出Token上限必须为正数')
     if len(json.dumps(messages, ensure_ascii=False)) > 60000:
         raise ValueError('单次输入打包超过本地安全预算；请拆分问题或新建会话，原记录保留（非DeepSeek上下文已满）')
-    # Reserve before sending. Failed requests count too; retries are never hidden.
+    # Account before sending without a daily cap. Failed requests count; no hidden retries.
     db = Path(paths.data_file('data/assistant/deepseek_usage.sqlite', seed_from_bundle=False))
     reserve = len(json.dumps(messages, ensure_ascii=False).encode('utf-8')) + max_tokens + 1000
     if tools:
@@ -96,9 +118,6 @@ def complete(cfg, messages, *, tools=None, structured=False):
             conn.execute('CREATE TABLE IF NOT EXISTS usage(day TEXT PRIMARY KEY,calls INTEGER,tokens INTEGER)')
             day = datetime.now().strftime('%Y%m%d')
             conn.execute('INSERT OR IGNORE INTO usage VALUES(?,0,0)', (day,))
-            calls, tokens = conn.execute('SELECT calls,tokens FROM usage WHERE day=?', (day,)).fetchone()
-            if calls >= 40 or tokens + reserve > 120000:
-                raise ValueError('DeepSeek 当日调用/Token预算已达到上限，提醒监控不受影响')
             conn.execute('UPDATE usage SET calls=calls+1,tokens=tokens+? WHERE day=?', (reserve, day))
             conn.commit()
     kwargs = dict(model=settings.get('model', MODEL), messages=messages,
@@ -112,12 +131,30 @@ def complete(cfg, messages, *, tools=None, structured=False):
                           timeout=60.0, max_retries=0).chat.completions.create(**kwargs)
     except Exception as exc:
         # SDK error text can include request contents; never forward it.
+        record_result(db, kwargs['model'], purpose, max_tokens,
+                      outcome='REQUEST_ERROR', error_type=type(exc).__name__)
         raise ValueError(f'DeepSeek 请求失败（{type(exc).__name__}）；请检查密钥、余额或网络') from None
     with _lock, closing(sqlite3.connect(db)) as conn:
         actual = getattr(response.usage, 'total_tokens', None)
         if isinstance(actual, int) and actual >= 0:
             conn.execute('UPDATE usage SET tokens=tokens-?+? WHERE day=?', (reserve, actual, day))
             conn.commit()
-    if not response.choices or response.choices[0].finish_reason == 'length':
-        raise ValueError('DeepSeek 输出不完整，本次不保存计划/复盘')
+    choice = response.choices[0] if response.choices else None
+    reason = getattr(choice, 'finish_reason', None)
+    outcome = ('NO_CHOICES' if choice is None else 'TRUNCATED' if reason == 'length' else
+               'OK' if reason == 'stop' or (tools and reason == 'tool_calls') else 'INCOMPLETE')
+    if outcome == 'OK' and not tools and not (getattr(choice.message, 'content', None) or '').strip():
+        outcome = 'EMPTY_CONTENT'
+    record_result(db, kwargs['model'], purpose, max_tokens, finish_reason=reason,
+                  usage=response.usage, outcome=outcome)
+    if choice is None:
+        raise ValueError('DeepSeek未返回有效回复（NO_CHOICES）；本次未保存，请重新生成')
+    if reason == 'length':
+        raise ValueError(f'DeepSeek输出被截断（finish_reason=length，本次预算{max_tokens} tokens）；'
+                         '未保存不完整内容，请重新生成简短回复')
+    if outcome == 'EMPTY_CONTENT':
+        raise ValueError('DeepSeek返回了空正文（EMPTY_CONTENT）；本次未保存，请重新生成')
+    if outcome != 'OK':
+        label = '内容被服务端拦截' if reason == 'content_filter' else '回复未正常结束'
+        raise ValueError(f'DeepSeek{label}；本次未保存，请稍后重新生成')
     return response

@@ -53,9 +53,12 @@ def _raw_file_path(source_id, published_at, raw_id, suffix=".json"):
 
 def _write_raw_file(path, text):
     """只追加：已存在则不覆盖（幂等）。"""
-    if path.exists():
-        return
-    path.write_text(text, encoding="utf-8")
+    try:
+        with path.open("xb") as stream:
+            stream.write(text.encode("utf-8"))
+    except FileExistsError:
+        if hashlib.sha256(path.read_bytes()).hexdigest() != _sha256_text(text):
+            raise ValueError("RAW_PATH_CONTENT_COLLISION")
 
 
 def _detail_path(list_path):
@@ -72,27 +75,41 @@ def save_raw_news(conn, source_id, title, url, raw_text, source_time_raw=None,
     """
     raw_hash = _sha256_text(raw_text)
     dup = conn.execute(
-        "SELECT raw_id FROM raw_news WHERE source_id=? AND raw_text_hash=?",
+        "SELECT raw_id, raw_path FROM raw_news WHERE source_id=? AND raw_text_hash=?",
         (source_id, raw_hash)).fetchone()
     if dup:
+        path = Path(dup["raw_path"]) if dup["raw_path"] else None
+        if path is None or not path.is_file():
+            raise ValueError("REGISTERED_RAW_ARCHIVE_MISSING")
+        if hashlib.sha256(path.read_bytes()).hexdigest() != raw_hash:
+            raise ValueError("REGISTERED_RAW_ARCHIVE_HASH_MISMATCH")
         return dup["raw_id"], False
 
     published_at, tz_inf, tps, _ = parse_source_time(source_time_raw)
     data_status = "COMPLETE" if tps == "OK" else "PARTIAL"
-    cur = conn.execute(
-        """INSERT INTO raw_news
+    if not conn.in_transaction:
+        conn.execute("BEGIN")
+    conn.execute("SAVEPOINT corvus_raw_insert")
+    try:
+        cur = conn.execute(
+            """INSERT INTO raw_news
            (source_id, title, url, raw_text_hash, published_at, collected_at,
             raw_path, content_license, mime, encoding, source_time_raw,
             tz_inference, time_parse_status, detail_status, data_status)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (source_id, title, url, raw_hash, published_at, now_iso(),
-         None, content_license, mime, encoding, source_time_raw,
-         tz_inf, tps, detail_status, data_status))
-    raw_id = cur.lastrowid
-    path = _raw_file_path(source_id, published_at, raw_id)
-    _write_raw_file(path, raw_text)
-    conn.execute("UPDATE raw_news SET raw_path=? WHERE raw_id=?",
-                 (str(path), raw_id))
+            (source_id, title, url, raw_hash, published_at, now_iso(),
+             None, content_license, mime, encoding, source_time_raw,
+             tz_inf, tps, detail_status, data_status))
+        raw_id = cur.lastrowid
+        path = _raw_file_path(source_id, published_at, raw_id)
+        _write_raw_file(path, raw_text)
+        conn.execute("UPDATE raw_news SET raw_path=? WHERE raw_id=?",
+                     (str(path), raw_id))
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT corvus_raw_insert")
+        conn.execute("RELEASE SAVEPOINT corvus_raw_insert")
+        raise
+    conn.execute("RELEASE SAVEPOINT corvus_raw_insert")
     return raw_id, True
 
 

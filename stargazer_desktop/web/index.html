@@ -23,7 +23,7 @@
     <div class="top-spacer"></div>
     <div class="top-actions">
       <button class="tb-btn" id="manualCheckBtn">立即巡检</button>
-      <button class="tb-btn" id="reviewOpenBtn" title="星币侍从复盘预览，人工确认后写入">盘后复盘</button>
+      <button class="tb-btn" id="reviewOpenBtn" title="复盘预览，人工确认后写入学习记录">盘后复盘</button>
       <button id="planSettleBtn" hidden>旧计划结算（停用入口）</button>
       <button class="tb-btn" id="testPushBtn">测试推送</button>
       <div class="push-quick"><span>微信推送</span><label class="switch"><input type="checkbox" id="pushEnabled"><span class="slider"></span></label></div>
@@ -31,12 +31,19 @@
     </div>
   </header>
 
+  <!-- ═══ 信息面板（Stargazer 1.0：信息模型 Corvus 未接入时占位；框架已留 info_feed.jsonl 接口） ═══ -->
+  <div id="infoFeedBar" class="info-feed-bar" role="status">
+    <span class="info-feed-label">信息面板</span>
+    <span id="infoFeedStatus" class="info-feed-status">信息模型未接入</span>
+    <span id="infoFeedItems" class="info-feed-items"></span>
+    <span id="indexFreshnessStatus" class="info-feed-status">市场指数状态待核验</span>
+  </div>
+
   <!-- ═══ 主导航 ═══ -->
   <nav id="mainNav">
     <button class="nav-item active" data-page="monitor">监控总览</button>
-    <button class="nav-item" data-page="pentacles">星币侍从</button>
-    <button class="nav-item" data-page="chat">AI 助手<i class="badge"></i></button>
-    <button class="nav-item" data-page="context">信息与风险</button>
+    <button class="nav-item" data-page="planTrade">交易计划</button>
+    <button class="nav-item" data-page="chat">Stargazer<i class="badge"></i></button>
     <span class="nav-sep"></span>
     <span class="nav-hint" id="navHint">规则观察 · 不自动下单</span>
   </nav>
@@ -88,12 +95,16 @@
             <div class="section-head"><h2>今日工作台</h2><span class="sub">持仓风控与报价提醒独立运行</span></div>
             <div class="shell-stats"><div><span>已登记持仓</span><b id="overviewPositions">—</b></div><div><span>观察名单</span><b id="overviewWatches">—</b></div><div><span>选股候选</span><b id="overviewCandidates">—</b></div></div>
             <p class="shell-note">持仓、真实成交和到价提醒仍按原规则运行。AI讨论只是草案，人工确认后才启用观察名单；未知风险不等于低风险。</p>
-            <div class="shell-actions"><button class="tb-btn" id="overviewCheck">持仓风控巡检</button><button class="tb-btn" id="overviewPicks">查看星币侍从</button><button class="tb-btn" id="overviewPlan">讨论次日计划</button></div>
           </div>
-          <div class="section-card"><div class="section-head"><h2>三模型接入状态</h2><span class="sub">只连接当前选股输出 · 不融合、不互询</span></div>
-            <div class="model-slots"><article><span class="slot-kicker">SELECTION</span><h3>选股</h3><p id="slotSelection">读取中…</p><small>规则观察输出，未证明盈利能力</small></article><article><span class="slot-kicker">INFORMATION</span><h3>信息</h3><p>未接入 · UNKNOWN</p><small>资料面板不冒充训练模型输出</small></article><article><span class="slot-kicker">RISK</span><h3>风险</h3><p>未就绪 · UNKNOWN</p><small>持仓硬风控照常，不填风险概率</small></article></div>
+          <div class="section-card"><div class="section-head"><h2>模型工作台</h2><span class="sub">模型证据 → DeepSeek综合讨论 → 人工确认计划</span></div>
+            <div class="model-slots"><article><span class="slot-kicker">SELECTION</span><h3>Tarot·星币侍从 1.0</h3><p id="slotSelection">读取中…</p><small>选股依据、黄金位置与关注条件</small><button class="tb-btn" data-model-detail="selection">查看选股分析</button></article><article><span class="slot-kicker">INFORMATION</span><h3>Corvus</h3><p>未接入</p><small>信息缺失不代表没有利空</small><button class="tb-btn" data-model-detail="information">查看接入状态</button></article><article><span class="slot-kicker">RISK</span><h3>Pyxis 1.0</h3><p id="slotRisk">读取证据状态…</p><small>短时风险幅度、板块与领涨股上下文</small><button class="tb-btn" data-model-detail="risk">查看风险分析</button></article></div>
+            <div id="modelDetailPanel" hidden><h3 id="modelDetailTitle"></h3><div id="modelDetailBody"></div></div>
           </div>
-          <div class="section-card"><div class="section-head"><h2>计划与学习闭环</h2><span class="sub">LangGraph 独立编排 · 人工确认</span></div><p class="shell-note">盘后观察名单 → AI讨论 → 确认名单 → 次日到价提醒 → 学习记录预览 → 确认追加。图状态用于恢复，原始快照与哈希记录才是事实依据。</p><p class="shell-note">信息、风险模型验收后再接入；本版本称“稳定应用外壳”，不是第一版Demo。</p></div>
+          <div class="section-card"><div class="section-head"><h2>计划与学习闭环</h2><span class="sub">LangGraph 独立编排 · 人工确认</span></div><p class="shell-note">盘后名单 → 讨论数量与板块 → 两模型证据综合 → 人工确认 → 次日监控 → 学习记录预览。模型详情保留确认时的事实与解释。</p><p class="shell-note">Tarot与Pyxis按同日证据接入；缺数据明确披露，Corvus信息位保留。计划由你确认，程序不自动买卖。</p></div>
+          <div class="section-card">
+            <div class="section-head"><h2>实时监控板块</h2><span class="sub">只看交易计划中的板块和计划中的股票</span><span class="status-pill" id="planSectorStatus">暂无计划</span></div>
+            <div id="planSectorBody" class="shell-note">暂无计划：到「交易计划」页盘后选股、与 Stargazer 讨论并确认计划后，这里只监控计划内板块与计划内股票。</div>
+          </div>
         </div>
         <div hidden inert aria-hidden="true">
         <nav class="strategy-tabs">
@@ -128,76 +139,29 @@
         </div>
       </section>
 
-      <!-- 盘前助手与实时监控页 -->
-      <section id="pageContext" class="page">
-        <div class="monitor-page">
-          <div class="section-card">
-            <div class="section-head"><h2>信息与风险</h2><span class="status-pill">模型未接入</span></div>
-            <p class="shell-note">当前只展示来源资料与已有监控规则。信息模型、风险模型未来分别验收接入；未知状态不补为安全评分。盘前手填助手已撤下，持仓风控保留。</p>
-            <button class="tb-btn" onclick="location.href='/info'">查看来源资料面板</button>
-          </div>
-
-          <div class="section-card">
-            <div class="section-head">
-              <h2>实时监控板块</h2>
-              <span class="sub">同花顺概念 · 最多 20 个 · 盘中下跌&gt;3% 推送</span>
-              <span class="status-pill" id="swStatus">未设置</span>
-            </div>
-            <div class="pm-fields">
-              <label class="pm-wide">板块名（逗号分隔）<input id="swInput" type="text" placeholder="例：共封装光学(CPO), 军工, 存储芯片"></label>
-            </div>
-            <div class="pm-actions">
-              <button class="save-btn" id="swSaveBtn">保存板块</button>
-              <span id="swResult" class="pm-reason"></span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 交易计划页（本机专属；监控机 plan.enabled=false 或全链不存在时隐藏入口） -->
-      <section id="pagePlan" class="page" hidden inert aria-hidden="true">
-        <div class="monitor-page">
-          <div class="section-card">
-            <div class="section-head">
-              <h2>盘后双名单</h2>
-              <span class="sub">规则名单 ∥ 模型影子名单（未验证模型输出 · 纯观察不进计划）</span>
-              <span class="status-pill" id="planDualStatus">未生成</span>
-              <button class="mini-link" id="planRunBtn">盘后选股</button>
-            </div>
-            <div id="planDualLog" class="pm-reason" style="margin-bottom:10px"></div>
-            <div id="planDualMd" class="dash-list plan-md"><div class="empty">点「盘后选股」生成今日双名单（全链子进程，约数分钟）</div></div>
-          </div>
-
-          <div class="section-card">
-            <div class="section-head">
-              <h2>生成交易计划</h2>
-              <span class="sub">从规则名单勾选（模型名单仅观察）· 触发价可改 · 改动请填理由</span>
-              <span class="status-pill" id="planDraftStatus">未生成</span>
-            </div>
-            <div class="pm-actions" style="margin-bottom:14px">
-              <button class="save-btn" id="planDraftBtn">生成计划</button>
-              <button class="save-btn" id="planFreezeBtn" disabled>冻结并导出</button>
-              <span id="planResult" class="pm-reason"></span>
-            </div>
-            <div id="planPoolList" class="dash-list"><div class="empty">点「盘后选股」后，从下方规则名单勾选候选</div></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 星币侍从：独立研究 Demo -->
-      <section id="pagePentacles" class="page">
+      <!-- 交易计划页：盘后选股 → 计划制定 → 已确认计划栏（样式沿用卡片栏；能力不删） -->
+      <section id="pagePlanTrade" class="page">
         <div class="pentacles-page">
           <div class="pentacles-toolbar">
-            <div><h2>星币侍从 <span class="pentacles-tag">规则观察</span></h2><p>共性选观察对象 · 区域研究参考 · 非买卖建议</p></div>
+            <div><h2>交易计划 <span class="pentacles-tag">人工确认 · 不自动下单</span></h2><p>盘后选股 → 与 Stargazer 讨论次日计划 → 确认后写入交易计划</p></div>
             <div class="pentacles-actions">
-              <div class="push-quick"><span>次日到价提醒</span><label class="switch"><input type="checkbox" id="pentaclesMonitor" aria-label="开启次日独立报价监控和到价推送"><span class="slider"></span></label></div>
+              <div class="push-quick"><span>次日观察提醒</span><label class="switch"><input type="checkbox" id="pentaclesMonitor" aria-label="开启人工确认计划的次日观察提醒"><span class="slider"></span></label></div>
               <button class="tb-btn" id="pentaclesRun">盘后总结 · 分析选股</button>
               <button class="tb-btn" id="pentaclesLearning">写入学习记录</button>
-              <button class="tb-btn" id="pentaclesPlan">制定次日计划</button>
               <button class="tb-btn" id="pentaclesJournal">观察日记</button>
             </div>
           </div>
           <div id="pentaclesStatus" class="pentacles-status" role="status">尚未生成观察名单。点击盘后总结，从最新本地日线选股。</div>
+
+          <div class="section-card" id="planTradeCard">
+            <div class="section-head"><h2>交易计划</h2><span class="sub">已确认计划 · 观察位置/必要信号/有效期 · 计划状态</span><span class="status-pill" id="planTradeStatus">暂无计划</span></div>
+            <div class="pm-actions" style="margin-bottom:12px">
+              <button class="tb-btn" id="planTradeDraft" hidden>交易计划制定</button>
+              <span id="planTradeHint" class="pm-reason">盘后选股完成后出现「交易计划制定」；与 Stargazer 讨论并人工确认后写入计划。</span>
+            </div>
+            <div id="planTradeList" class="dash-list"><div class="empty">暂无计划：盘后选股 → 交易计划制定 → 讨论确认后，已确认计划的股票与关键条件显示在这里。</div></div>
+          </div>
+
           <div id="learningPanel" class="pentacles-journal" hidden>
             <label>复盘观察日 <input id="learningDay" type="date"></label>
             <button class="tb-btn" id="learningGenerate">DeepSeek 生成预览</button>
@@ -205,17 +169,33 @@
             <p id="learningStatus" role="status">只读当日行情；七日未成熟、成交或尺度未核验时保持未知。</p>
             <pre id="learningPreview"></pre>
           </div>
-          <div class="pentacles-filters"><button class="stab active" data-pool="ALL">全部</button><button class="stab" data-pool="A_SDP">强势分歧</button><button class="stab" data-pool="B_LVB">低位稳量</button><span id="pentaclesCount"></span></div>
+          <div class="pentacles-filters"><button class="stab active" data-pool="ALL">全部</button><button class="stab" data-pool="A_SDP">一段回调</button><button class="stab" data-pool="SECOND_PULLBACK" hidden>二段回踩</button><button class="stab" data-pool="B_LVB">低位稳量</button><span id="pentaclesCount"></span></div>
           <div id="pentaclesJournalPanel" class="pentacles-journal" hidden>
             <label>观察日期 <select id="pentaclesJournalDay" aria-label="选择观察日记日期"></select></label>
             <button class="tb-btn" id="pentaclesJournalDownload">保存文档</button>
             <pre id="pentaclesJournalText"></pre>
           </div>
           <div class="pentacles-table-wrap"><table class="pentacles-table">
-            <thead><tr><th>序</th><th>股票 / 共性形态</th><th>快照收盘</th><th>关注区域（非买入价）</th><th>区域依据</th><th>距区域 / ATR</th><th>RSI14</th><th>观察状态</th></tr></thead>
-            <tbody id="pentaclesRows"><tr><td colspan="8" class="empty">暂无观察快照，不填充虚构股票或模型评分。</td></tr></tbody>
+            <thead><tr><th>序</th><th>股票 / 共性形态</th><th>快照收盘</th><th>黄金节点＋0.2ATR（非买价）</th><th>两源及以上共振带（真实边界）</th><th>节点依据</th><th>距节点 / ATR</th><th>RSI14</th><th>观察状态 / 未过门原因</th></tr></thead>
+            <tbody id="pentaclesRows"><tr><td colspan="9" class="empty">暂无观察快照，不填充虚构股票或模型评分。</td></tr></tbody>
           </table></div>
-          <div class="pentacles-note">盘后选股 → 开启次日到价提醒 → 下一交易日触及/跌破关注区域时提醒人工复核。软件须保持运行；微信还需打开顶部推送开关并配置渠道。每股每日去重，失败最多尝试三次。过期名单、陈旧报价或价格口径不一致不提醒；区域不是买入指令，逐股个性预测仍未验收。</div>
+          <details id="pentaclesExcludedDetails" class="pentacles-journal" hidden>
+            <summary id="pentaclesExcludedSummary">查看未入选明细</summary>
+            <table class="pentacles-table"><thead><tr><th>股票</th><th>原因</th></tr></thead><tbody id="pentaclesExcludedRows"></tbody></table>
+          </details>
+          <div id="shadowAdvicePanel" class="pentacles-journal shadow-advice" hidden>
+            <div class="shadow-advice-head">
+              <span class="shadow-advice-title">影子建议</span>
+              <span class="shadow-advice-tag">影子建议·不影响原候选与提醒·买卖由你决定</span>
+              <button class="tb-btn" id="shadowAdviceClose" aria-label="关闭影子建议">关闭</button>
+            </div>
+            <div class="pentacles-filters">
+              <label>历史证据回放 <select id="shadowReplaySelect"><option value="">暂无历史证据</option></select></label>
+              <button class="tb-btn" id="shadowReplayOpen">查看证据</button>
+            </div>
+            <div id="shadowAdviceBody" role="status">点击候选行查看证据；历史回放不调用供应商。</div>
+          </div>
+          <div class="pentacles-note">当前新计划：一段/二段规则入围 → 同一冻结模型评分排序（最多10只） → 讨论并人工确认 → 次日观察P日冻结黄金阶梯。关注位只取不高于P收盘的有效档位，跌破后观察下一档；完成5分钟止跌背离，或跌破后连续两根完整5分钟K线收复，再核验同刻Pyxis风险并由DeepSeek综合，人工决定。F618严格指61.8%回撤位，初始观察位也可能是23.6%/38.2%/50%/78.6%档，并非固定前日F618。报价触价不等于买入，证据缺失不触发。旧确认计划不自动改写，重新确认后才使用新流程。程序须保持运行；微信需开启推送并配置渠道。不自动下单；盘后风险快照不代表整个次日的实时风险。</div>
         </div>
       </section>
 
@@ -223,8 +203,7 @@
       <section id="pageChat" class="page">
         <div class="chat-page">
           <header class="chat-head">
-            <span class="chat-title">AI 助手</span>
-            <span class="chat-sub">DeepSeek · 原文留存 · 有界上下文</span>
+            <span class="chat-title">Stargazer</span>
             <button class="tb-btn" id="newChatBtn">新会话</button>
             <button class="tb-btn" id="restoreChatBtn">恢复对话</button>
           </header>
