@@ -1,6 +1,7 @@
 """LangGraph runs out-of-process; quote/risk threads never import graph packages."""
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 import subprocess
 import paths
@@ -16,7 +17,7 @@ def gate(kind, draft, *, approved=None):
         # Dedicated interpreter, never sys.executable (that would recursively launch the exe).
         app = Path(paths.APP_DIR).resolve()
         project = app.parent.parent if app.name == 'dist' else app.parent
-        python = project / '_dev_venv/Scripts/python.exe'
+        python = Path(os.environ.get('STARGAZER_PYTHON') or project / '_dev_venv/Scripts/python.exe')
         worker = Path(paths.resource('assistant_graph_worker.py'))
         if not python.is_file() or not worker.is_file():
             raise ValueError('LangGraph独立运行环境未就绪，草案保留；确认暂停，报价和持仓风控不受影响')

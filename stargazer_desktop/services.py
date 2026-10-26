@@ -159,6 +159,100 @@ def score_stocks(codes, year=2025):
 
 
 # ---------- 个股体检 ----------
+def model_stock_analysis(code):
+    """Read bound model results on demand; never disguise missing inference."""
+    import re
+    import assistant_workflow
+    import plan_evidence
+    if not isinstance(code, str) or not re.fullmatch(r'(?:00|30|60|68)\d{4}', code):
+        raise ValueError('模型查询需要六位A股代码')
+    try:
+        snapshot = assistant_workflow.snapshot()
+    except (OSError, ValueError):
+        return {'code': code, 'status': 'UNAVAILABLE', 'reason': '尚无可绑定的当前选股快照；未调用训练或外部取数'}
+    base = {'code': code, 'data_date': snapshot.get('data_date'),
+            'mode': 'BOUND_MODEL_RESULT_LOOKUP', 'computed_now': False,
+            'note': '读取已验收模型结果，不是本次重新推理；幅度非概率，未知不等于安全；无自动交易权限。'}
+    if not any(r['code'] == code for r in snapshot.get('rows', [])):
+        return {**base, 'status': 'NOT_COVERED', 'selection': {'status': 'NOT_IN_CURRENT_CANDIDATES'},
+                'risk': {'status': 'MISSING'}, 'requires_feature_rebuild': True,
+                'reason': '不在当前已绑定模型候选；须另建同规格特征后才可真实评分，本次没有偷偷启动取数或重建。'}
+    evidence = plan_evidence.for_snapshot(snapshot)[code]
+    return {**base, 'status': 'AVAILABLE' if evidence['risk']['status'] == 'AVAILABLE' else 'PARTIAL',
+            'selection': evidence['selection'], 'risk': plan_evidence.prompt_risk(evidence['risk']),
+            'risk_observations': plan_evidence.risk_lines(evidence['risk'])}
+
+
+def model_stock_inference(code, model='both'):
+    """Use bound evidence, or compute one frozen selection head without publishing a plan."""
+    import subprocess
+    from pathlib import Path
+    import assistant_workflow
+    import paths
+
+    if model not in ('tarot', 'pyxis', 'both'):
+        raise ValueError('模型范围无效')
+    bound = model_stock_analysis(code)
+    if bound['status'] in ('AVAILABLE', 'PARTIAL'):
+        return bound
+    if model == 'pyxis':
+        return {**bound, 'inference_status': 'PYXIS_CONTEXT_NOT_BOUND',
+                'inference_reason': '池外Pyxis需要同截止指数、板块及全板块个股分钟上下文；当前缓存不足以按单股同规格推理'}
+    try:
+        snapshot = assistant_workflow.snapshot()
+        p, e = int(snapshot['data_date']), int(snapshot['monitor_date'])
+    except (OSError, ValueError, KeyError):
+        return {**bound, 'inference_status': 'NO_BOUND_DECISION_DATE'}
+    app = Path(paths.APP_DIR).resolve()
+    project = app.parent.parent if app.name == 'dist' else app.parent
+    python = Path(os.environ.get('STARGAZER_PYTHON') or project / '_dev_venv/Scripts/python.exe')
+    worker = Path(paths.resource('on_demand_model_worker.py'))
+    if not python.is_file() or not worker.is_file():
+        return {**bound, 'inference_status': 'LOCAL_WORKER_MISSING'}
+    try:
+        completed = subprocess.run([str(python), '-B', '-X', 'utf8', str(worker)],
+            input=json.dumps({'code': code, 'P': p, 'E': e}), capture_output=True,
+            text=True, encoding='utf-8', timeout=45,
+            env={**os.environ, 'STARGAZER_PROJECT_ROOT': str(project)},
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        result = json.loads(completed.stdout)
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return {**bound, 'inference_status': 'LOCAL_WORKER_UNAVAILABLE'}
+    if completed.returncode or result.get('status') == 'UNAVAILABLE':
+        return {**bound, 'inference_status': 'LOCAL_WORKER_REFUSED',
+                'inference_reason': result.get('reason', 'WORKER_EXIT')}
+    selected = result['selection'].get('quality_state') == 'OK'
+    return {**bound, 'bound_status': bound['status'],
+            'status': 'PARTIAL_ON_DEMAND' if selected else bound['status'],
+            'on_demand': result,
+            'inference_status': 'SELECTION_ONLY' if selected else 'SELECTION_NOT_COMPUTABLE'}
+
+
+def confirmed_plan():
+    """Read the saved plan without creating a draft or changing reminders."""
+    import trade_plan_v1
+    plan = trade_plan_v1.load_plan()
+    if not plan:
+        return {'status': 'NO_CONFIRMED_PLAN'}
+    facts = {}
+    for code, item in (plan.get('model_evidence') or {}).items():
+        selection, risk = item.get('selection') or {}, item.get('risk') or {}
+        context = risk.get('context') or {}
+        facts[code] = {'selection_score': selection.get('personal_score'),
+                       'selection_ref': selection.get('ref'),
+                       'risk_status': risk.get('status'), 'risk_asof': risk.get('asof_ts'),
+                       'amp_232': context.get('amp_232'), 'amp_266': context.get('amp_266'),
+                       'risk_horizon': context.get('horizon')}
+    return {**{key: plan.get(key) for key in ('created_ts', 'data_date', 'monitor_date',
+            'stocks', 'boards', 'manual_observations', 'assistant_plan_id')},
+            'model_facts': facts}
+
+
+def portfolio_positions(cfg):
+    """Local recorded holdings; market prices require a separate live check."""
+    return {'positions': wl_load(cfg).get('positions', []), 'price_status': 'NOT_QUERIED'}
+
+
 def stock_check(code):
     q = market.quotes([code]).get(code)
     df = market.kline(code)
@@ -476,6 +570,16 @@ def wl_add_position(cfg, code, name, entry, entry_date, low250, logic="", cataly
                             "low250": float(low250), "logic": logic,
                             "catalyst_date": _norm_date(catalyst_date) if catalyst_date else None,
                             "sector_bk": sector_bk})
+    # Bind execution terms only to a manually recorded fill of the new confirmed plan.
+    import trade_plan_v1
+    plan = trade_plan_v1.load_plan() or {}
+    if str(plan.get('monitor_date', '')).replace('-', '') == _norm_date(entry_date).replace('-', ''):
+        stock = next((s for s in plan.get('stocks', []) if s['code'] == code), {})
+        rule = stock.get('entry_rule') or {}
+        if rule.get('version') == 'TAROT_A_SECOND_CASH_V2':
+            distance = max(.03, min(.06, 1.5*float(rule['atr_ref'])/float(entry)))
+            wl['positions'][-1]['tarot_execution'] = dict(version=rule['version'], stop_price=float(entry)*(1-distance),
+                horizon_sessions=3, plan_id=plan.get('assistant_plan_id'), atr_ref=rule['atr_ref'])
     wl_save(cfg, wl)
     return {"ok": True, "positions_n": len(wl["positions"])}
 
