@@ -245,3 +245,4 @@
 !/release_audit_v1/
 !/release_audit_v1/*.md
 !/release_audit_v1/*.py
+!/release_audit_v1/*.txt
