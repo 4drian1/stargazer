@@ -35,12 +35,6 @@
 | `开发路线.txt` | 唯一主路线（新对话必读） |
 | `交接摘要.md` | 状态速查与每日操作协议 |
 
-## 隐私与密钥政策（红线）
-
-- 真实密钥**永不入库**：`config.yaml`、各 `tokens.yaml`、`.secrets/` 均被 gitignore；仓库只提供 `*.example.yaml` 占位模板。
-- 本机私有路径同样不入库：TDX vipdoc 路径由环境变量 `STARGAZER_TDX_ROOT` 或本机 `data/tdx_root.txt`（已 gitignore）提供。
-- 交易计划、持仓、成交、行情缓存、模型权重、发布产物一律不入库。
-- 即使仓库转 Public，任何一次提交中的密钥都会永久可见，所以密钥只走本地文件。
 
 ## 相关文档
 
