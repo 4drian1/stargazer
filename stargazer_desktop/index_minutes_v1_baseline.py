@@ -1,5 +1,6 @@
 """Read the local index mirror's status without querying any network service."""
 import json
+import os
 import importlib.util
 import threading
 from datetime import datetime
@@ -13,7 +14,18 @@ MIRROR = (Path(paths.APP_DIR).parent / 'stargazer_ml' / 'v5_hybrid' /
 if paths.FROZEN:
     MIRROR = Path(paths.APP_DIR).parents[1] / 'stargazer_ml' / 'v5_hybrid' / 'risk_r0_v1' / 'index_minutes_v1'
 
-TDX_ROOT = Path(r'D:\chat_attachments\local-user-files\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\vipdoc')
+def _tdx_root_default():
+    """TDX vipdoc 路径兜底：本机私有路径不入库。
+    环境变量 > 模块旁 data/tdx_root.txt（已 gitignore）> 通用占位符。"""
+    override = Path(paths.data_file('data/tdx_root.txt', seed_from_bundle=False))
+    if override.is_file():
+        text = override.read_text(encoding='utf-8').strip()
+        if text:
+            return text
+    return os.environ.get('STARGAZER_TDX_DEFAULT') or 'D:/tdx/vipdoc'
+
+
+TDX_ROOT = Path(os.environ.get('STARGAZER_TDX_ROOT') or _tdx_root_default())
 SOURCE_FILES = {'000001.SH': TDX_ROOT / 'sh/fzline/sh999999.lc5',
                 '399006.SZ': TDX_ROOT / 'sz/fzline/sz399006.lc5'}
 _sync_lock = threading.Lock()
