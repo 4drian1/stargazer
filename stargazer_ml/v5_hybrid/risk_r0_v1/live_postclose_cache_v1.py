@@ -9,6 +9,7 @@ def prior_entries(runtime, day):
         row=json.loads(terminal.read_text(encoding='utf-8'))
         previous=row.get('data_date',0)
         if row.get('status')=='COMPLETE' and 0<int(previous)<int(day):
+            if row.get('source_contract')=='TDX_NATIVE_POSTCLOSE_V1':continue
             if Path(row['run_dir']).resolve()!=terminal.parent.resolve():
                 raise ValueError('PRIOR_RUNTIME_PATH_MISMATCH')
             options.append((int(previous),terminal.parent/'source_manifest.json'))
@@ -18,6 +19,8 @@ def prior_entries(runtime, day):
     if path.stat().st_size>32*1024**2:
         raise ValueError('PRIOR_MANIFEST_SIZE')
     manifest=json.loads(path.read_text(encoding='utf-8'))
+    if manifest.get('contract')=='TDX_NATIVE_POSTCLOSE_V1':
+        return {}  # Native sources are not stockdb seed/extension records.
     return manifest['entries']
 
 

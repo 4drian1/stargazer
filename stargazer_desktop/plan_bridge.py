@@ -392,4 +392,15 @@ def freeze_and_export(cfg, session_id, trading_date):
     r2["frozen"] = r1.get("output") or ""
     if not r2.get("ok"):
         r2.setdefault("error", r2.get("output") or f"export_frozen 退出码 {r2.get('returncode')}")
+        return r2
+    # W2a：单机形态导出成功后自动同步运行目录+版本戳并触发准备；
+    # 同步/准备失败不推翻导出结果，只回报警告。
+    try:
+        from postclose_prepared_v1 import on_plan_frozen
+        r2["prepared"] = on_plan_frozen(cfg, out_path, date)
+        notifier.log(f"交易计划：运行目录同步+准备清单已登记（roster="
+                     f"{r2['prepared'].get('roster_size')}）")
+    except Exception as exc:
+        r2["prepare_warning"] = f"{type(exc).__name__}: {exc}"
+        notifier.log(f"交易计划：导出后同步/准备失败（不推翻导出）：{exc}")
     return r2

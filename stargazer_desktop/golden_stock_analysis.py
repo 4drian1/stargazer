@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-FINGERPRINT='live_monitor_fingerprints_20261026_v33_flow.json.gz'
+FINGERPRINT='live_monitor_fingerprints_20261110_v206_flow.json.gz'
 
 
 def check_code(code):
@@ -50,7 +50,7 @@ def summarize_map(mapping,close,atr):
         wave_scope='EXISTING_PRICE_MAP_RECENT_PEAK60_PRIOR_LOW60_NOT_ALL_HISTORY',
         cluster_max_span_fraction=mapping['cluster_max_span_fraction'],
         source_count_note='不同低点/高点端点对计来源；共享高点相关，不是独立资金票数',
-        zone_note=('V4至少三端点来源；观察区上沿=min(原带上沿+0.2ATR,昨收×0.96)，多档全列；共振参考不等于入场条件' if new else
+        zone_note=('V4至少三端点来源；观察区上沿=min(原带上沿+0.2ATR,昨收下跌超过3%的最高分价)，多档全列；共振参考不等于入场条件' if new else
             '节点至节点+0.2ATR，盘后上沿取不高于P收盘价；共振带另列，均非买入触发'))
 
 
@@ -72,17 +72,16 @@ def compute(request):
     now=datetime.fromisoformat(request['as_of']) if request.get('as_of') else datetime.now(ZoneInfo('Asia/Shanghai'))
     if now.tzinfo is None:raise ValueError('OBSERVATION_TIMEZONE_REQUIRED')
     now=now.astimezone(ZoneInfo('Asia/Shanghai'));day=int(now.strftime('%Y%m%d'))
-    calendar=source.calendar_dates()
+    from tdx_daily_source_v2 import calendar_days
+    calendar=calendar_days()
     target=max(d for d in calendar if d<=day and (d<day or now.hour>=15))
     if request.get('data_date') is not None:
         requested=int(request['data_date'])
         if requested not in calendar or requested>target:raise ValueError('COMPLETED_TRADING_DATE_REQUIRED')
         target=requested
-    mirror=project/'data_daily_parts'
-    if mirror.is_dir():source.DAILY_DIR=mirror
     frame=source.read_daily_prefix(code,target)
     if frame.empty:raise ValueError('DAILY_SOURCE_MISSING')
-    actual=int(frame.date.max());g=source.daily_prefix(frame,code,actual)
+    actual=int(frame.date.max());g=source.daily_prefix(frame,code,actual,require_metadata=False)
     core=tarot.frozen();atr=float(core.indicators(g).atr.iloc[-1])
     close=float(g.close.iloc[-1])
     try:mapping=price_map(g,atr)
@@ -93,7 +92,7 @@ def compute(request):
             data_date=actual,requested_data_date=target,as_of=now.isoformat(),reference_close=close,atr_ref=atr,
             atr_basis='TAROT_FROZEN_TRUE_RANGE14_LAST5_MEDIAN',computed_now=True,
             node_zones=[],resonance_bands=[],plan_instruction=None,plan_eligible=False,
-            source=dict(kind='LOCAL_DAILY_PARTS',directory=str(source.DAILY_DIR),rows=len(g),through=actual,
+            source=dict(kind='TDX_LOCAL_RAW_DAILY',rows=len(g),through=actual,
                         price_prefix_sha256=hashlib.sha256(prefix.encode()).hexdigest()),
             selection_score=None,risk_status='NOT_COMPUTED',plan_changed=False,orders_sent=False)
     result=summarize_map(mapping,close,atr)
@@ -110,13 +109,30 @@ def compute(request):
     result.update(code=code,status='AVAILABLE' if actual==target else 'STALE_REFERENCE_ONLY',
         data_date=actual,requested_data_date=target,as_of=now.isoformat(),reference_close=close,atr_ref=atr,
         atr_basis='TAROT_FROZEN_TRUE_RANGE14_LAST5_MEDIAN',
-        source=dict(kind='LOCAL_DAILY_PARTS',directory=str(source.DAILY_DIR),rows=len(g),
+        source=dict(kind='TDX_LOCAL_RAW_DAILY',rows=len(g),
                     through=actual,price_prefix_sha256=hashlib.sha256(prefix.encode()).hexdigest()),
         map_basis='EXISTING_GOLDEN_PRICE_RULE_NOT_LEARNED_SCORE',computed_now=True,
         selection_admission='NOT_EVALUATED_BY_THIS_PRICE_TOOL',selection_score=None,risk_status='NOT_COMPUTED',
         plan_changed=False,orders_sent=False,plan_eligible=actual==target and nearest is not None,
         plan_instruction=(f'请把{code}加入次日计划 关注区间{nearest["zone_lower"]:.4f}-{nearest["zone_upper"]:.4f}'
                           if actual==target and nearest is not None else None))
+    if result['plan_eligible']:
+        observable=[{k:b[k] for k in ('lower','upper','zone_upper','source_waves','shared_peak_groups')}
+                    for b in mapping['bands'] if b['observable']]
+        from golden_watch_groups import watch_groups
+        rule=dict(version='TAROT_A_SECOND_CASH_V2',eligible=True,policy=mapping['policy'],
+            levels=mapping['levels'],f618=mapping['levels'][0],atr_ref=atr,close_p=close,
+            p_date=actual,history_days=mapping['history_days'],observation_map=mapping,
+            observation_bands=observable,combination_policy='POSITION_TWO_OF_THREE_O20_CROSS1_V1')
+        rule['quote_observation_bands']=watch_groups(rule)
+        result['execution_row']=dict(code=code,name=str(g.iloc[-1].get('name',code)),date=actual,
+            setup='USER_GOLDEN_ANALYSIS',stage='USER',reference_price=close,atr_ref=atr,
+            zone=dict(zone_lower=nearest['zone_lower'],zone_upper=nearest['zone_upper']),
+            entry_rule=rule,selection_score=None,selection_admission='USER_REQUEST_NOT_MODEL_ADMISSION')
+        future=[d for d in calendar if d>actual]
+        result['monitor_date']=min(future) if future else None
+        frozen_manifest=json.loads(gzip.decompress(tarot.MANIFEST.read_bytes()))
+        result['rule_inputs']=[dict(path=k,sha256=v) for k,v in frozen_manifest['frozen_inputs'].items()]
     if nearest is None:result.update(status='REFERENCE_ONLY_NO_V4_ZONE',reason='历史档位可读，但暂无满足V4下杀幅度和三来源的入场观察区')
     return result
 

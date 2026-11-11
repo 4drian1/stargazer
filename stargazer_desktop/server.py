@@ -225,6 +225,40 @@ def handle_slash(text, cfg):
 
 
 # ---------- 路由 ----------
+_BUILD_INFO_CACHE = {}
+
+
+@app.route('/api/build_info')
+def api_build_info():
+    """构建身份：页面底部展示，便于核对正在运行的 EXE 版本（诊断"页面没变"类问题）。"""
+    if not _BUILD_INFO_CACHE:
+        import hashlib
+        import sector_rule_scan
+        exe = ''
+        try:
+            import sys
+            h = hashlib.sha256()
+            with open(sys.executable, 'rb') as stream:
+                for chunk in iter(lambda: stream.read(1 << 20), b''):
+                    h.update(chunk)
+            exe = h.hexdigest()[:12]
+        except OSError:
+            exe = 'UNKNOWN'
+        _BUILD_INFO_CACHE.update(dict(flow_manifest=sector_rule_scan.FINGERPRINT,
+                                      exe_sha12=exe))
+    return jsonify(_BUILD_INFO_CACHE)
+
+
+@app.after_request
+def no_store_static(response):
+    """桌面 WebView2 会缓存 index.html 与静态资源：升级后必须拿到新包，
+    否则用户看到旧页面误以为功能未生效。静态资源一律 no-store。"""
+    path = request.path or ''
+    if path == '/' or path.startswith('/assets/') or path.endswith(('.js', '.css', '.html')):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 @app.route("/")
 def index():
     return send_from_directory(WEB, "index.html")
@@ -252,6 +286,11 @@ def chat():
 
     try:
         with _brain_lock:
+            from plan_board_change_v1 import try_sector_change
+            context = _board_change_context()
+            sector = try_sector_change(msg, **context)
+            if sector:
+                return jsonify({**sector, 'tools': []})
             body = request.get_json() or {}
             from conversation_intent import plan_work
             if plan_work(msg, drafting=body.get('mode') == 'next_day_plan'):
@@ -317,13 +356,36 @@ def state():
         return {"live_price": float(price) if price not in (None, "") else None,
                 "live_pct": float(pct) if pct not in (None, "") else None,
                 "name": q.get("name") or item.get("name", "")}
+    enriched = []
+    for pos in positions:
+        detail = services.position_details(cfg, pos.get("code"), (_live(pos) or {}).get("live_price"))
+        enriched.append({**pos, **_live(pos), **detail})
+    info_by_code = {}
+    try:
+        import corvus_info_link_v1
+        codes = [str(p.get("code")) for p in positions if p.get("code")]
+        if codes:
+            import datetime as _dt2
+            block = corvus_info_link_v1.plan_information_block(codes, [], _dt2.datetime.now())
+            for item in block.get('items') or []:
+                code = str(item.get('code') or '')
+                info_by_code[code] = dict(
+                    related_count=block.get('counts', {}).get(code),
+                    top_title=item.get('title'),
+                    top_availability=item.get('availability'),
+                    top_importance=item.get('importance'))
+    except Exception:
+        info_by_code = {}
+    for pos in enriched:
+        pos['corvus'] = info_by_code.get(str(pos.get('code'))) or None
     return jsonify({
-        "positions": [{**p, **_live(p)} for p in positions],
+        "positions": enriched,
         "watch": [{**w, **_live(w)} for w in watch],
         "market_open": notifier.market_open(dt.datetime.now()),
         "push": {"enabled": p.get("enabled", True), "provider": p.get("provider", "serverchan"),
                  "has_sendkey": bool(p.get("serverchan_sendkey", "").strip()),
                  "has_pushplus_token": bool(p.get("pushplus_token", "").strip()),
+                 "has_dingtalk": bool(p.get("dingtalk_webhook", "").strip()),
                  "interval_minutes": p.get("interval_minutes", 30),
                  "close_time": p.get("close_time", "15:05"),
                  "morning_report": p.get("morning_report", True),
@@ -345,6 +407,7 @@ def update_config():
             cfg = yaml.safe_load(f)
         push = cfg.setdefault("push", {})
         for k in ("enabled", "provider", "serverchan_sendkey", "pushplus_token",
+                  "dingtalk_webhook", "dingtalk_secret",
                   "interval_minutes", "close_time", "in_app_notify",
                   "morning_report", "morning_time", "stop_watch",
                   "auction_check", "auction_time"):
@@ -615,6 +678,146 @@ def api_shadow_advice():
         return jsonify({'status': 'ERROR',
                         'reason': f'本次建议不可用（{type(exc).__name__}）',
                         'advice': None, 'journal_ref': None})
+
+
+def _board_change_context():
+    import postclose_risk_runtime
+    import trade_plan_v1
+    return dict(root=assistant_workflow.root() / 'board_changes',
+                store_dir=postclose_risk_runtime.directory() / 'board_identities',
+                formal_plan_path=trade_plan_v1.TRADE_PLAN_FILE,
+                assistant_plan_path=pentacles_demo.snapshot_path().with_name('assistant_plan.json'))
+
+
+@app.route('/api/assistant/boards/state')
+def api_board_change_state():
+    from plan_board_change_v1 import latest
+    context = _board_change_context()
+    draft = latest(context['root'])
+    if draft:
+        file = context['store_dir'] / 'board_changes' / (draft['id'] + '.json')
+        pending = context['store_dir'] / 'pending_board_preference.json'
+        saved = json.loads(pending.read_bytes()) if pending.is_file() else {}
+        draft['confirmed'] = (not draft.get('confirmable') or file.is_file() or
+                              saved.get('draft_id') == draft['id'])
+    return jsonify({'ok': True, 'draft': draft})
+
+
+@app.route('/api/assistant/boards/confirm', methods=['POST'])
+def api_board_change_confirm():
+    from plan_board_change_v1 import confirm, load_draft
+    try:
+        body = request.get_json() or {}
+        with _brain_lock, assistant_workflow.LOCK:
+            context = _board_change_context()
+            draft = load_draft(context['root'], body.get('id'))
+            if body.get('confirmed') is not True:
+                raise ValueError('必须人工确认板块变更')
+            from ths_board_supply_v1 import ensure
+            preparation = {board['name']: value for board in draft.get('boards', [])
+                           if (value := ensure(board['name'], context['store_dir'])) is not None}
+            result = confirm(body.get('id'), body.get('confirmed'), **context)
+            result['constituent_preparation'] = preparation
+            for name, value in preparation.items():
+                detail = ('成分已准备：' + str(value['member_count']) + '只' if value['status'] == 'READY'
+                          else '成分准备未完成')
+                if value.get('reason'):
+                    detail += '；更新失败，保留原版本：' + value['reason']
+                result['reply'] = result.get('reply', '') + '\n' + name + '：' + detail
+            import strong_sector_pool_prep_v1 as pool_prep
+            pool_boards = [b.get('name') for b in draft.get('boards', []) if isinstance(b, dict)]
+            pool_view = pool_prep.submit(pool_boards)
+            result['pool_prepare'] = pool_view.get('status')
+            label = {'QUEUED': '强势池准备任务已提交', 'RUNNING': '强势池准备中',
+                     'REUSED': '同版强势池已存在，直接复用',
+                     'READY': '强势池已就绪',
+                     'FAILED': '强势池准备失败：' + str(pool_view.get('reason')),
+                     'WAIT_DAILY': '强势池待准备：本地日线未更新，已保留任务与偏好',
+                     'RETRY_WAIT': '强势池准备冷却中，稍后自动重试'}.get(pool_view.get('status'), '')
+            if label:
+                result['reply'] = (result.get('reply') or '') + '\n' + label + '。'
+        return jsonify(result)
+    except (ValueError, OSError) as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
+@app.route('/api/strong-pool/state')
+def api_strong_pool_state():
+    """纯读：逐板块准备状态/合格数/成员出处；不采集、不计算、不付费、不发送。"""
+    import strong_sector_pool_prep_v1 as pool_prep
+    from sector_watch_v1 import names
+    import trade_plan_v1
+    plan = trade_plan_v1.load_plan() or {}
+    boards = request.args.getlist('board') or names(plan)
+    return jsonify(pool_prep.state(boards))
+
+
+@app.route('/api/strong-pool/board')
+def api_strong_pool_board():
+    """纯读：单个板块从已核验池读出的真实股票（代码/名称/黄金观察区/准备状态）。
+    池按正式计划的完整板块集合绑定；展开不启动计算、不加入正式个股计划、不触发推送。"""
+    import strong_sector_pool_prep_v1 as pool_prep
+    from sector_watch_v1 import names
+    import trade_plan_v1
+    name = (request.args.get('name') or '').strip()
+    if not name:
+        return jsonify({'ok': False, 'error': 'name 必填'}), 400
+    plan = trade_plan_v1.load_plan() or {}
+    boards = pool_prep._normalize_boards(names(plan) or [name])
+    if name not in boards:
+        boards = sorted(set(boards + [name]))
+    found = pool_prep.validated_existing_pool(boards)
+    pool = found.get('pool')
+    reason = None if pool is not None else (found.get('validation') or 'NO_VALIDATED_POOL')
+    if pool is None:
+        return jsonify({'ok': True, 'board': name, 'status': 'NOT_READY', 'reason': reason,
+                        'validation': found.get('validation'), 'detail': found.get('detail'),
+                        'rows': [], 'note': '无已核验强势池；展开不触发计算，请用"更新板块强势池"显式准备'})
+    rows = []
+    for row in pool.get('rows') or []:
+        if name not in (row.get('boards') or []):
+            continue
+        zones = ['%.4f–%.4f' % (float(p['lower']), float(p['upper']))
+                 for p in (row.get('positions') or [])[:4]
+                 if isinstance(p.get('lower'), (int, float)) and isinstance(p.get('upper'), (int, float))]
+        rows.append(dict(code=row.get('code'), name=row.get('name'), pool=row.get('pool'),
+                         observe_zones=zones, map_known_before_open=row.get('map_known_before_open')))
+    return jsonify({'ok': True, 'board': name, 'status': 'READY', 'rows': rows,
+                    'pool_rows_sha256': pool.get('rows_sha256'),
+                    'data_date': pool.get('data_date'), 'observation_date': pool.get('observation_date'),
+                    'note': '仅观察数据，不自动加入正式个股计划，不构成买入建议'})
+
+
+@app.route('/api/assistant/plan/reject', methods=['POST'])
+def api_assistant_plan_reject():
+    """明确拒绝/撤销草案：只登记拒绝标记，不触碰已确认计划、不取消现行监控。"""
+    try:
+        body = request.get_json() or {}
+        identifier = body.get('id')
+        import assistant_workflow
+        draft = assistant_workflow.load_draft('plan', identifier)
+        root = assistant_workflow.root()
+        marker = root / ('rejected_%s.json' % identifier)
+        if not marker.exists():
+            marker.write_bytes(json.dumps({'draft_id': identifier, 'rejected_at': dt.datetime.now().isoformat(),
+                                           'note': '草案被拒绝/撤销；现行计划与监控不受影响'},
+                                          ensure_ascii=False).encode('utf-8'))
+        return jsonify({'ok': True, 'rejected': True, 'plan_untouched': True})
+    except (ValueError, OSError) as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
+@app.route('/api/strong-pool/prepare', methods=['POST'])
+def api_strong_pool_prepare():
+    """“更新板块强势池”：显式本地准备/有限重试；不启动选股模型、LLM 或推送。"""
+    import strong_sector_pool_prep_v1 as pool_prep
+    from sector_watch_v1 import names
+    import trade_plan_v1
+    body = request.get_json(silent=True) or {}
+    plan = trade_plan_v1.load_plan() or {}
+    boards = body.get('boards') or names(plan)
+    view = pool_prep.submit(boards)
+    return jsonify(view)
 
 
 @app.route('/api/assistant/state')
@@ -1071,7 +1274,9 @@ def api_trade_add():
     r = services.trade_add(get_cfg(), action=b.get("action"), code=b.get("code"),
                            name=b.get("name"), price=b.get("price"), shares=b.get("shares"),
                            trade_date=b.get("trade_date"), reason=b.get("reason", ""),
-                           source=b.get("source", "manual"), raw=b.get("raw", ""))
+                           source=b.get("source", "manual"), raw=b.get("raw", ""),
+                           request_id=b.get("request_id"),
+                           plan_ref=_ui2_current_plan_ref())
     # 评审第1点：卖出是账户层事件（trades 体系），决策表不写 action=sell；
     # 仅 best-effort 在影子决策表标记最近一笔未平仓买入的 exit_*，失败不影响成交。
     if r.get("ok") and str(b.get("action") or "").lower() == "sell":
@@ -1090,22 +1295,95 @@ def api_trade_export():
     return send_from_directory(os.path.dirname(p), os.path.basename(p), as_attachment=True)
 
 
+def register_extension_routes():
+    """Register the existing panels before requests or monitoring threads start."""
+    if app.extensions.get('stargazer_panels_registered'):
+        return
+    import strong_pullback_boards_v1
+    import strong_pullback_positions_v1
+    from i34_bridge import register_i34_routes
+    strong_pullback_boards_v1.register(app)
+    strong_pullback_positions_v1.register(app)
+    register_i34_routes(app, get_cfg)
+
+    @app.route('/local-storage')
+    def local_storage_page():
+        return send_from_directory(WEB, 'local_storage.html')
+
+    @app.route('/api/local-storage')
+    def local_storage_status():
+        from pathlib import Path
+        from persistent_records_v1 import status
+        from postclose_risk_runtime import directory
+        from runtime_disk_limit_v1 import disk_usage, disk_limit
+        runtime = directory()
+        return jsonify(records=status(runtime.parent),
+                       cache={'bytes': disk_usage(runtime), 'budget_bytes': disk_limit(runtime)})
+
+    app.extensions['stargazer_panels_registered'] = True
+
+
 def run_server(port=17890):
+    register_extension_routes()
     app.run(host="127.0.0.1", port=port, threaded=True, use_reloader=False)
 
 
+def _global_snapshot_warm():
+    """启动后台补一次全球行情快照：缺失或过旧（超过最大时长一半）才抓；
+    后台线程、免费源、不阻塞启动；失败只记日志不影响主程序。"""
+    try:
+        from ui_backend_config import global_overview_snapshot_path, global_overview_max_age_hours
+        path = global_overview_snapshot_path()
+        if path.is_file():
+            import json as _j
+            from datetime import datetime as _d, timezone as _tz
+            doc = _j.loads(path.read_text(encoding='utf-8'))
+            gen = _d.fromisoformat(str(doc.get('generated_at', '')))
+            age_h = (_d.now(gen.tzinfo) - gen).total_seconds() / 3600
+            if age_h <= max(1.0, global_overview_max_age_hours() / 2):
+                return
+        from global_market_collect_v1 import collect_subprocess
+        ok, note = collect_subprocess()
+        log(f"全球行情快照补采：{'成功' if ok else '失败'}（{note}）")
+    except Exception as exc:
+        log(f"全球行情快照补采失败（不影响主程序）: {type(exc).__name__}: {exc}")
+
+
 def start(port=17890):
-    """启动后端+巡检线程，返回实际端口。"""
+    """启动后端+巡检线程，返回实际端口。
+
+    Step2 稳定性接线：
+    - 单实例保护：先取 instance_guard_v1 排他锁；取不到说明已有实例在运行，
+      直接失败退出（绝不双开）。只由主程序入口调用；invoke()/PyInstaller 子进程
+      不经过本函数。旧 EXE 无此锁，不会被它拦截，也不能依赖它拦截开发实例。
+    - 端口绑定：从 port 起尝试 20 个端口；全部失败 → 不启动任何监控线程
+      （fail-closed），抛错让入口明确感知，而不是在未知状态下静默开监控。
+    - 绑定成功后记录端口（note_port）供诊断/二次启动提示。
+    """
     import socket
+    import instance_guard_v1
+    if not instance_guard_v1.acquire_instance_lock():
+        holder = instance_guard_v1.read_holder_identity()
+        raise RuntimeError(f"单实例保护：已有实例在运行（持有者: {holder}）；请先退出旧实例")
+    free_port = None
     for p in range(port, port + 20):
         s = socket.socket()
         try:
             s.bind(("127.0.0.1", p))
             s.close()
-            port = p
+            free_port = p
             break
         except OSError:
             s.close()
+    if free_port is None:
+        try:
+            notifier.log(f"单实例锁已取得，但 {port}-{port + 19} 全部端口绑定失败，不启动监控")
+        except Exception:
+            pass
+        instance_guard_v1.release_instance_lock()
+        raise RuntimeError(f"所有可用端口 {port}-{port + 19} 绑定失败，不启动监控")
+    port = free_port
+    register_extension_routes()
     notifier_thread.start()
     model_monitor_thread.start()
     pentacles_demo.monitor.start(get_cfg, pentacles_demo.monitoring_plan)
@@ -1116,4 +1394,189 @@ def start(port=17890):
     threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
+    try:
+        instance_guard_v1.note_port(port)
+    except Exception:
+        notifier.log("实例端口记录失败（诊断信息缺失，不影响监控）")
+    threading.Thread(target=_global_snapshot_warm, daemon=True, name='global-snapshot-warm').start()
     return port
+
+# ---- UI2 最终集成：三条 UI 合同 GET 路由（复用生产 ui_*_api 真实实现）----
+def _ui2_calendar_route():
+    from flask import jsonify, request
+    from datetime import datetime as _dt
+    import ui_calendar_api as C
+    raw = (request.args.get('from') or '').strip()
+    if raw and (len(raw) != 8 or not raw.isdigit()):
+        return jsonify(ok=False, error='BAD_DATE', reason='from 必须是 YYYYMMDD'), 400
+    day = int(raw) if raw else int(_dt.now().strftime('%Y%m%d'))
+    try:
+        nxt = C.next_trading_day(day)
+        return jsonify(ok=nxt is not None,
+                       **{'from': day, 'date': day, 'next_trading_day': nxt,
+                          'source': str(C.calendar_source_path())})
+    except Exception as exc:
+        return jsonify(ok=False, error='CALENDAR_UNAVAILABLE', reason=str(exc)), 503
+
+
+def _ui2_plan_versions_route():
+    from flask import jsonify, request
+    import ui_plan_versions_api as P
+    return jsonify(P.plan_versions(session_id=request.args.get('session_id')))
+
+
+def _ui2_global_overview_route():
+    from flask import jsonify
+    import ui_global_overview_api as G
+    return jsonify(G.global_overview())
+
+
+app.add_url_rule('/api/calendar/next_trading_day', 'ui2_calendar',
+                 _ui2_calendar_route, methods=['GET'])
+app.add_url_rule('/api/plan/versions', 'ui2_plan_versions',
+                 _ui2_plan_versions_route, methods=['GET'])
+app.add_url_rule('/api/market/global_overview', 'ui2_global_overview',
+                 _ui2_global_overview_route, methods=['GET'])
+
+
+@app.route('/api/market/global_overview/collect', methods=['POST'])
+def api_global_overview_collect():
+    """显式更新全球行情快照（免费源腾讯行情；缺项如实 MISSING，不拼造）。"""
+    try:
+        from global_market_collect_v1 import collect_subprocess
+        ok, note = collect_subprocess()
+        from ui_global_overview_api import global_overview
+        overview = global_overview()
+        count = sum(1 for item in overview.get('items', []) if item.get('value') is not None)
+        errors = [item.get('reason') for item in overview.get('items', [])
+                  if item.get('value') is None and item.get('reason')]
+        return jsonify({'ok': ok, 'count': count, 'errors': errors, 'note': note})
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': f'{type(exc).__name__}: {exc}'}), 500
+
+
+def _ui2_current_plan_ref():
+    """成交归属：由服务端读取当前正式计划身份，客户端不能伪造；不可读/缺身份 → None。"""
+    try:
+        import paths as _p
+        from pathlib import Path as _Path
+        rel = 'data/trade_plan.json' if _p.FROZEN else 'dist/data/trade_plan.json'
+        plan = json.loads(_Path(_p.data_file(rel, seed_from_bundle=False)).read_text(encoding='utf-8'))
+        return str((plan or {}).get('assistant_plan_id') or '').strip() or None
+    except Exception:
+        return None
+
+
+def _ui2_plan_scope(plan):
+    """当前计划可核验范围：身份 + 观察日 + 执行日。缺任一即无法证明成交归属。"""
+    pid = str((plan or {}).get('assistant_plan_id') or '').strip()
+
+    def _day(v):
+        s = str(v or '').strip()[:10].replace('-', '')
+        return s if len(s) == 8 and s.isdigit() else None
+
+    return {'plan_ref': pid or None, 'data_date': _day((plan or {}).get('data_date')),
+            'monitor_date': _day((plan or {}).get('monitor_date')),
+            'available': bool(pid and _day((plan or {}).get('data_date'))
+                              and _day((plan or {}).get('monitor_date')))}
+
+
+def _enrich_execution_status(plan):
+    """按当前计划身份限定成交归属；历史成交单独标注，绝不当作本计划已执行。
+
+    触价、推送、AI 建议均不算成交。账本不可读、归属字段缺失、计划身份不可核验时
+    一律 fail-closed，不推断 REGISTERED。
+    """
+    import copy
+    import sqlite3 as _sqlite3
+    import pentacles_review_data
+    out = copy.deepcopy(plan) if plan else {}
+    stocks = out.get('stocks') or []
+    cfg = dict(get_cfg() or {})
+    day = out.get('monitor_date') or out.get('data_date')
+    codes = {str(s.get('code')) for s in stocks if s.get('code')}
+    scope = _ui2_plan_scope(out)
+    ledger_ok = True
+    try:
+        summary = pentacles_review_data.actual_trades(cfg, codes, day)
+    except Exception as exc:
+        summary = {'status': 'LEDGER_UNAVAILABLE', 'note': str(exc)}
+        ledger_ok = False
+    attributed, historical, schema_ok = {}, {}, True
+    if ledger_ok:
+        try:
+            import paths as _paths
+            from pathlib import Path as _Path
+            _db_value = (cfg.get('agent') or {}).get('trades_db', 'data/trades.db')
+            _db = (_Path(_db_value) if _Path(_db_value).is_absolute()
+                   else _Path(_paths.data_file(_db_value, seed_from_bundle=False)))
+            con = _sqlite3.connect(_db.resolve().as_uri() + '?mode=ro', uri=True)
+            try:
+                cols = {r[1] for r in con.execute('PRAGMA table_info(trades)').fetchall()}
+                schema_ok = 'plan_ref' in cols
+                historical = {str(c): (int(n), last) for c, n, last in con.execute(
+                    'SELECT code, COUNT(*), MAX(trade_date) FROM trades GROUP BY code').fetchall()}
+                if schema_ok and scope['available']:
+                    attributed = {str(c): (int(n), last) for c, n, last in con.execute(
+                        'SELECT code, COUNT(*), MAX(trade_date) FROM trades '
+                        'WHERE plan_ref=? GROUP BY code', (scope['plan_ref'],)).fetchall()}
+            finally:
+                con.close()
+        except Exception as exc:
+            summary = {'status': 'LEDGER_UNAVAILABLE', 'note': str(exc)}
+            ledger_ok, schema_ok = False, False
+    for s in stocks:
+        code = str(s.get('code') or '')
+        n_attr, last_attr = attributed.get(code, (0, None))
+        n_hist, last_hist = historical.get(code, (0, None))
+        if not ledger_ok:
+            status, note = 'LEDGER_UNAVAILABLE', '成交账本不可读，不推断成交'
+        elif not schema_ok:
+            status, note = 'LEDGER_SCHEMA_UNAVAILABLE', '账本缺少计划归属字段，无法证明属于当前计划'
+        elif not scope['available']:
+            status, note = 'PLAN_SCOPE_UNAVAILABLE', '当前计划身份或日期不可核验，不推断本计划执行'
+        elif n_attr > 0:
+            status, note = 'REGISTERED', '有可证明属于当前计划的人工登记成交'
+        elif n_hist > 0:
+            status, note = 'HISTORICAL_ONLY', '仅有历史成交，不能证明属于当前计划；不标本计划已执行'
+        else:
+            status, note = 'UNKNOWN', '无人工登记成交；触价/推送/AI建议不算成交'
+        s['execution_status'] = status
+        s['execution_detail'] = {
+            'manual_trade_registered': status,
+            'registered_trade_count': n_attr,
+            'latest_trade_date': last_attr,
+            'historical_trade_count': n_hist,
+            'latest_historical_trade_date': last_hist,
+            'plan_scope': {'plan_ref': scope['plan_ref'],
+                           'data_date': scope['data_date'],
+                           'monitor_date': scope['monitor_date'],
+                           'schema_plan_ref': schema_ok},
+            'ledger_status': summary.get('status'),
+            'matched_sales': summary.get('matched_sales'),
+            'note': note,
+        }
+    out['execution_ledger'] = {
+        'status': summary.get('status'),
+        'matched_sales': summary.get('matched_sales'),
+        'note': summary.get('note'),
+        'scope': scope,
+        'source': 'REAL_MANUAL_TRADE_LEDGER_PLAN_SCOPED_V1',
+    }
+    return out
+
+
+_ui2_orig_trade_plan = app.view_functions.get('api_trade_plan')
+if _ui2_orig_trade_plan is not None:
+    def _ui2_trade_plan_enriched():
+        resp = _ui2_orig_trade_plan()
+        try:
+            data = resp.get_json(silent=True)
+        except Exception:
+            data = None
+        if isinstance(data, dict) and data.get('plan'):
+            from flask import jsonify as _jsonify
+            data['plan'] = _enrich_execution_status(data['plan'])
+            return _jsonify(data)
+        return resp
+    app.view_functions['api_trade_plan'] = _ui2_trade_plan_enriched

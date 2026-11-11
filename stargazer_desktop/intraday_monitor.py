@@ -156,6 +156,10 @@ class IntradayMonitor(threading.Thread):
         self._rounds = 0
         self._rounds_day = None
         self._summary_day = None
+        # W2d：每日校验盘后准备清单并自动补缺；未完成有界续查（15分钟），
+        # 全部就绪后才结束当日检查
+        self._prepared_done_day = None
+        self._prepared_last_at = 0.0
 
     def snapshot_once(self):
         cfg = self.get_cfg()
@@ -307,6 +311,37 @@ class IntradayMonitor(threading.Thread):
                                 "wechat": ok, "wechat_msg": msg,
                                 "time": now.strftime("%H:%M:%S")})
 
+    def _check_prepared(self, cfg, now):
+        """W2d：校验盘后准备清单，缺项自动增量补缺（幂等，工作线程执行）。
+        缺清单从权威名单重建；准备未完成的每15分钟有界续查；全部就绪后
+        才结束当日检查。盘前打开程序也会跑，不阻塞巡检循环。"""
+        today = now.strftime('%Y%m%d')
+        if self._prepared_done_day == today:
+            return
+        if self._prepared_last_at and now.timestamp() - self._prepared_last_at < 900:
+            return
+        self._prepared_last_at = now.timestamp()
+        try:
+            import postclose_prepared_v1 as prepared
+            report = prepared.verify_and_backfill(cfg, day=int(today))
+            if report.get('status') == 'NO_MANIFEST':
+                rebuilt = prepared.rebuild_from_authority(cfg)
+                if rebuilt is not None:
+                    report = prepared.verify_and_backfill(cfg, day=int(today))
+                else:
+                    report = dict(status='NO_AUTHORITY', day=today)
+            status = report.get('status')
+            if status == 'READY':
+                self._prepared_done_day = today
+                notifier.log(f"盘后准备校验（{today}）：{report.get('items')} 项全部就绪"
+                             f"；未完成项={[i.get('id') for i in report.get('open_items') or []]}")
+            else:
+                backlog = report.get('backlog') or []
+                notifier.log(f"盘后准备校验（{today}）：{status}，待补缺 {len(backlog)} 项"
+                             f"{backlog[:8]}；15分钟后复查")
+        except Exception as exc:
+            notifier.log(f"盘后准备校验失败: {type(exc).__name__}: {exc}；15分钟后复查")
+
     def _daily_summary(self, now):
         """日终汇总（T5 设计 §7）：15:00 收盘后且今日确实监控过，发一条微信汇总 +
         落盘 data/plan_daily_summary_YYYYMMDD.json；今日无触发也要报。
@@ -385,6 +420,7 @@ class IntradayMonitor(threading.Thread):
                     notifier.log(f"model-minute-monitor 开关状态变为 enabled={enabled}"
                                  f"（False 时计划规则检查静默）")
                     self._last_enabled_state = enabled
+                self._check_prepared(cfg, now)  # W2d：含盘前，准备不依赖开市
                 if enabled and notifier.market_open(now):
                     self._hb_n += 1
                     if self._hb_start is None:

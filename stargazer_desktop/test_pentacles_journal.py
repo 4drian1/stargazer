@@ -103,7 +103,7 @@ class JournalTests(unittest.TestCase):
     def test_budget_no_partial_new_plan(self):
         self.journal.register(self.plan)
         files = {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
-        self.journal.budget = self.journal.state()['bytes'] + 1
+        self.journal = ObservationJournal(lambda: self.root, budget=self.journal.state()['bytes'] + 1)
         self.plan['rows'][0]['zone']['zone_upper'] = 9.6
         self.journal.register(self.plan)
         self.assertTrue(self.journal.state()['error'])
@@ -127,7 +127,7 @@ class JournalTests(unittest.TestCase):
 
     def test_recorder_failure_does_not_block_alert(self):
         monitor = PriceMonitor(lambda: self.temp.name)
-        monitor.journal.budget = 1
+        monitor.journal = ObservationJournal(lambda: Path(self.temp.name) / 'journal', budget=1)
         monitor.enable(True)
         quotes = Mock(return_value={'600121': {'price': 9.4, 'prev': 10., 'time': '20261008100000'}})
         broadcast, send = Mock(), Mock(return_value=(True, 'ok'))

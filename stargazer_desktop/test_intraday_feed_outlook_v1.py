@@ -112,7 +112,7 @@ class FeedTests(unittest.TestCase):
             self.assertEqual(first['status'],'AI_FAILED')  # Old reply calls that now-known price UNKNOWN.
             self.assertEqual(api.call_count,1)
 
-    def test_prewarming_does_not_pay_for_empty_or_previous_cutoff_risk(self):
+    def test_prewarming_can_queue_market_facts_without_current_stock_risk(self):
         plan=dict(assistant_plan_id='p',monitor_date=20261026,rows=[dict(code='688004')])
         previous=dict(cutoff=20261026103000,risk=dict(records={'688004':dict(status='AVAILABLE')}))
         with tempfile.TemporaryDirectory() as directory,patch.object(live.runtime,'directory',return_value=Path(directory)), \
@@ -120,18 +120,20 @@ class FeedTests(unittest.TestCase):
              patch.object(events,'read_risk',return_value=previous),patch.object(live,'index_prefix_ready',return_value=True), \
              patch.object(live,'_thread',SimpleNamespace(is_alive=lambda:True)),patch.object(outlook,'queue') as queue:
             value=live.evaluate(plan,{},self.now)
-        self.assertEqual(value['status'],'PREWARMING');queue.assert_not_called()
+        self.assertEqual(value['status'],'PREWARMING');queue.assert_called_once()
+        self.assertTrue(queue.call_args.kwargs['overlay'])
+        self.assertTrue(all(not item['facts'] for item in queue.call_args.args[1]['items']))
 
-    def test_missing_index_prefix_can_only_queue_explicit_live_observations(self):
+    def test_missing_index_prefix_waits_without_queuing_analysis(self):
         plan=dict(assistant_plan_id='p',monitor_date=20261026,rows=[dict(code='688004')])
         with tempfile.TemporaryDirectory() as directory,patch.object(live.runtime,'directory',return_value=Path(directory)), \
              patch('services.wl_load',return_value={'positions':[]}),patch.object(events,'evaluate',return_value={}), \
              patch.object(events,'read_risk',return_value={}),patch.object(live,'index_prefix_ready',return_value=False), \
+             patch.object(live,'datetime',SimpleNamespace(now=lambda:self.now,strptime=datetime.strptime)), \
              patch.object(outlook,'queue') as queue:
             value=live.evaluate(plan,{},self.now)
         self.assertEqual(value['status'],'WAIT_INDEX_FEED')
-        self.assertTrue(queue.call_args.args[1]['observe_live'])
-        self.assertIn('Pyxis等待',queue.call_args.args[1]['data_wait_reason'])
+        queue.assert_not_called()  # W1: wait for mirror, never consume the slot with missing index facts.
 
     def test_worker_failure_exposes_bounded_validation_code(self):
         plan=dict(rule_version=live.VERSION)
@@ -149,11 +151,16 @@ class FeedTests(unittest.TestCase):
             events.work(plan,{},self.now,{},target)
             self.assertEqual(json.loads(target.read_bytes())['reason'],'GOLDEN_WORKER_FAILED:TEST')
 
-    def test_actual_confirmed_plan_passes_current_worker_verifier_without_fetch(self):
+    def test_current_bound_plan_passes_worker_verifier_without_fetch(self):
         file=ROOT/'stargazer_ml/v5_hybrid/green_common_profile/gcp_golden_intraday_v1.py'
         spec=importlib.util.spec_from_file_location('bound_golden_worker_feed_test',file)
         worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
-        plan=json.loads((ROOT/'stargazer_desktop/dist/data/pentacles_demo/assistant_plan.json').read_bytes())
+        from tarot_live_v2 import MANIFEST
+        current=json.loads(gzip.decompress(MANIFEST.read_bytes()))
+        # A user's persisted plan can be expired; current-source verification
+        # uses an isolated current contract, never rewrites that business record.
+        plan=dict(rows=[dict(entry_rule=dict(policy='GOLDEN_RESONANCE_CROSSDAY_V4'))],
+            rule_inputs=[dict(path=p,sha256=h) for p,h in current['frozen_inputs'].items()])
         with patch.object(worker.urllib.request,'urlopen',side_effect=AssertionError('NO_NETWORK')):
             worker.verify_plan_sources(plan)
             bad=json.loads(json.dumps(plan));bad['rule_inputs'][0]['sha256']='0'*64

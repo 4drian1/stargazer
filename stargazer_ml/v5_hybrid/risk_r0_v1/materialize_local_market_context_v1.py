@@ -11,6 +11,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -54,11 +55,42 @@ def rsi_series(closes):
     return result
 
 
+def _to_native(v):
+    """Convert numpy scalar → Python native. Also collapse integer-valued
+    floats (both Python float and np.float64 like 20241209093500.0) to int —
+    pandas iterrows promotes mixed int/float columns, so date timestamps end
+    up as float64. Callers downstream have strict type checks (type(v) is int)."""
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (np.floating, float)):
+        if float(v).is_integer():
+            return int(float(v))
+        return float(v)
+    return v
+
+
+def _as_row_dicts(rows):
+    """Accept pd.DataFrame or list[dict]; returns generator of Python-native dict rows.
+    No .to_dict('records') — avoids materializing giant list[dict] (200-500MB
+    per index frame) that breaks the 512MiB Pyxis memory cap.
+
+    Yields real dict (not pd.Series) with all numpy scalars converted to Python
+    int/float — downstream bars_and_days etc. have strict type checks."""
+    if hasattr(rows, 'iterrows'):
+        # DataFrame → generator of dict
+        def _gen():
+            for _, series in rows.iterrows():
+                yield {k: _to_native(v) for k, v in series.items()}
+        return _gen()
+    # Already list[dict] — ensure values are native
+    return ({k: _to_native(v) for k, v in row.items()} for row in rows)
+
+
 def bars_and_days(rows, step):
     if step not in (5, 15):
         raise ValueError('NATIVE5_OR_AGGREGATED15_ONLY')
     grouped = defaultdict(dict)
-    for row in rows:
+    for row in _as_row_dicts(rows):
         ts = row['date']
         parse_ts(ts)
         day = ts//1000000

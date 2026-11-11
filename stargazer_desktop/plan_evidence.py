@@ -11,6 +11,20 @@ _price_cache={}
 NAMES = {'selection': 'Tarot·星币侍从 1.0', 'risk': 'Pyxis 1.0', 'information': 'Corvus'}
 
 
+def information_status():
+    """Dynamic Corvus connection status for plan slots (never raises)."""
+    try:
+        import corvus_info_link_v1
+        state = corvus_info_link_v1.connected()
+    except Exception:
+        return '未接入'
+    if not state.get('ok'):
+        return '未接入'
+    counts = state.get('counts') or {}
+    return ('已接入 · 本地信息层（公告 %d 条 · D2等待 %d / 完成 %d）'
+            % (counts.get('records', 0), counts.get('d2_waiting', 0), counts.get('d2_merged', 0)))
+
+
 def prompt_risk(risk):
     """Keep decision facts, not repeated full audit-column names, in API input."""
     context=risk.get('context') or {}
@@ -27,16 +41,27 @@ def prompt_risk(risk):
     missing=context.get('feature_missing') or {}
     compact['feature_missing_counts']={k:len(v) if isinstance(v,list) else v for k,v in missing.items()}
     compact['full_feature_missing_detail']='未载入提示；完整字段清单保存在模型证据包，不得声称已逐项读取'
-    return {**{k:risk[k] for k in ('status','ref','asof_ts','pack_hash','scope') if k in risk},
+    return {**{k:risk[k] for k in ('status','ref','asof_ts','pack_hash','scope','binding_provenance') if k in risk},
             'context':compact}
 
 
-def archived_price_overlay(cutoff):
-    """Read-only overlay for accepted older packs; preserve their hash and amplitudes."""
+def archived_price_overlay(cutoff, error=None):
+    """Read-only overlay for accepted older packs; preserve their hash and amplitudes.
+
+    failure taxonomy (into error dict when given):
+      WORKER_FAILED/CALCULATION_FAILED  子进程非零或输出超限
+      PRICE_WORKER_BINDING              返回结构/截止不符合契约
+      PRICE_WORKER_CUTOFF               源未更新到指定截止（缺槽/过期）
+      RUNTIME_FINGERPRINT_MISMATCH      发布清单失配（前缀含明细）
+    失败不缓存：每次调用重试，修复后可立即恢复（反例4）。
+    """
     from joint_risk_bridge import _worker_paths
     python,worker=_worker_paths()
     module=worker.parent.parent/'green_common_profile/market_price_evidence_v1.py'
     mirror=worker.parent/'index_minutes_v1'
+    def fail(code,detail=''):
+        if error is not None:error['reason']=code+((':'+detail) if detail else '')
+        return {}
     key=None
     try:
         signature=tuple((mirror/(name+'_5min.parquet')).stat().st_mtime_ns for name in ['sse','cyb'])
@@ -45,20 +70,26 @@ def archived_price_overlay(cutoff):
         output=subprocess.run([str(python),'-B','-X','utf8',str(module)],
             input=json.dumps(dict(cutoff=int(cutoff))),capture_output=True,text=True,encoding='utf8',timeout=120,
             creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-        if output.returncode or len(output.stdout.encode('utf8'))>128*1024:raise ValueError('PRICE_WORKER_FAILED')
+        if output.returncode or len(output.stdout.encode('utf8'))>128*1024:
+            if 'RUNTIME_FINGERPRINT_MISMATCH' in output.stderr:
+                return fail('RUNTIME_FINGERPRINT_MISMATCH',output.stderr.rsplit('RUNTIME_FINGERPRINT_MISMATCH:',1)[-1].strip()[:500])
+            return fail('CALCULATION_FAILED',('rc=%s'%output.returncode)+(output.stderr[-120:] if output.stderr else ''))
         result=json.loads(output.stdout)
         if not isinstance(result,dict) or result.get('cutoff')!=int(cutoff) or set(result.get('evidence',{}))!={'sse','cyb'}:
-            raise ValueError('PRICE_WORKER_BINDING')
+            return fail('PRICE_WORKER_BINDING',str(result.get('cutoff'))[:20])
         evidence=result['evidence']
-        if any(not isinstance(row,dict) or row.get('asof')!=int(cutoff) for row in evidence.values()):raise ValueError('PRICE_WORKER_CUTOFF')
+        if any(not isinstance(row,dict) or row.get('asof')!=int(cutoff) for row in evidence.values()):
+            return fail('PRICE_WORKER_CUTOFF','源未更新到指定截止；缺槽或过期不读未来数据')
         if len(_price_cache)>=2:_price_cache.clear()
         _price_cache[key]=evidence
         return evidence
-    except (OSError,ValueError,subprocess.SubprocessError):
-        if key is not None:
-            if len(_price_cache)>=2:_price_cache.clear()
-            _price_cache[key]={}
-        return {}
+    except subprocess.TimeoutExpired:
+        return fail('CALCULATION_FAILED','timeout')
+    except (OSError,ValueError,subprocess.SubprocessError) as exc:
+        text=str(exc)
+        if 'RUNTIME_FINGERPRINT_MISMATCH' in text:
+            return fail('RUNTIME_FINGERPRINT_MISMATCH',text.split(':',1)[-1][:200])
+        return fail('CALCULATION_FAILED',text[:200])
 
 
 def for_snapshot(snapshot):
@@ -68,16 +99,29 @@ def for_snapshot(snapshot):
         code = row['code']
         selection = {key: row.get(key) for key in (
             'code', 'name', 'setup', 'rank', 'reference_price', 'zone', 'distance_atr', 'rsi14', 'status', 'entry_rule',
-            'personal_score','selection_score','selection_model')}
+            'personal_score','selection_score','selection_model','plan_source','selection_qualified')}
         selection['ref'] = f'tarot:{day}:{code}'
         risk = {'status': 'MISSING', 'ref': f'pyxis:{day}:{code}',
                 'reason': '当前名单数据日没有同日风险证据；不能用历史分数代替'}
         import postclose_risk_runtime
         pack, runtime_reason = postclose_risk_runtime.find_pack(code, snapshot)
+        binding_provenance = None
+        if pack is None and runtime_reason and 'CANDIDATE_SNAPSHOT_CHANGED' in runtime_reason:
+            # 确认计划草稿无投影父哈希，不能伪造投影关系；改按冻结原始选股快照
+            # 绑定验收包，并逐股证明计划与原始快照一致（人工新增/输入变化→显式缺失）。
+            item = postclose_risk_runtime.plan_stock_bindings(snapshot).get(code)
+            if item and item['status'] == 'AVAILABLE':
+                pack = item['pack']
+                runtime_reason = None
+                binding_provenance = item.get('provenance')
+            elif item and item.get('reason'):
+                runtime_reason = item['reason']
         if runtime_reason:
             risk['reason'] = runtime_reason
         if pack is None and runtime_reason is None:
             pack, _ = shadow_ui.find_pack(code, day)
+            if pack is None:
+                risk['reason'] = postclose_risk_runtime.wait_reason(snapshot)
         if pack is not None:
             context = pack.risk_context or {}
             asof = str(context.get('asof_ts', ''))
@@ -106,6 +150,8 @@ def for_snapshot(snapshot):
                     risk = {'status': 'AVAILABLE', 'ref': risk['ref'], 'asof_ts': asof,
                             'context': context, 'pack_hash': pack.bind().pack_hash,
                             'scope': 'P日收盘行情截止；采集时间另见原证据，不代表收盘前已可得；未来120交易分钟幅度，不覆盖整个次日'}
+                    if binding_provenance:
+                        risk['binding_provenance'] = binding_provenance
                 else:
                     risk['reason'] = ' / '.join(reasons)
         result[code] = {'selection': selection, 'risk': risk}
@@ -125,10 +171,11 @@ def status(snapshot):
         progress=(' · 另一次重建未完成，匹配的已验收证据继续可用' if available and available==len(evidence) else
                   ' · 重建失败：'+str(runtime.get('reason','未知')))
     return {'names': NAMES, 'risk_available': available, 'candidate_count': len(evidence),
+            'risk_task_status': runtime.get('status') if str(runtime.get('data_date'))==str(snapshot.get('data_date')) else 'NOT_CURRENT',
             'selection': ('已接入 · 一段/二段共同模型排序，默认10只 · 研究效果未验收' if snapshot.get('default_candidate_count') == 10 else
                 '已接入 · 共性＋周期黄金位≤0.2ATR' if snapshot.get('rule_version') else '已接入 · 共性规则候选'),
             'risk': f'模型接口已接入 · 本名单同日风险证据 {available}/{len(evidence)}'+progress,
-            'information': '未接入'}
+            'information': information_status()}
 
 
 def risk_lines(risk):
@@ -162,7 +209,7 @@ def risk_lines(risk):
         counts = [f'{k}缺{len(v)}列' for k, v in missing.items() if isinstance(v, list)]
         if counts:
             lines.append('输入披露：' + '；'.join(counts) + '；缺失不等于风险为零。')
-    lines.append('次日下杀、止跌、背离触发另行观察；尚未计算不等于本次风险评分缺失。Corvus未接入。')
+    lines.append('次日下杀、止跌、背离触发另行观察；尚未计算不等于本次风险评分缺失。公告信息见Corvus信息页；信息缺口不等于无利空。')
     lines.extend(price_repair_lines(context,risk.get('asof_ts')))
     return lines
 
@@ -236,14 +283,52 @@ def presentation(draft):
     """Derive display facts without rewriting any immutable draft or AI prose."""
     rows = {r['code']: r for r in draft.get('snapshot', {}).get('rows', [])}
     codes = draft.get('selected_codes', [])
+    v4 = any((r.get('entry_rule') or {}).get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4' for r in rows.values())
+    import postclose_risk_runtime
     return {'draft': f"观察日 {draft.get('snapshot', {}).get('monitor_date', '未知')}；候选 {len(codes)} 只：" +
                     '、'.join(f"{c} {rows.get(c, {}).get('name', '')}" for c in codes),
+            'risk_task': postclose_risk_runtime.queue_status(draft.get('snapshot', {})) if draft.get('snapshot', {}).get('data_date') else {},
+            'population_note': f'正式候选{len(rows)}只；另有{len(draft.get("snapshot", {}).get("manual_review_rows", []))}只未过门人工复核，见选股页，不自动加入交易计划。',
+            'entry_condition': ('位置到达必要；位置修复、动能（跨日底背离＋一次RSI6上穿RSI15＋当前RSI6>RSI15）、当日曾20%相对超卖，三项至少两项通过。触价不等于买入信号。' if v4 else '前日F618仅作执行参照；次日须已完成五分钟K线出现下杀、止跌、有效RSI背离。触价不等于买入信号。'),
+            'invalidation_condition': ('未满两项继续观察，后续通过仍推送；缺失项记未知，不当作成立；AI买入或暂缓都推送并说明原因。' if v4 else '三项未齐不发触发信号；缺分钟数据为未知，不能当作条件成立。'),
             'market_risk_summary': market_risk_summary(codes, draft.get('model_evidence') or {}),
             'manual_observations': draft.get('manual_observations', []),
             'risks': [{'code': c, 'name': rows.get(c, {}).get('name', ''),
                        'lines': risk_lines(draft.get('model_evidence', {}).get(c, {}).get('risk', {}))}
                       for c in codes],
-            'confirmation': '人工确认前仅供讨论，不启动本草案提醒、不自动下单。可继续修改数量和板块；触区只提示复核，买入条件仍须下杀、止跌和有效背离。'}
+            'confirmation': ('人工确认前仅供讨论，不启动本草案提醒、不自动下单。可继续修改数量和板块；到位即推，位置修复、动能（跨日背离＋一次上穿）、20%严重超卖三选二，后续通过继续推；AI买或不买都推并说明风险。'
+                if any((r.get('entry_rule') or {}).get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4' for r in rows.values()) else
+                '人工确认前仅供讨论，不启动本草案提醒、不自动下单。可继续修改数量和板块；触区只提示复核，买入条件仍须下杀、止跌和有效背离。')}
+
+
+def attach_market_report(view):
+    """Latest completed selection's index report is independent of plan membership."""
+    import pentacles_demo
+    from index_outlook_v1 import facts_for,render
+    from risk_outlook_v1 import latest,view_id
+    import postclose_risk_runtime
+    task=postclose_risk_runtime.state()
+    view['runtime_task']={k:task[k] for k in ('status','data_date','done','total','reason') if k in task}
+    snapshot={}
+    try:
+        file=pentacles_demo.snapshot_path()
+        if file.stat().st_size<=pentacles_demo.MAX_BYTES:
+            value=json.loads(file.read_bytes())
+            if value.get('schema')=='PAGE_OF_PENTACLES_DEMO_V1' and value.get('plan_ready'):
+                snapshot=value
+    except (OSError,ValueError):pass
+    day=snapshot.get('data_date') or view.get('data_date')
+    if day:
+        view['market_data_date']=int(day)
+        view['market_monitor_date']=snapshot.get('monitor_date') or view.get('monitor_date')
+        cutoff=int(day)*1000000+150000;error={}
+        prices=archived_price_overlay(cutoff,error);facts={}
+        for name,evidence in prices.items():facts.update(facts_for(name,evidence,cutoff))
+        view['market_report']=dict(asof=cutoff,text=render(facts),computed_facts=facts,
+            reason=(error.get('reason') or 'INDEX_MAP_UNAVAILABLE') if not facts else None)
+    outlook=latest()
+    view['outlook']=outlook if outlook.get('plan_id')==view_id(view) else {'status':'NOT_GENERATED'}
+    return view
 
 
 def model_view(slot):
@@ -252,13 +337,26 @@ def model_view(slot):
     import trade_plan_v1
     plan = trade_plan_v1.load_plan()
     if slot == 'information':
-        return {'name': NAMES[slot], 'status': 'NOT_CONNECTED', 'items': [], 'reason': '信息模型尚未接入，未知不代表无利空'}
+        import corvus_info_link_v1
+        state = corvus_info_link_v1.connected()
+        out = {'name': NAMES[slot], 'status': 'CONNECTED' if state['ok'] else 'NOT_CONNECTED',
+               'counts': state.get('counts') or {}, 'detail': state.get('detail'),
+               'items': [], 'page': '/i34',
+               'reason': (state['detail'] if state['ok'] else
+                          '信息模型尚未接入，未知不代表无利空。') +
+                         '完整统一信息页：Corvus按钮直达 /i34（重要信息优先排序，可展开查看）。'}
+        if state['ok']:
+            out['items'] = corvus_info_link_v1.listing(8)
+        return out
     status = 'CONFIRMED_PLAN'
     source_note = '已确认计划绑定证据，不自动替换为新草案。'
     if not plan:
         import assistant_workflow
         draft = assistant_workflow.latest('plan')
         if not draft or draft.get('awaiting_count'):
+            if slot=='risk':
+                return attach_market_report(dict(name=NAMES[slot],status='MARKET_ONLY',items=[],
+                    source_note='没有当前可分析计划；独立展示最新本地数据日的指数价格地图，不沿用旧名单。'))
             return {'name': NAMES[slot], 'status': 'NO_PLAN', 'items': [], 'reason': '尚无可查看的计划草案'}
         readiness = assistant_workflow.plan_readiness(draft, assistant_workflow.snapshot())
         status = 'UNCONFIRMED_DRAFT' if readiness['current'] else 'STALE_DRAFT'
@@ -305,7 +403,7 @@ def model_view(slot):
             'data_date': plan.get('data_date'), 'monitor_date': plan.get('monitor_date'),
             'combined': ('【确认时历史讨论：其中风险缺失表述已过时，请以本页补充事实为准；未重新调用AI】\n' if supplemental else '') + plan.get('combined_commentary', ''),
             'market_risk_summary': market_risk_summary(market_codes, evidence) if slot == 'risk' else [],
-            'items': [{'code': s['code'], 'name': s.get('name'),
+            'items': [{'code': s['code'], 'name': s.get('name'), 'source':s.get('source'),
                        'facts': evidence.get(s['code'], {}).get(slot, {'status': 'MISSING'}),
                        'risk_lines': risk_lines(evidence.get(s['code'], {}).get('risk', {})) if slot == 'risk' else [],
                        'commentary': comments.get(s['code'], {}).get(slot, '') or
@@ -314,7 +412,5 @@ def model_view(slot):
                        'commentary_kind': 'AI解释，非新增模型事实',
                        'plan_levels':(s.get('entry_rule') or {}).get('levels',[])} for s in plan.get('stocks', [])]}
     if slot=='risk':
-        from risk_outlook_v1 import latest,view_id
-        outlook=latest()
-        view['outlook']=outlook if outlook.get('plan_id')==view_id(view) else {'status':'NOT_GENERATED'}
+        attach_market_report(view)
     return view

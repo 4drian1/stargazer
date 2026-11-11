@@ -26,6 +26,14 @@ def resolve(names):
         catalog = {}
     result = []
     for name in names:
+        from ths_board_identity_v1 import resolve_for_pool
+        import postclose_risk_runtime
+        registered = resolve_for_pool(name, postclose_risk_runtime.directory() / 'board_identities')
+        if registered is not None:
+            result.append(dict(name=name, bk=None, identity=registered['identity'],
+                               member_status=registered['status'], provenance=registered['provenance'],
+                               source='ths', scope='THS_INDEX_NOT_EASTMONEY'))
+            continue
         code = name if re.fullmatch(r'BK\d{4}', name) else catalog.get(name)
         if not code and name == '军工':
             code = catalog.get('国防军工')
@@ -41,6 +49,11 @@ def resolve(names):
 
 def quote(item, now):
     row = {**item, 'pct': None, 'status': 'UNRESOLVED'}
+    if item.get('identity'):
+        row.update(status='CONSTITUENTS_PENDING' if item.get('member_status') == 'CONSTITUENTS_PENDING'
+                   else 'INDEX_QUOTE_UNAVAILABLE',
+                   reason='同花顺指数报价未提供；成分及强势池口径另列，不借用东财同名指数')
+        return row
     if not item['bk']:
         return row
     try:
@@ -74,14 +87,14 @@ def state(now=None):
         return {'status': 'NO_BOARDS', 'rows': []}
     items = resolve(names)
     day = str(plan.get('monitor_date'))
-    key = (day, tuple(names))
+    key = (now.strftime('%Y%m%d'), tuple(names))
     hm = now.hour * 60 + now.minute
-    active = (now.strftime('%Y%m%d') == day and now.weekday() < 5 and
+    active = (now.strftime('%Y%m%d') >= day and now.weekday() < 5 and
               (570 <= hm <= 690 or 780 <= hm <= 900))
     with LOCK:
         cached = CACHE.get(key)
         if not active:
-            return {'status': 'WAIT_SESSION' if now.strftime('%Y%m%d') <= day else 'EXPIRED',
+            return {'status': 'WAIT_SESSION',
                     'rows': [{**r, 'status': 'WAIT_SESSION' if r['bk'] else 'UNRESOLVED'} for r in items]}
         if not RUNNING and (cached is None or time.monotonic() - cached['time'] >= 60):
             RUNNING = True
@@ -110,4 +123,5 @@ def state(now=None):
                         row.update(status='STALE', pct=None)
                 except (ValueError, KeyError):
                     row.update(status='STALE', pct=None)
-        return {'status': 'OBSERVING', 'rows': rows}
+    from strong_sector_watch_v1 import pool_status
+    return {'status':'OBSERVING','rows':rows,'strong_pool':pool_status(names,now),'rule_scans':[]}

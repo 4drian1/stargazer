@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[3]/'stargazer_desktop'))
 
 import pandas as pd
 from gcp_round_b_engine import build_atr_ref, build_zones, target_zone
@@ -33,29 +34,12 @@ def plan_dates(days, now):
 
 
 def ensure_daily_current(daily_dir, now=None):
-    """CLI 前置同步；旧版桌面 exe 调用同一外部脚本也能生效。"""
-    import pyarrow.dataset as ds
-
+    """Prepare the local TDX source, never start a stockdb refresh."""
     now = now or datetime.now()
-    days = sorted(int(day) for day in json.loads(calendar_file().read_text(encoding='utf-8')))
+    days = sorted(map(int,json.loads(calendar_file().read_bytes())))
     expected, _ = plan_dates(days, now)
-    parts = sorted(daily_dir.glob('part_*.parquet'))
-    if not parts:
-        raise ValueError('本地日线历史分片不存在；请先完成首次数据同步')
-    latest = ds.dataset([str(p) for p in parts], format='parquet').to_table(
-        columns=['date']).column('date').to_numpy().max()
-    if int(latest) >= expected:
-        return
-    refresh = Path(__file__).resolve().parent.parent / 'green_v2/refresh_pool.py'
-    print(f'日线 {latest} 落后于 {expected}，正在从 stockdb 同步……', file=sys.stderr)
-    proc = subprocess.run(
-        [sys.executable, '-B', '-X', 'utf8', str(refresh), '--daily-only',
-         '--through-date', str(expected)], capture_output=True, timeout=900,
-        env=dict(os.environ, STARGAZER_DAILY_PARTS=str(daily_dir), PYTHONIOENCODING='utf-8'),
-        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-    if proc.returncode:
-        detail = (proc.stderr or proc.stdout).decode('utf-8', errors='replace')[-600:]
-        raise ValueError('日线自动同步失败，保留旧名单；请检查 stockdb 数据更新与引擎：' + detail)
+    from tdx_daily_source_v2 import daily_directory
+    return daily_directory(Path(__file__).resolve().parents[3],expected)
 
 
 def build(daily_dir, now=None):
@@ -63,6 +47,8 @@ def build(daily_dir, now=None):
     calendar = calendar_file()
     days = sorted(int(day) for day in json.loads(calendar.read_text(encoding='utf-8')))
     expected_date, next_day = plan_dates(days, now)
+    from tdx_daily_source_v2 import daily_directory
+    daily_dir=daily_directory(Path(__file__).resolve().parents[3],expected_date)
     parts = sorted(daily_dir.glob('part_*.parquet'))
     if not parts:
         raise ValueError('本地日线分片不存在')

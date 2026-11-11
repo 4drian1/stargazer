@@ -23,7 +23,7 @@ from golden_rules import digest
 VERSION='TAROT_A_SECOND_CASH_V2'
 FIT=HERE/'tarot_a_second_leg_fit_20261022_v1'
 MODEL=FIT/'initial_node_cash_fit_20261023_v1/model.pkl'
-MANIFEST=HERE/'tarot_live_manifest_v24_20261026_rel.json.gz'
+MANIFEST=HERE/'tarot_live_manifest_v194_20261110_rel.json.gz'
 
 
 def _project_root():
@@ -67,6 +67,8 @@ def latest_second(g,core):
 
 def latest_record(g,core,old_a=None):
     """Only the P-date cap changes; shape/feature/position kernels remain frozen."""
+    from descending_tops_v1 import for_frame
+    if for_frame(g)['excluded']:return None
     p=int(g.date.iloc[-1]);last=len(g)-1
     expected=[day for day in trading_calendar() if day<=p][-70:]
     if len(expected)!=70 or not np.array_equal(g.date.iloc[-70:].to_numpy(dtype=int),expected):
@@ -110,7 +112,10 @@ def row_for(g,rec,core,score,model_sha,policy_v3=True):
             p_date=int(last.date),history_days=observation_map['history_days'],
             model_reference_node=model_reference_node,
             anchor_hi=observation_map['primary_wave']['high'],anchor_lo=observation_map['primary_wave']['low'],
-            condition='CROSSDAY_RSI6_DIVERGENCE_AND_TWO_CROSSES_AND_RESONANCE_REPAIR_WITH_RISK')
+            combination_policy='POSITION_TWO_OF_THREE_O20_CROSS1_V1',
+            condition='POSITION_REQUIRED_REPAIR_MOMENTUM_ONE_CROSS_OVERSOLD20_ANY_TWO_WITH_RISK')
+        from golden_watch_groups import watch_groups
+        rule['quote_observation_bands']=watch_groups(rule)
     value=dict(code=str(last.code),name=str(last.get('name','')),date=int(last.date),
         setup='A_SDP' if rec['stage']=='A' else 'SECOND_PULLBACK',stage=rec['stage'],
         reference_price=close,atr_ref=atr,rsi14=rec['rsi14'],distance_atr=(close-node)/atr,
@@ -124,7 +129,7 @@ def row_for(g,rec,core,score,model_sha,policy_v3=True):
         value['zone']=(dict(zone_lower=observable[0]['lower'],zone_upper=observable[0]['zone_upper'],
             zone_sources=['V4_LOW_RESONANCE_PLUS_ATR']) if observable else None)
         value['observation_map_status']='V4_TRIAL_EXECUTION_NOT_EXISTING_MODEL_TRAINING_TARGET'
-        value['signal']='跨日RSI6背离候选＋本次触位后两次上穿＋共振带修复；同截止风险综合后人工决定'
+        value['signal']='位置到达必要；位置修复、动能（跨日背离＋一次上穿＋RSI快线在上）、曾20%相对超卖，三选二；技术通过与DeepSeek风险意见分别推送，人工决定'
         if not observable:value.update(status='WAIT_RESONANCE_ZONE',distance_atr=None)
     return value
 
@@ -157,10 +162,12 @@ def build(daily_dir,now=None,through=None,policy_v3=False):
     p,e=plan_dates(calendar,now) if through is None else (int(through),next(d for d in calendar if d>through))
     core=frozen()
     manifest=verified_manifest(core)
+    from tdx_daily_source_v2 import daily_directory
+    daily_dir=daily_directory(_project_root(),p)
     with MODEL.open('rb') as source:model=pickle.load(source)
     parts=sorted(Path(daily_dir).glob('part_*.parquet'))
     fields=['code','name',*core.NUMERIC]
-    rows=[];failures=[];manual=[]
+    rows=[];failures=[];manual=[];structure_excluded=0
     for code,g in daily_groups(parts,fields,p):
         if len(g)<70 or int(g.date.iloc[-1])!=p or not str(code).startswith(('00','30','60','68')):continue
         g=g.reset_index(drop=True)
@@ -171,6 +178,12 @@ def build(daily_dir,now=None,through=None,policy_v3=False):
                 or (g.high<g[['open','close']].max(axis=1)).any()):
             failures.append(dict(code=str(code),reason='INVALID_CAUSAL_DAILY_VALUES'));continue
         last=g.iloc[-1]
+        if not np.isfinite(last[['pre_close','is_st','float_mv','amount']].to_numpy(dtype=float)).all():
+            failures.append(dict(code=str(code),reason='TDX_CURRENT_METADATA_UNKNOWN'));continue
+        from descending_tops_v1 import for_frame
+        descending=for_frame(g)
+        if descending['excluded']:
+            structure_excluded+=1;continue
         # Both frozen A and SECOND require a down P; outer gates are unchanged.
         if not (last.close<last.pre_close and last.is_st==0 and last.float_mv>0
                 and last.amount>=5e7 and last.volume>0):continue
@@ -208,12 +221,16 @@ def build(daily_dir,now=None,through=None,policy_v3=False):
     return dict(schema='PAGE_OF_PENTACLES_DEMO_V1',strategy=VERSION,rule_version=VERSION,
         created_at=now.astimezone().isoformat(),data_date=p,expected_data_date=p,monitor_date=e,plan_ready=True,
         rows=rows[:10],candidate_population_count=len(rows),excluded_rows=failures,default_candidate_count=10,
+        structure_excluded_count=structure_excluded,structure_exclusion_contract='DESCENDING_MAIN_PEAKS_60_W2_G3_D3_V1',
         manual_review_rows=manual[:max(0,10-len(rows[:10]))],manual_review_population_count=len(manual),
         manual_review_scope='单列人工复核，未过门不进入正式候选或自动买入触发，不足不填异常数据',
         ranking='一段/二段共同冻结模型分数降序；同分代码；无B母池、无二段加分',
         model_status='用户授权启用研究权重；统计效果门未通过，分数不是概率',
-        source='LOCAL_COMPLETED_DAILY_PREFIX',
-        inputs=[dict(path=str(path),sha256=core.sha(path)) for path in [*parts,calendar_file()]],
+        source='TDX_LOCAL_COMPLETED_DAILY_RAW_MODEL_V2',
+        daily_source=dict(contract='TDX_DAILY_RAW_MODEL_QFQ_SEPARATE_V2',directory=str(daily_dir),
+            model_price_basis='RAW_OHLC_EVENT_ADJUSTED_PRE_CLOSE',history_training_eligible=False,
+            qfq_view='SEPARATE_NOT_SILENTLY_SUBSTITUTED_IN_FROZEN_MODEL'),
+        inputs=[dict(path=str(path),sha256=core.sha(path)) for path in [*parts,daily_dir/'COMPLETE.json',calendar_file()]],
         rule_inputs=[dict(path=file,sha256=sha) for file,sha in manifest['frozen_inputs'].items()])
 
 
@@ -223,7 +240,4 @@ if __name__=='__main__':
     parser.add_argument('--golden-flow-v3',action='store_true')
     args=parser.parse_args()
     # Updates belong to the existing explicit post-close job, never an import or replay.
-    if args.through is None:
-        from gcp_demo_snapshot import ensure_daily_current
-        ensure_daily_current(args.daily_dir)
     print(json.dumps(build(args.daily_dir,through=args.through,policy_v3=args.golden_flow_v3),ensure_ascii=False,allow_nan=False))

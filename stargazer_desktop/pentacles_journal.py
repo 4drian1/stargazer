@@ -26,11 +26,40 @@ def clean(value):
 
 
 class ObservationJournal:
-    def __init__(self, directory, budget=MAX_BYTES):
+    def __init__(self, directory, budget=None):
         self.directory = directory
-        self.budget = budget
+        self._explicit_budget = budget
+        self._resolved = None
         self.lock = threading.RLock()
         self.error = None
+
+    @property
+    def budget(self):
+        """Resolved lazily: module import must not call directory() eagerly
+        (pentacles_demo defines snapshot_path after monitor construction)."""
+        if self._resolved is None:
+            self._resolved = (self._explicit_budget if self._explicit_budget is not None
+                              else self._policy_budget())
+        return self._resolved
+
+    def _policy_budget(self):
+        """Fail-closed budget policy: default 2 MiB; a journal_budget.json next
+        to the journal may raise it to 4 MiB only with user_authorized=true.
+        Quota expansion is one explicit user file, never a silent default."""
+        from persistent_records_v1 import is_record
+        if is_record(self._root()):
+            return None  # User-authorized durable journal, not runtime cache.
+        try:
+            policy = self._root() / 'journal_budget.json'
+            value = json.loads(policy.read_bytes())
+            cap = value.get('bytes')
+            if cap in (2 * 1024 * 1024, 4 * 1024 * 1024) and value.get('user_authorized') is True:
+                return cap
+            raise ValueError('UNAUTHORIZED_JOURNAL_BUDGET')
+        except (OSError, ValueError) as exc:
+            if isinstance(exc, ValueError) and str(exc) == 'UNAUTHORIZED_JOURNAL_BUDGET':
+                raise
+            return MAX_BYTES
 
     def _root(self):
         return Path(self.directory())
@@ -42,7 +71,9 @@ class ObservationJournal:
         # Reserve actual bytes for all replacements AND one atomic temporary file.
         added = sum(len(raw) - (p.stat().st_size if p.exists() else 0) for p, raw in changes)
         peak = max(self._bytes(), self._bytes() + added) + max((len(raw) for _, raw in changes), default=0)
-        if peak > self.budget:
+        from persistent_records_v1 import reserve_space, is_record
+        if is_record(self._root()):reserve_space(self._root(), max((len(v) for _,v in changes), default=0))
+        if self.budget is not None and peak > self.budget:
             raise ValueError('观察日记达到 2MiB 硬预算；停止记录，需另批额度，不删除旧记录')
         for file, raw in changes:
             if file.exists() and file.read_bytes() == raw:

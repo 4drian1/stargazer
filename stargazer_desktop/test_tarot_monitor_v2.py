@@ -115,7 +115,7 @@ class RuntimeTests(unittest.TestCase):
         (self.root/'assistant_plan.json').write_text(json.dumps(plan))
         review=dict(status='ADVICE_READY',decision='BUY',code='600121',cutoff=20261023094500,
                     reason='同截止风险已核验',risk=dict(context=dict(amp_232=.03,amp_266=.04)))
-        value=dict(status='MONITORING',cutoff=20261023094500,rows={'600121':dict(advice=review)})
+        value=dict(status='MONITORING',cutoff=20261023094500,rows={'600121':dict(status='RULE_TRIGGERED',advice=review)})
         broadcast,send=Mock(),Mock(return_value=(True,'ok'))
         with patch.object(live,'evaluate',return_value=value):
             for _ in range(2):monitor._tick_golden(plan,dict(push=dict(enabled=True)),datetime(2026,10,23,9,46),broadcast,send,None)

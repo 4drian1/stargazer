@@ -1,4 +1,7 @@
 """Independent readback before exposing new-day risk to the plan discussion."""
+import os
+for _thread_env in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS'):
+    os.environ[_thread_env]='1'
 import argparse
 from dataclasses import asdict
 import io
@@ -58,7 +61,7 @@ def accept(runtime, refresh_selection=False):
         raise ValueError('INPUT_SNAPSHOT_HASH_MISMATCH')
     snapshot=json.loads(raw)
     # Full v8 manifest is losslessly compressed; v7 remains immutable history.
-    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))
@@ -69,7 +72,7 @@ def accept(runtime, refresh_selection=False):
     assert list(features[232])==list(f232) and list(features[266])==list(f266)
     if len(frame)!=len(features[232]) or frame.code.duplicated().any():
         raise ValueError('FEATURE_KEY_SHAPE')
-    prediction={size:frozen.load_booster(folder).predict(frozen.native_missing_view(features[size],list(features[size])))
+    prediction={size:frozen.load_booster(folder).predict(frozen.native_missing_view(features[size],list(features[size])),num_threads=1)
                 for size,folder in [(232,frozen.MODEL_232),(266,frozen.MODEL_266)]}
     source=(run/'packs.jsonl').read_bytes()
     original=json.loads((run/'terminal.json').read_text(encoding='utf-8'))
@@ -134,7 +137,8 @@ def accept(runtime, refresh_selection=False):
         'acceptance_scope':'INPUTS_AND_INFERENCE_ENGINEERING_NOT_CAPABILITY_CERTIFICATION',
         'checker_sha256':digest(Path(__file__).read_bytes())}
     report=json.dumps(final,ensure_ascii=False,allow_nan=False,indent=1).encode()
-    used=sum(p.stat().st_size for p in runtime.rglob('*') if p.is_file())
+    from runtime_disk_limit_v1 import disk_usage
+    used=disk_usage(runtime)
     from live_postclose_source_v1 import disk_limit
     if used+len(body)+len(report)+1024**2>disk_limit(runtime):
         raise ValueError('RUNTIME_DISK_BUDGET')

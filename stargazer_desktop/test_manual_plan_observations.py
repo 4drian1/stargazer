@@ -93,7 +93,8 @@ class ManualPlanTests(unittest.TestCase):
         updated, _ = self.chat('000712跌幅以昨日收盘为准，先只记录', draft['id'], self.codes)
         self.assertEqual(len(updated['manual_observations'][1]['user_requests']), 2)
         self.assertEqual(updated['changes']['conditions_updated'], ['000712'])
-        removed, _ = self.chat('请从计划中删除000712', updated['id'], self.codes)
+        with patch.object(workflow, 'complete', side_effect=AssertionError('移出人工观察不应调用AI')):
+            removed = workflow.plan_chat({}, '请从计划中删除000712', updated['id'])['draft']
         self.assertEqual([r['code'] for r in removed['manual_observations']], ['600621'])
         self.assertEqual(removed['changes']['manual_removed'], ['000712'])
         self.assertEqual((workflow.root()/f'plan_{draft["id"]}.json').read_bytes(), before)
@@ -139,6 +140,63 @@ class ManualPlanTests(unittest.TestCase):
             newer, _ = self.chat('分析600621怎么样，不修改计划条件', draft['id'], self.codes)
         self.assertEqual(newer['manual_observations'], draft['manual_observations'])
         self.assertEqual(newer['changes']['conditions_updated'], [])
+
+    def seed_groups(self, selected_manual=('000510',), observations=('002908', '000400'),
+                    snapshot_hash=None):
+        snap = dict(self.snap, manual_review_rows=[dict(code='000510', name='人工复核票', rank=1,
+            selection_score=70., reference_price=10., zone={'zone_lower': 9., 'zone_upper': 9.5})])
+        previous = dict(origin='MANUAL_REVIEW_PLAN', snapshot=snap,
+            snapshot_hash=snapshot_hash or workflow.digest(snap), selected_codes=['000001'],
+            selected_manual_codes=list(selected_manual),
+            manual_observations=[dict(code=c, source='USER', name='人工观察（身份未核验）',
+                status='OBSERVATION_ONLY', conditions_status='UNSTRUCTURED_NOT_EXECUTABLE',
+                user_requests=[MESSAGE]) for c in observations],
+            requested_count=10, boards=[dict(b) for b in BOARDS], manual_review_candidates=[],
+            dialogue=[], model_evidence={}, model_commentary={})
+        return snap, workflow.store('plan', previous)
+
+    def test_group_removal_moves_both_manual_groups_without_ai(self):
+        snap, previous = self.seed_groups()
+        with patch.object(workflow, 'snapshot', return_value=snap), patch.object(
+                workflow, 'complete', side_effect=AssertionError('移出不应调用AI')):
+            draft = workflow.plan_chat({}, '人工观察和人工选择移出计划', previous['id'])['draft']
+        self.assertEqual(draft['selected_manual_codes'], [])
+        self.assertEqual(draft['manual_observations'], [])
+        self.assertIn('人工选择整组已移出', draft['reply'])
+        self.assertIn('人工观察整组已移出', draft['reply'])
+        self.assertEqual(draft['changes']['manual_removed'], ['000400', '002908'])
+        self.assertTrue(draft['confirmable'])
+
+    def test_observation_group_removal_keeps_manual_selection(self):
+        snap, previous = self.seed_groups()
+        with patch.object(workflow, 'snapshot', return_value=snap):
+            draft = workflow.plan_chat({}, '人工观察移出计划', previous['id'])['draft']
+        self.assertEqual(draft['selected_manual_codes'], ['000510'])
+        self.assertEqual(draft['manual_observations'], [])
+        self.assertNotIn('人工选择整组已移出', draft['reply'])
+
+    def test_manual_selection_group_removal_keeps_observations(self):
+        snap, previous = self.seed_groups()
+        with patch.object(workflow, 'snapshot', return_value=snap):
+            draft = workflow.plan_chat({}, '人工选择移出计划', previous['id'])['draft']
+        self.assertEqual(draft['selected_manual_codes'], [])
+        self.assertEqual([r['code'] for r in draft['manual_observations']], ['002908', '000400'])
+        self.assertNotIn('人工观察整组已移出', draft['reply'])
+
+    def test_explicit_add_uses_current_review_list_after_snapshot_change(self):
+        snap, previous = self.seed_groups(selected_manual=(), observations=(), snapshot_hash='f' * 64)
+        with patch.object(workflow, 'snapshot', return_value=snap):
+            draft = workflow.plan_chat({}, '把000510加入人工复核', previous['id'])['draft']
+        self.assertEqual(draft['selected_manual_codes'], ['000510'])
+        self.assertIn('加入待确认草案', draft['reply'])
+
+    def test_removal_question_or_negation_does_not_change_groups(self):
+        previous = {'selected_manual_codes': ['000510'],
+                    'manual_observations': [{'code': '002908'}, {'code': '000400'}]}
+        for message in ('人工观察和人工选择能移出计划吗？', '不要移出人工观察和人工选择'):
+            self.assertEqual(workflow.manual_review_codes(message, {}, previous), ['000510'])
+            self.assertEqual([r['code'] for r in workflow.manual_observations(
+                message, previous, set())], ['002908', '000400'])
 
 
 if __name__ == '__main__':

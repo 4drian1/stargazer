@@ -170,27 +170,22 @@ class WorkflowTests(unittest.TestCase):
         self.assertFalse(workflow.learning_path().exists())
 
     def test_local_fallback_exact_day_no_stale_substitution(self):
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-        folder = self.base / 'daily'
-        folder.mkdir()
-        rows = [{'code':'000001','date':20261013,'open':10.,'high':11.,'low':9.,'close':10.}]
-        pq.write_table(pa.Table.from_pylist(rows),folder/'part_00000.parquet')
-        cfg = {'pentacles_demo':{'daily_dir':str(folder)}}
-        self.assertEqual(len(pentacles_review_data.local_day(cfg,{'000001'},20261013)[0]),1)
-        self.assertEqual(len(pentacles_review_data.local_day(cfg,{'000001'},20261014)[0]),0)
+        import struct
+        source = self.base / 'sz000001.day'
+        source.write_bytes(struct.pack('<IIIIIfII',20261013,1000,1100,900,1000,10000.,1000,0))
+        with patch('tdx_daily_source_v2.day_path', return_value=source):
+            self.assertEqual(len(pentacles_review_data.local_day({}, {'000001'},20261013)[0]),1)
+            self.assertEqual(len(pentacles_review_data.local_day({}, {'000001'},20261014)[0]),0)
 
     def test_fallback_duplicate_conflict_blocks(self):
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-        folder = self.base / 'daily'
-        folder.mkdir()
-        for n, price in enumerate([10.,11.]):
-            rows = [{'code':'000001','date':20261013,'open':10.,'high':12.,'low':9.,'close':price}]
-            pq.write_table(pa.Table.from_pylist(rows),folder/f'part_{n}.parquet')
-        values, evidence = pentacles_review_data.local_day({'pentacles_demo':{'daily_dir':str(folder)}}, {'000001'},20261013)
+        import struct
+        source = self.base / 'sz000001.day'
+        source.write_bytes(b''.join(struct.pack('<IIIIIfII',20261013,1000,1200,900,p,10000.,1000,0) for p in [1000,1100]))
+        with patch('tdx_daily_source_v2.day_path', return_value=source):
+            values, evidence = pentacles_review_data.local_day({}, {'000001'},20261013)
         self.assertFalse(values)
-        self.assertEqual(evidence['conflict_codes'],['000001'])
+        self.assertEqual(evidence['missing'][0]['code'],'000001')
+        self.assertEqual(evidence['missing'][0]['reason'],'TDX_DAY_ORDER_OR_DUPLICATE')
 
 
 class SevenDayTests(unittest.TestCase):

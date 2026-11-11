@@ -11,6 +11,7 @@ import pyarrow.dataset as ds
 
 HERE = Path(__file__).resolve().parent
 GREEN = HERE.parent / 'green_common_profile'
+sys.path.insert(0,str(HERE.parents[2]/'stargazer_desktop'))
 MASTER_SOURCE = GREEN / 'round_a_v0_1_impl_fix/full_master_table_v2.py'
 TRIGGER_SOURCE = GREEN / 'gcp_round_b_small_sample_v1/pentacles_golden_v1/trigger_replay_v3.py'
 DAILY_DIR = Path('D:/a股数据/data_daily_parts')
@@ -32,19 +33,16 @@ def source_module(path):
 
 
 def calendar_dates():
-    return source_module(MASTER_SOURCE).load_calendar()
+    from tdx_daily_source_v2 import calendar_days
+    return calendar_days()
 
 
 def read_daily_prefix(code, p):
-    files = sorted(DAILY_DIR.glob('part_*.parquet'))
-    if not files:
-        raise ComputeUnavailable('DAILY_SOURCE_MISSING')
-    dataset = ds.dataset([str(f) for f in files], format='parquet')
-    return dataset.to_table(columns=DAILY_COLUMNS, filter=(
-        (ds.field('code') == code) & (ds.field('date') <= int(p)))).to_pandas()
+    from tdx_daily_source_v2 import read_prefix
+    return read_prefix(code,p,DAILY_COLUMNS+['name'])
 
 
-def daily_prefix(frame, code, p):
+def daily_prefix(frame, code, p, require_metadata=True):
     if not set(DAILY_COLUMNS).issubset(frame.columns):
         raise ComputeUnavailable('DAILY_SCHEMA_INCOMPLETE')
     g = frame.copy()
@@ -61,8 +59,9 @@ def daily_prefix(frame, code, p):
             or (g.low > g[['open', 'close']].min(axis=1)).any()
             or (g.high < g[['open', 'close']].max(axis=1)).any()):
         raise ComputeUnavailable('DAILY_PRICE_INVALID')
-    metadata = g[['volume', 'pre_close', 'is_st', 'float_mv', 'amount']].to_numpy(dtype=float)
-    if not np.isfinite(metadata).all():
+    metadata = g[['volume', 'amount']].to_numpy(dtype=float)
+    final = g[['pre_close','is_st','float_mv']].iloc[-1].to_numpy(dtype=float)
+    if require_metadata and (not np.isfinite(metadata).all() or not np.isfinite(final).all()):
         raise ComputeUnavailable('DAILY_METADATA_UNKNOWN')
     return g
 

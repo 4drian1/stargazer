@@ -43,6 +43,12 @@ def wl_save(cfg, wl):
     os.makedirs(os.path.dirname(wl_path(cfg)), exist_ok=True)
     with open(wl_path(cfg), "w", encoding="utf-8") as f:
         json.dump(wl, f, ensure_ascii=False, indent=1)
+    # W2b：持仓/观察名单变化 → 只对新增代码做增量准备（幂等，sha 去重）。
+    try:
+        import postclose_prepared_v1
+        postclose_prepared_v1.on_watchlist_saved(cfg)
+    except Exception:
+        pass  # 增量准备不得阻断名单保存本身
 
 
 _boards_cache = {"ts": 0.0, "data": {}}
@@ -82,6 +88,11 @@ def _resolve_board(board_name):
 
 
 # ---------- 板块扫描（四层漏斗前三层+吸筹+v2.3因子） ----------
+def scan_sector_rules(board_name, top=5):
+    from sector_rule_scan import scan_sector_rules as scan
+    return scan(board_name, top=top)
+
+
 def scan_sector(board_name, max_stocks=80, with_score=False, year=2025, include_st=False):
     bk, bname, err = _resolve_board(board_name)
     if err:
@@ -663,6 +674,16 @@ def _trade_conn(cfg):
         source TEXT,      -- chat / slash / manual
         raw TEXT         -- 原始用户消息（可追溯）
     )""")
+    try:
+        conn.execute("ALTER TABLE trades ADD COLUMN request_id TEXT")
+    except _sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE trades ADD COLUMN plan_ref TEXT")
+    except _sqlite3.OperationalError:
+        pass
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_trades_request_id "
+                 "ON trades(request_id) WHERE request_id IS NOT NULL")
     return conn
 
 
@@ -694,16 +715,30 @@ def trade_add(cfg, **kw):
         trade_date = _dt.date.today().isoformat()
     amount = round(price * shares, 2) if shares else None
     conn = _trade_conn(cfg)
+    request_id = str(kw.get("request_id") or "").strip() or None
+    plan_ref = str(kw.get("plan_ref") or "").strip() or None
+    if request_id:
+        prior = conn.execute(
+            "SELECT id, action, code, name, price, trade_date, plan_ref FROM trades WHERE request_id=?",
+            (request_id,)).fetchone()
+        if prior:
+            conn.close()
+            return {"ok": True, "duplicate": True, "id": prior[0], "action": prior[1],
+                    "code": prior[2], "name": prior[3], "price": prior[4],
+                    "trade_date": prior[5], "request_id": request_id,
+                    "plan_ref": prior[6]}
     cursor = conn.execute(
-        "INSERT INTO trades (ts, trade_date, action, code, name, price, shares, amount, reason, source, raw) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO trades (ts, trade_date, action, code, name, price, shares, amount, reason, source, raw, request_id, plan_ref) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (_dt.datetime.now().isoformat(timespec="seconds"), trade_date, action, code, name,
          price, shares, amount, str(kw.get("reason") or ""), str(kw.get("source") or "chat"),
-         str(kw.get("raw") or "")))
+         str(kw.get("raw") or ""), request_id, plan_ref))
     trade_id = cursor.lastrowid
     conn.commit(); conn.close()
-    result = {"ok": True, "id": trade_id, "action": action, "code": code, "name": name,
-              "price": price, "trade_date": trade_date}
+    result = {"ok": True, "duplicate": False, "id": trade_id, "action": action,
+              "code": code, "name": name, "price": price,
+              "trade_date": trade_date, "request_id": request_id,
+              "plan_ref": plan_ref}
     try:
         from intraday_monitor import record_trade_context
         record_trade_context(cfg, trade_id, result)
@@ -737,3 +772,34 @@ def trade_export_csv(cfg, out_path=None, limit=200000):
                         r["shares"] or "", round(r["price"] * (r["shares"] or 0), 2) if r["shares"] else "",
                         r["reason"] or "", r["source"] or ""])
     return out_path
+
+
+def position_details(cfg, code, live_price=None):
+    """真实合同：从已登记真实成交计算数量、加权成本、可卖（T+1）与盈亏。
+    无成交记录 → 全部 None（显示未知，不用 0 冒充）；行情缺失 → 盈亏 None。"""
+    import datetime as _dt
+    conn = _trade_conn(cfg)
+    rows = conn.execute(
+        "SELECT action, price, shares, trade_date FROM trades WHERE code=? ORDER BY trade_date, id",
+        (str(code),)).fetchall()
+    conn.close()
+    qty = 0
+    cost_sum = 0.0
+    for action, price, shares, _ in rows:
+        shares = int(shares or 0)
+        qty += shares if action == "buy" else -shares
+        cost_sum += float(price or 0) * shares * (1 if action == "buy" else -1)
+    if qty <= 0:
+        return dict(quantity=None, cost=None, sellable=None, pnl=None, pnl_pct=None)
+    cost = cost_sum / qty
+    today = _dt.date.today().isoformat()
+    sellable = sum((int(s or 0)) for a, _, s, d in rows if a == "buy" and str(d or "") < today)
+    sellable = max(0, min(qty, sellable - sum(int(s or 0) for a, _, s, _ in rows if a == "sell")))
+    pnl = pnl_pct = None
+    if live_price is not None:
+        try:
+            pnl = round((float(live_price) - cost) * qty, 2)
+            pnl_pct = round((float(live_price) / cost - 1) * 100, 2) if cost > 0 else None
+        except (TypeError, ValueError, ZeroDivisionError):
+            pnl = pnl_pct = None
+    return dict(quantity=qty, cost=round(cost, 3), sellable=sellable, pnl=pnl, pnl_pct=pnl_pct)

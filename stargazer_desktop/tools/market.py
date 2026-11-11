@@ -8,8 +8,10 @@ import pandas as pd
 UA = {"User-Agent": "Mozilla/5.0"}
 
 
-def _get(url, tries=3, timeout=10, encoding=None):
+def _get(url, tries=3, timeout=10, encoding=None, on_attempt=None):
     for i in range(tries):
+        if on_attempt is not None and not on_attempt(url):
+            return None  # 请求前额度拦截：未预约成功的尝试直接不发
         try:
             req = urllib.request.Request(url, headers=UA)
             raw = urllib.request.urlopen(req, timeout=timeout).read()
@@ -31,19 +33,53 @@ def _get_json(url, tries=3):
 
 def secid(code: str) -> str:
     """6位代码 -> 腾讯前缀代码"""
+    if len(code)==8 and code[:2] in ('sh','sz') and code[2:].isdigit():
+        return code
     if code.startswith(("60", "68")):
         return "sh" + code
     return "sz" + code
 
 
 # ---------------- 腾讯实时报价 ----------------
-def quotes(codes):
-    """codes: 6位代码列表(<=8个一批)。返回 {code: {name,price,pct,open,high,low,prev,amount_wan,time}}"""
-    out = {}
-    for i in range(0, len(codes), 6):  # 每批<=6，防空返回
-        batch = codes[i:i + 6]
+def quotes(codes, on_attempt=None, timeout=10, batch_size=6, max_workers=1, tries=3):
+    """Fetch six-digit stock quotes with optional bounded batch parallelism.
+
+    The historical default remains six symbols and one worker. Larger batches
+    are opt-in; 30 symbols / 4 workers is the currently smoke-tested strong-pool
+    setting, not a claim about the provider's hard maximum.
+
+    on_attempt runs immediately before each real HTTP attempt and may reject it.
+    timeout is passed directly to urllib; it is not a whole-scan deadline.
+    """
+    if type(batch_size) is not int or not 1 <= batch_size <= 31:
+        raise ValueError('QUOTE_BATCH_SIZE_OUT_OF_TESTED_RANGE')
+    if type(max_workers) is not int or not 1 <= max_workers <= 4:
+        raise ValueError('QUOTE_WORKERS_OUT_OF_TESTED_RANGE')
+    if type(tries) is not int or not 1 <= tries <= 3:
+        raise ValueError('QUOTE_RETRIES_OUT_OF_TESTED_RANGE')
+    codes = list(codes or [])
+    if not codes:
+        return {}
+    batches = [codes[i:i + batch_size] for i in range(0, len(codes), batch_size)]
+
+    def fetch(batch):
         q = ",".join(secid(c) for c in batch)
-        txt = _get(f"https://qt.gtimg.cn/q={q}", encoding="gbk")
+        txt = _get(f"https://qt.gtimg.cn/q={q}", tries=tries, encoding="gbk",
+                   on_attempt=on_attempt, timeout=timeout)
+        return batch, txt
+
+    if max_workers == 1:
+        fetched = []
+        for batch in batches:
+            fetched.append(fetch(batch))
+            time.sleep(0.1)
+    else:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix='quote-batch') as pool:
+            fetched = list(pool.map(fetch, batches))
+
+    out = {}
+    for batch, txt in fetched:
         if not txt:
             continue
         for line in txt.strip().split(";"):
@@ -54,7 +90,9 @@ def quotes(codes):
                 continue
             try:
                 code = body[2]
-                out[code] = {
+                key = line.split('=', 1)[0].strip()
+                qualified = key[2:] if key.startswith('v_') else key
+                out[qualified if qualified in batch else code] = {
                     "name": body[1], "price": float(body[3]), "prev": float(body[4]),
                     "open": float(body[5]), "pct": float(body[32]),
                     "high": float(body[33]), "low": float(body[34]),

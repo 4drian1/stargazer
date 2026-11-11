@@ -55,9 +55,9 @@ class ContextTests(unittest.TestCase):
         self.assertIn('我的条件不可删除', context.serialized(value))
         self.assertNotIn('tool_calls', context.serialized(value))
 
-    def test_overlong_user_conditions_refused_not_silently_truncated(self):
-        with self.assertRaisesRegex(ValueError, '原记录保留'):
-            context.bounded_messages([], [{'role':'user','content':'条件' * 40000}])
+    def test_long_user_conditions_preserved_without_local_input_gate(self):
+        conditions = [{'role':'user','content':'条件' * 40000}]
+        self.assertEqual(context.bounded_messages([], conditions), conditions)
 
 
 class StorageAndGraphTests(unittest.TestCase):

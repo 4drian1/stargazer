@@ -22,7 +22,9 @@ def resource(name):
 
 def data_file(name, seed_from_bundle=True):
     """可写数据路径。打包模式下若 exe 旁没有，则从包内复制一份出来。"""
-    p = os.path.join(APP_DIR, name)
+    from persistent_records_v1 import file_path
+    mapped = file_path(APP_DIR, name)
+    p = str(mapped) if mapped is not None else os.path.join(APP_DIR, name)
     if FROZEN and seed_from_bundle and not os.path.exists(p):
         src = os.path.join(BUNDLE_DIR, name)
         if os.path.exists(src):

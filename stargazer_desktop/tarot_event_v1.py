@@ -5,6 +5,7 @@ import threading
 
 import postclose_risk_runtime as runtime
 from golden_rules import digest
+from golden_monitor import MINUTE_SOURCE_CONTRACT
 
 _lock=threading.Lock()
 _thread=None
@@ -31,8 +32,9 @@ def work(plan,cfg,now,source,target):
     from tarot_monitor_v2 import save,advise,enabled,fresh
     import golden_monitor
     from plan_evidence import archived_price_overlay
+    from trade_facts_v1 import CONTRACT
     cutoff=cutoff5(now)
-    result=dict(status='EVENT_CHECKING',cutoff=cutoff,plan_hash=digest(plan),plan_id=plan.get('assistant_plan_id'),rows={})
+    result=dict(status='EVENT_CHECKING',cutoff=cutoff,plan_hash=digest(plan),plan_id=plan.get('assistant_plan_id'),fact_contract=CONTRACT,minute_source_contract=MINUTE_SOURCE_CONTRACT,rows={})
     try:
         signals=golden_monitor.evaluate(plan,now,five_minute=True)
         if signals.get('cutoff')!=cutoff:raise ValueError('FIVE_MINUTE_SIGNAL_CUTOFF')
@@ -61,20 +63,26 @@ def work(plan,cfg,now,source,target):
 
 
 def evaluate(plan,cfg,now):
+    from tarot_event_live_v1 import evaluate as evaluate_live
+    return evaluate_live(plan,cfg,now)
+
+
+def evaluate_completed(plan,cfg,now):
     global _thread
     cutoff=cutoff5(now)
     if cutoff is None or int(plan.get('monitor_date',0))!=cutoff//1000000:return {}
     source=read_risk(plan)
-    target=runtime.directory()/'tarot_events'/f'{cutoff}_{digest(plan)}_{source.get("cutoff",0)}.json'
+    from trade_facts_v1 import CONTRACT
+    target=runtime.directory()/'tarot_events'/f'{cutoff}_{digest(plan)}_{source.get("cutoff",0)}_{CONTRACT}_{MINUTE_SOURCE_CONTRACT}.json'
     with _lock:
         if target.exists():return json.loads(target.read_bytes())
         if not (_thread and _thread.is_alive()):
             from tarot_monitor_v2 import save
-            save(target,dict(status='EVENT_QUEUED',cutoff=cutoff,rows={}))
+            save(target,dict(status='EVENT_QUEUED',cutoff=cutoff,fact_contract=CONTRACT,minute_source_contract=MINUTE_SOURCE_CONTRACT,rows={}))
             _thread=threading.Thread(target=work,args=(plan,cfg,now,source,target),daemon=True,name='tarot-5m-events')
             _thread.start()
         try:
             value=json.loads((target.parent/'latest.json').read_bytes())
-            if value.get('cutoff')==cutoff and value.get('plan_hash')==digest(plan):return value
+            if value.get('cutoff')==cutoff and value.get('plan_hash')==digest(plan) and value.get('fact_contract')==CONTRACT and value.get('minute_source_contract')==MINUTE_SOURCE_CONTRACT:return value
         except (OSError,ValueError):pass
     return {}

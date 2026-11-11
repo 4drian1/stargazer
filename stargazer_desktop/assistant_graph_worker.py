@@ -55,7 +55,8 @@ def run(body):
         raise ValueError('DRAFT_HASH_MISMATCH')
     db = root / 'graph_checkpoint.sqlite'
     with closing(sqlite3.connect(db, check_same_thread=False)) as conn:
-        conn.execute('PRAGMA max_page_count=256')  # <=1MiB, inside assistant 10MiB total.
+        if body.get('persistent_records') is not True:
+            conn.execute('PRAGMA max_page_count=256')  # Legacy bounded test/runtime.
         saver = SqliteSaver(conn)
         graph = build(saver)
         config = {'configurable': {'thread_id': kind + ':' + identifier}}

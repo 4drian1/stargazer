@@ -39,6 +39,11 @@ class ObservationPushTests(unittest.TestCase):
         return quotes
 
     def signal(self,advice):
+        if advice.get('status')=='ADVICE_READY':
+            from trade_facts_v1 import CONTRACT
+            advice.setdefault('fact_contract',CONTRACT)
+            advice.setdefault('advice_references',{'supporting_ids':['stock.price'],'opposing_ids':[],'unknown_ids':[]})
+            advice.setdefault('risk',{'status':'AVAILABLE','context':{'stock_close':self.quote['price']}})
         self.value=dict(status='MONITORING',event_cutoff=self.cutoff,rows={'688004':dict(
             status='RULE_TRIGGERED',node=34.,branch='RECLAIM',trigger_time=20261023112500,advice=advice)})
 
@@ -46,8 +51,8 @@ class ObservationPushTests(unittest.TestCase):
         self.tick();self.tick()
         self.assertEqual(self.broadcast.call_count,1);self.assertEqual(self.send.call_count,1)
         message=self.broadcast.call_args.args[0]
-        self.assertIn('观察位已到达',message['title']);self.assertIn('尚不代表止跌',message['body'])
-        self.assertIn('35.0000',message['body'])
+        self.assertIn('计划票 · 到位',message['title']);self.assertIn('请观察并等待',message['body'])
+        self.assertIn('35.00',message['body'])
 
     def test_each_lower_position_once_and_restart_dedup(self):
         self.tick()
@@ -56,7 +61,7 @@ class ObservationPushTests(unittest.TestCase):
         self.monitor=PriceMonitor(lambda:self.root)
         self.tick()
         self.assertEqual(self.send.call_count,2)
-        self.assertIn('34.0000、33.5000',self.send.call_args.args[2])
+        self.assertIn('34.00—34.00、33.50—33.50',self.send.call_args.args[2])
 
     def test_stale_bad_basis_or_invalid_low_never_alert(self):
         for change in [dict(time='20261023110000'),dict(prev=36.),dict(low=float('nan')),dict(low='bad')]:
@@ -71,7 +76,7 @@ class ObservationPushTests(unittest.TestCase):
             self.tick();self.tick()
         self.assertEqual(self.broadcast.call_count,3)
         self.assertIn('板块仍弱',self.broadcast.call_args_list[1].args[0]['body'])
-        self.assertIn('建议考虑买入',self.broadcast.call_args_list[2].args[0]['title'])
+        self.assertIn('建议买入',self.broadcast.call_args_list[2].args[0]['title'])
 
     def test_pending_then_ai_failure_both_deliver_no_retry(self):
         self.quote.update(price=36.,low=36.)

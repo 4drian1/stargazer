@@ -1,4 +1,7 @@
 """Daily post-close scoring job; local data only, frozen weights, no LLM."""
+import os
+for _thread_env in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS'):
+    os.environ[_thread_env]='1'
 import argparse
 from dataclasses import asdict
 from datetime import datetime
@@ -24,6 +27,18 @@ def number(value):
     except (ValueError, TypeError):
         return None
     return value if np.isfinite(value) else None
+
+
+def verify_prepared_source_versions(capture):
+    """TDX downloads racing a warm cache may not change its input version."""
+    provenance=capture.output/'common_context_reuse.json'
+    if not provenance.is_file():return
+    common=json.loads(provenance.read_bytes())
+    request=json.loads((Path(common['prepared_folder'])/'request.json').read_bytes())
+    for code,source in request['files'].items():
+        st=Path(source['path']).stat()
+        if (st.st_size,st.st_mtime_ns)!=(source['size'],source['mtime_ns']):
+            raise ValueError('SOURCE_VERSION_CHANGED_DURING_SCORING:'+code)
 
 
 def pack_from_row(row, selection, amplitude, snapshot, missing, run_name, selection_record=None):
@@ -88,7 +103,7 @@ def pack_from_row(row, selection, amplitude, snapshot, missing, run_name, select
         notes='POSTCLOSE_LOCAL_RUNTIME; partial archived membership; amplitude not probability; no auto orders').bind()
 
 
-def run(snapshot_file, runtime, producer=produce_live):
+def run(snapshot_file, runtime, producer=produce_live, *, index_source=None):
     import msvcrt
     runtime.mkdir(parents=True, exist_ok=True)
     with (runtime/'worker.lock').open('a+b') as lock:
@@ -103,21 +118,38 @@ def run(snapshot_file, runtime, producer=produce_live):
         raw_snapshot = snapshot_file.read_bytes()
         value = json.loads(raw_snapshot)
         day = int(value['data_date'])
-        if day != now_stamp()//1000000 or now_stamp()%1000000 < 150000:
+        if getattr(producer,'native_tdx',False):
+            from accept_live_postclose_v1 import plan_calendar
+            plan_calendar(value)
+            if day>now_stamp()//1000000 or (day==now_stamp()//1000000 and now_stamp()%1000000<150000):
+                raise ValueError('POSTCLOSE_CLOSE_NOT_AVAILABLE')
+            if now_stamp()//1000000>int(value['monitor_date']):
+                raise ValueError('POSTCLOSE_PLAN_EXPIRED')
+        elif index_source:
+            from postclose_index_source import job_due, load
+            if not job_due(value, datetime.strptime(str(now_stamp()), '%Y%m%d%H%M%S')):
+                raise ValueError('POSTCLOSE_ACTIVE_PLAN_DATE_REQUIRED')
+            load(index_source[0], index_source[1], day)
+            from accept_live_postclose_v1 import plan_calendar
+            plan_calendar(value)  # Reject an unbound or nonconsecutive calendar before any batch reads.
+        elif day != now_stamp()//1000000 or now_stamp()%1000000 < 150000:
             raise ValueError('POSTCLOSE_CURRENT_DAY_REQUIRED')
         identity = digest(raw_snapshot)
         output = runtime / f'run_{day}_{datetime.now():%H%M%S_%f}'
         output.mkdir(exist_ok=False)
         with (output/'input_snapshot.json').open('xb') as stream:
             stream.write(raw_snapshot)
+        last_progress = {}
         def progress(**values):
+            last_progress.clear()
+            last_progress.update(values)
             state = dict(status='RUNNING', data_date=day, snapshot_sha256=identity,
                          run_dir=str(output), updated_at=now_stamp(), **values)
             atomic_json(runtime/'state.json', state)
             print(json.dumps({k:v for k,v in state.items() if k != 'snapshot_sha256'}), flush=True)
         try:
             from joint_shadow_service_v1 import verify_fingerprints
-            reference = json.loads(gzip.decompress(Path(__file__).with_name('live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
+            reference = json.loads(gzip.decompress(Path(__file__).with_name('live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
             mismatch, ok = verify_fingerprints(reference)
             if not ok:
                 raise ValueError('FROZEN_RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))
@@ -126,7 +158,9 @@ def run(snapshot_file, runtime, producer=produce_live):
             if not 0 < len(codes) <= 256 or len(set(codes)) != len(codes):
                 raise ValueError('CANDIDATE_SIZE_OR_DUPLICATES')
             progress(stage='SOURCE_PREFLIGHT', done=0, total=len(codes))
-            snapshot, capture, source_failures = producer(day, codes, output, progress)
+            snapshot, capture, source_failures = producer(day, codes, output, progress,
+                **({'index_source':index_source} if index_source else {}))
+            verify_prepared_source_versions(capture)
             from joint_shadow_context_v1 import build_features
             import rebuild_features_v1 as frozen
             universe = {c for m in snapshot.boards.values() for c in m}
@@ -135,11 +169,17 @@ def run(snapshot_file, runtime, producer=produce_live):
             if not candidates:
                 raise ValueError('NO_CANDIDATE_MINUTE_INPUT')
             progress(stage='REBUILDING_FROZEN_FEATURES', done=0, total=len(candidates))
-            frame, x232, x266, audit = build_features(snapshot, candidates)
+            from shared_risk_context_v1 import SharedPreparedContext
+            feature_cache = SharedPreparedContext(snapshot, capture)
+            from postclose_feature_cache_v1 import build as build_cached_features
+            frame,x232,x266,audit=build_cached_features(snapshot,candidates,capture,feature_cache,build_features)
+            feature_cache.commit()
+            capture.save('feature_cache_audit.json',json.dumps(feature_cache.audit).encode())
             capture.save('quarantined_bars.json',json.dumps(
                 snapshot.stock_minutes.quarantined,ensure_ascii=False).encode())
-            predictions = [frozen.load_booster(folder).predict(frozen.native_missing_view(x, list(x)))
+            predictions = [frozen.load_booster(folder).predict(frozen.native_missing_view(x, list(x)),num_threads=1)
                            for folder, x in [(frozen.MODEL_232,x232),(frozen.MODEL_266,x266)]]
+            verify_prepared_source_versions(capture)
             progress(stage='PACKING_AND_VALIDATING', done=len(candidates), total=len(candidates))
             # Selection's own P-day reference remains separate from risk's prior-session key.
             from joint_shadow_worker_v1 import selection_scores
@@ -185,8 +225,14 @@ def run(snapshot_file, runtime, producer=produce_live):
                 rows=results,run_dir=str(output),packs_path=str(output/'packs.jsonl'),
                 packs_sha256=digest(body),finished_at=now_stamp(),requests=capture.requests,
                 read_bytes=capture.read_bytes,disk_bytes=capture.disk_bytes,
-                fit=False,llm_calls=0,scope='PARTIAL_ARCHIVED_MEMBERSHIP_LOCAL_FORWARD_OBSERVATION',
+                read_bytes_basis=('LOCAL_CAPTURE_COUNTER_ONLY; native preparation source reads are in the separate worker'
+                    if getattr(snapshot,'_source_contract',None)=='TDX_NATIVE_POSTCLOSE_V1' else 'LOCAL_CAPTURE_COUNTER'),
+                fit=False,llm_calls=0,scope=('PARTIAL_ARCHIVED_MEMBERSHIP_POSTCLOSE_OBSERVED_LATER'
+                    if snapshot.membership_scope=='POSTCLOSE_CAPTURE_OBSERVED_LATER'
+                    else 'PARTIAL_ARCHIVED_MEMBERSHIP_LOCAL_FORWARD_OBSERVATION'),
                 feature_cutoff=snapshot.cutoff,observed_at=snapshot.observed_at,
+                source_contract=getattr(snapshot,'_source_contract','STOCKDB_MINUTES_V1'),
+                source_identity=getattr(snapshot,'_source_identity',None),
                 code_sha256={str(Path(__file__)):digest(Path(__file__).read_bytes()),
                     str(Path(__file__).with_name('live_postclose_source_v1.py')):
                         digest(Path(__file__).with_name('live_postclose_source_v1.py').read_bytes())})
@@ -194,7 +240,10 @@ def run(snapshot_file, runtime, producer=produce_live):
             atomic_json(runtime/'state.json',report)
             return 0 if packs else 2
         except Exception as exc:
-            failure = dict(status='FAILED',data_date=day,snapshot_sha256=identity,
+            from risk_source_recovery import transient_error
+            retryable = transient_error(exc)
+            failure = dict(status='WAIT_SOURCE' if retryable else 'FAILED',source_retryable=retryable,
+                last_reported_progress=dict(last_progress),data_date=day,snapshot_sha256=identity,
                 run_dir=str(output),reason=type(exc).__name__+':'+str(exc),finished_at=now_stamp(),
                 fit=False,llm_calls=0)
             atomic_json(output/'terminal.json',failure)
@@ -208,10 +257,20 @@ if __name__ == '__main__':
     parser.add_argument('--snapshot',type=Path,required=True)
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--reuse-capture',type=Path)
+    parser.add_argument('--tdx-native',action='store_true')
+    parser.add_argument('--index-source',type=Path)
+    parser.add_argument('--index-source-sha')
     args=parser.parse_args()
-    if args.reuse_capture:
+    if bool(args.index_source) != bool(args.index_source_sha) or (args.index_source and args.reuse_capture):
+        parser.error('index-source requires its SHA and cannot combine with reuse-capture')
+    if args.tdx_native:
+        if args.reuse_capture:parser.error('tdx-native cannot combine with reuse-capture')
+        from postclose_shared_source_v1 import produce
+    elif args.reuse_capture:
         from live_postclose_replay_v1 import captured_producer
         produce=captured_producer(args.reuse_capture)
     else:
-        produce=produce_live
-    raise SystemExit(run(args.snapshot,args.runtime,producer=produce))
+        from shared_risk_context_v1 import produce_shared
+        produce=produce_shared
+    raise SystemExit(run(args.snapshot,args.runtime,producer=produce,
+        index_source=(args.index_source,args.index_source_sha) if args.index_source else None))

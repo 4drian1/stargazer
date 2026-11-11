@@ -58,7 +58,7 @@ def ratio(x, reference):
     return out
 
 
-def stock_features(frame, code, days, quarantine_days, returns_only=False):
+def aggregate_minutes(frame, code, days, quarantine_days):
     """END reconstruction only. No price adjustment/unknown slots are fabricated."""
     df = frame.copy()
     if not (df['code'].astype(str) == code).all():
@@ -100,15 +100,25 @@ def stock_features(frame, code, days, quarantine_days, returns_only=False):
             x = np.full(length, np.nan)
             x[grouped.index.to_numpy(dtype=int)] = grouped[field].to_numpy()
             arrays[step][field] = x
+    quality = dict(conflicting_timestamps=len(conflicts),
+                   invalid_or_excluded_rows=int((~valid).sum()), quarantine_days=len(quarantine_days),
+                   feature_rows=int(np.isfinite(arrays[15]['close']).sum()))
+    return arrays, quality
+
+
+def stock_features(frame, code, days, quarantine_days, returns_only=False):
+    arrays, quality = aggregate_minutes(frame, code, days, quarantine_days)
+    return features_from_arrays(arrays, code, days, quality, returns_only)
+
+
+def features_from_arrays(arrays, code, days, quality, returns_only=False):
+    """Same complete-history indicator kernel for raw and cached aggregates."""
     x5, x15 = arrays[5], arrays[15]
     close, volume = x15['close'], x15['volume']
     day_close = close.reshape(-1,16)[:,-1].copy()
     day_close[~np.isfinite(close.reshape(-1,16)).all(axis=1)] = np.nan
     reference = np.repeat(lag(day_close),16)
     returns = ratio(close, reference)-1
-    quality = dict(conflicting_timestamps=len(conflicts),
-                   invalid_or_excluded_rows=int((~valid).sum()), quarantine_days=len(quarantine_days),
-                   feature_rows=int(np.isfinite(close).sum()))
     if returns_only:
         return None, returns, quality
     pick5 = np.arange(len(close))*3+2

@@ -29,8 +29,12 @@ class SelectorBindingTests(unittest.TestCase):
         predecessor=root/current['supersedes']
         prior=json.loads(gzip.decompress(predecessor.read_bytes()))
         actual,expected=normalize(current['frozen_inputs']),normalize(prior['frozen_inputs'])
-        allowed={str((GCP/'golden_resonance_v4.py').resolve()),str((root/'stargazer_desktop/web/pentacles.js').resolve()),str(Path(__file__).resolve())}
+        allowed={str((GCP/'golden_resonance_v4.py').resolve()),str((root/'stargazer_desktop/web/pentacles.js').resolve()),
+                 str((root/'stargazer_desktop/sector_rule_scan.py').resolve()),str(Path(__file__).resolve()),
+                 str((root/'stargazer_desktop/golden_watch_groups.py').resolve())}
         self.assertEqual(set(actual),set(expected)|allowed)
+        self.assertEqual(actual[str((root/'stargazer_desktop/sector_rule_scan.py').resolve())],
+                         sha(root/'stargazer_desktop/sector_rule_scan.py'))
         original=normalize(old['frozen_inputs'])
         self.assertEqual(actual[str(selector.MODEL.resolve())],original[str(selector.MODEL.resolve())])
         self.assertEqual(actual[str((selector.FIT/'run.py').resolve())],original[str((selector.FIT/'run.py').resolve())])

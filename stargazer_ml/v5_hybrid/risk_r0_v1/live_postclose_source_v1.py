@@ -19,17 +19,16 @@ READ_CAP = 48 * 1024**3  # Bounded archive replay after a recorded adapter corre
 DISK_CAP = 1024**3  # User approved 1 GiB for this runtime on 2026-10-21.
 RESPONSE_CAP = 32 * 1024**2
 REQUEST_CAP = 16000
+READ_MEMO_CAP = 256 * 1024 * 1024  # raw-byte bound; parsed footprint is larger
 FIELDS = ['code', 'date', 'open', 'high', 'low', 'close', 'volume', 'amount']
 
 
-def disk_limit(root):
-    policy=Path(root)/'runtime_budget_v2.json'
-    if not policy.exists():return DISK_CAP
-    value=json.loads(policy.read_bytes())
-    cap=value.get('disk_bytes')
-    if cap not in (1024**3,4*1024**3) or value.get('user_authorized') is not True:
-        raise ValueError('UNAUTHORIZED_RUNTIME_BUDGET')
-    return cap
+# Single source of truth for the runtime disk gate now lives in
+# runtime_disk_limit_v1, which carries NO research-storage-contract dependency.
+# Desktop review / minute-prep / strong-pool import it from there so they never
+# transitively import the research contract (absent from a frozen desktop build).
+# We re-export it here so the research entry keeps one definition.
+from runtime_disk_limit_v1 import disk_limit, DISK_CAP  # noqa: E402,F401
 
 
 def digest(body):
@@ -59,16 +58,30 @@ class LocalCapture:
     def __init__(self, output, budget_root=None):
         self.output = Path(output)
         self.budget_root = Path(budget_root or output)
+        from persistent_records_v1 import prepare_capture
+        prepare_capture(self.output,self.budget_root)
         self.requests = self.read_bytes = 0
-        self.disk_bytes = sum(p.stat().st_size for p in Path(budget_root or output).rglob('*') if p.is_file())
+        from runtime_disk_limit_v1 import disk_usage
+        self.disk_bytes = disk_usage(self.budget_root)
         self.disk_cap=disk_limit(self.budget_root)
         self.cache_day = None
         self.fresh_periods=set()
+        self.required_cutoff = None
         self.reused_responses = 0
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
-    def read(self, path, expected=None):
+    def read(self, path, expected=None, fresh=False):
         path = Path(path)
+        key = (str(path), expected)
+        # Same-run reuse (#18.199): preflight, capture and feature building
+        # read the same verified bytes several times; memoize per capture so a
+        # validated body costs one disk read. Byte-bounded. ``fresh=True``
+        # re-reads from disk for source-version re-verification: a changed
+        # source must surface, never be masked by the memo.
+        memo = self.__dict__.setdefault('_read_memo', {})
+        memo_bytes = self.__dict__.setdefault('_read_memo_bytes', [0])
+        if not fresh and key in memo:
+            return memo[key]
         size = path.stat().st_size
         if size > RESPONSE_CAP or self.read_bytes + size > READ_CAP:
             raise ValueError('LOCAL_READ_BUDGET')
@@ -76,10 +89,18 @@ class LocalCapture:
         self.read_bytes += len(body)
         if expected and digest(body) != expected:
             raise ValueError('LOCAL_SOURCE_HASH_MISMATCH:' + path.name)
+        while memo and memo_bytes[0] + len(body) > READ_MEMO_CAP:
+            oldest = next(iter(memo))
+            memo_bytes[0] -= len(memo.pop(oldest))
+        memo[key] = body
+        memo_bytes[0] += len(body)
         return body
 
     def save(self, name, body):
-        if self.disk_bytes + len(body) + 2*1024**2 > self.disk_cap:
+        from persistent_records_v1 import is_record, reserve_space
+        persistent = is_record(self.output)
+        if persistent:reserve_space(self.output,len(body))
+        if not persistent and self.disk_bytes + len(body) + 2*1024**2 > self.disk_cap:
             raise ValueError('RUNTIME_DISK_BUDGET')
         path = self.output / name
         with path.open('xb') as stream:
@@ -100,8 +121,17 @@ class LocalCapture:
                     if len(raw)>RESPONSE_CAP:
                         raise ValueError('CACHED_RESPONSE_SIZE')
                     rows=msgpack.unpackb(raw,raw=False,strict_map_key=False)
-                    if not isinstance(rows,list):
+                    if not isinstance(rows,list) or not rows:
                         continue
+                    proof = path.with_name(path.name+'.receipt.json')
+                    overlaps = self.required_cutoff and str(self.cache_day).startswith(period.rstrip('*'))
+                    if overlaps:
+                        if not proof.exists():continue
+                        meta=json.loads(self.read(proof))
+                        if (meta.get('code')!=code or meta.get('period')!=period or
+                            meta.get('sha256')!=digest(body) or meta.get('captured_at',0)<self.required_cutoff):continue
+                    rows = [r[1] if isinstance(r,list) and len(r)==2 and isinstance(r[1],dict) else r for r in rows]
+                    if any(not isinstance(r,dict) for r in rows):continue
                     self.reused_responses+=1
                     return rows,dict(path=str(path),sha256=digest(body),raw_sha256=digest(raw),
                         observed_at=now_stamp(),period=period,reused=True,
@@ -152,6 +182,8 @@ class LocalCapture:
         if any(not isinstance(r, dict) for r in rows):
             raise ValueError('MINUTE_RESPONSE_ROW_SHAPE')
         ref.update(raw_sha256=digest(raw), observed_at=now_stamp(), period=period)
+        self.save(Path(ref['path']).name+'.receipt.json',json.dumps(dict(code=code,period=period,
+            sha256=ref['sha256'],captured_at=ref['observed_at'])).encode())
         return rows, ref
 
 
@@ -230,10 +262,19 @@ class CapturedMinutes:
         return frame
 
 
-def produce_live(day, candidates, output, progress, *, cutoff=None):
-    """Capture exact local bytes first, then consume them through frozen kernels."""
-    capture = LocalCapture(output, budget_root=Path(output).parent)
+def produce_live(day, candidates, output, progress, *, cutoff=None, index_source=None, capture_factory=None):
+    """Capture exact local bytes first, then consume them through frozen kernels.
+    capture_factory: production intraday feeds inject their own capture; default
+    legacy LocalCapture keeps training/replay sources frozen."""
+    capture = (capture_factory(output, Path(output).parent) if capture_factory
+               else LocalCapture(output, budget_root=Path(output).parent))
     capture.cache_day = day
+    # Scoped realtime lane (#18.188): current-day minutes come per stock from
+    # the public lane, which is only provisioned for the scoring universe until
+    # the full-context supply is decided. Non-scoring codes keep their local
+    # history fill and are reported as supply-pending, never silently dropped.
+    scoped = bool(getattr(capture, 'scoped_current_day', False))
+    scoring = set(candidates)
     # Interrupted capture retains its quota ledger; do not reset attempts/reads.
     previous_runs=[p for p in Path(output).parent.glob(f'run_{day}_*') if p!=Path(output)]
     capture.requests=sum(len(list(p.glob('raw_*.msgpack.gz'))) for p in previous_runs)
@@ -253,6 +294,7 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
     cutoff = int(day)*1000000+150000 if cutoff is None else int(cutoff)
     if cutoff//1000000!=int(day) or cutoff>now_stamp():
         raise ValueError('SOURCE_CUTOFF_INVALID_OR_FUTURE')
+    capture.required_cutoff = cutoff
     if cutoff%1000000<150000:
         capture.fresh_periods={str(day)+'*',str(day)[:6]+'*','*'}
     scope = json.loads(capture.read(HERE/'ths_full_concept_scope_20261017_v1.json'))
@@ -262,6 +304,7 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
         raise ValueError('COMPARISON_UNIVERSE_DRIFT')
     boards = {r.code: list(r.symbols) for r in catalog.sort_values('code').itertuples()}
     universe = {c for members in boards.values() for c in members}
+    prefetched, candidate_failures = candidate_preflight(capture, day, candidates, cutoff, universe, progress)
     ledger = json.loads(capture.read(HERE/'relative_stall_5m_20261018_v1/raw_input_ledger.json'))
     by_code = {r['code']: r for r in ledger}
     from live_postclose_cache_v1 import prior_entries,remaining_periods
@@ -269,7 +312,10 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
     bound = sorted(((set(by_code)|set(history)) & universe) | (set(candidates) & universe))
     indices, receipts = {}, {}
     mirror = HERE/'index_minutes_v1'
-    for symbol, name in [('000001.SH', 'sse'), ('399006.SZ', 'cyb')]:
+    if index_source:
+        from postclose_index_source import load
+        indices, receipts = load(index_source[0], index_source[1], int(day), read=capture.read)
+    for symbol, name in ([] if index_source else [('000001.SH', 'sse'), ('399006.SZ', 'cyb')]):
         meta = json.loads(capture.read(mirror/f'{name}_5min.meta.json'))
         path = mirror/f'{name}_5min.parquet'
         frame = pd.read_parquet(io.BytesIO(capture.read(path, meta['sha256'])))
@@ -282,8 +328,9 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
             price_basis='RAW', clock='END_5M', available_at=now_stamp(),
             availability_basis='LOCAL_READER_OBSERVED_BYTES_NOT_UPSTREAM_FIRST_ARRIVAL')
     days = sorted(d for d in set((indices['000001.SH'].date//1000000).astype(int)) if d >= 20250102)
-    entries, failures = {}, {}
+    entries, failures = {}, dict(candidate_failures)
     for i, code in enumerate(bound):
+        if code in candidate_failures:continue
         inherited=history.get(code)
         seed = inherited.get('seed') if inherited else by_code.get(code)
         frame = pd.DataFrame(columns=FIELDS)
@@ -295,11 +342,24 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
         periods = (remaining_periods(start,days) if inherited and start else
                    list(months(start, int(day))) if start else ['*'])
         extra, refs = [], list(inherited['extensions']) if inherited else []
-        for period in periods:
-            rows, ref = capture.fetch(code, period)
-            extra.extend(rows)
-            refs.append(ref)
+        if code in prefetched:
+            rows,ref=prefetched[code];extra.extend(rows);refs.append(ref)
+            periods=[p for p in periods if p!=str(day)+'*']
+        if scoped and code not in scoring:
+            periods=[p for p in periods if p not in (str(day)+'*','*')]
+        fetch_error = None
         try:
+            for period in periods:
+                rows, ref = capture.fetch(code, period)
+                extra.extend(rows)
+                refs.append(ref)
+        except ValueError as exc:
+            if not scoped:
+                raise
+            fetch_error = str(exc)
+        try:
+            if fetch_error is not None:
+                raise ValueError(fetch_error)
             combined = merge_minutes(frame, extra, code, cutoff)
             if combined.empty or int(combined.date.max()//1000000) < int(day):
                 raise ValueError('CURRENT_DAY_MINUTES_MISSING')
@@ -313,15 +373,43 @@ def produce_live(day, candidates, output, progress, *, cutoff=None):
                 price_basis='RAW', clock='END_1M', available_at=now_stamp(),
                 availability_basis='LOCAL_READER_OBSERVED_BYTES_NOT_UPSTREAM_FIRST_ARRIVAL')
         except ValueError as exc:
-            failures[code] = str(exc)
+            message = str(exc)
+            if scoped and code not in scoring and message == 'CURRENT_DAY_MINUTES_MISSING':
+                message = 'REALTIME_CONTEXT_SUPPLY_PENDING'
+            failures[code] = message
         if i % 20 == 0 or i+1 == len(bound):
             progress(stage='CAPTURING_MINUTES', done=i+1, total=len(bound),
                      requests=capture.requests, read_bytes=capture.read_bytes, disk_bytes=capture.disk_bytes)
     capture.save('source_manifest.json', json.dumps(dict(entries=entries, failures=failures,
         membership_source=scope, declared_stock_count=len(universe), bound_stock_count=len(entries),
+        index_sources={symbol:receipts[symbol] for symbol in indices},
+        index_source_binding={'path':str(index_source[0]),'sha256':index_source[1]} if index_source else None,
         requests=capture.requests, read_bytes=capture.read_bytes, disk_bytes=capture.disk_bytes),
         ensure_ascii=False).encode())
     observed = now_stamp()
+    scope_name = ('POSTCLOSE_CAPTURE_OBSERVED_LATER' if index_source and cutoff % 1000000 == 150000
+                  and observed // 1000000 != cutoff // 1000000 else 'FORWARD_SNAPSHOT')
     snapshot = RiskSnapshot(cutoff, observed, days, CapturedMinutes(entries, capture, cutoff,progress),
-                           indices, boards, receipts, observed, 'FORWARD_SNAPSHOT', observed_at=observed)
+                           indices, boards, receipts, observed, scope_name, observed_at=observed)
     return snapshot, capture, failures
+
+
+def candidate_preflight(capture, day, candidates, cutoff, universe, progress):
+    """Fail before full-universe history reads when no candidate can be scored."""
+    ready, failures = {}, {}
+    for i,code in enumerate(candidates):
+        progress(stage='CANDIDATE_MINUTE_PREFLIGHT',done=i,total=len(candidates))
+        if code not in universe:
+            failures[code]='CANDIDATE_MEMBERSHIP_MISSING'
+            continue
+        rows,ref=capture.fetch(code,str(day)+'*')
+        frame=merge_minutes(pd.DataFrame(columns=FIELDS),rows,code,cutoff)
+        frame,_=clean_ohlc(frame)
+        if frame.empty or int(frame.date.max())!=cutoff:
+            failures[code]='CANDIDATE_CURRENT_CUTOFF_MISSING'
+        else:ready[code]=(rows,ref)
+    capture.save('candidate_preflight.json',json.dumps(dict(cutoff=cutoff,ready=sorted(ready),
+        failures=failures,requests=capture.requests),ensure_ascii=False).encode())
+    if not ready:
+        raise ValueError('CANDIDATE_MINUTE_PREFLIGHT_FAILED:'+','.join(c+':'+r for c,r in failures.items()))
+    return ready,failures

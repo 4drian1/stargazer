@@ -4,8 +4,11 @@ import numpy as np
 
 
 def latest_record(g, core, old_a, calendar):
+    from descending_tops_v1 import for_frame
+    if for_frame(g)['excluded']:return None
     p = len(g)-1
-    expected = [d for d in calendar if d <= int(g.date.iloc[p])][-70:]
+    p_date = int(g.date.iloc[p])
+    expected = [d for d in calendar if d <= p_date][-70:]
     if len(expected) != 70 or not np.array_equal(g.date.iloc[-70:].to_numpy(dtype=int), expected):
         return None
     failures = {}

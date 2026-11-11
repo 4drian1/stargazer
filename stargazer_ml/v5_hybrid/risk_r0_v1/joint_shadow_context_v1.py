@@ -31,6 +31,18 @@ class RiskSnapshot:
     observed_at: int | None = None
 
 
+def observation_time(snapshot):
+    cutoff = int(snapshot.cutoff)
+    observed = snapshot.observed_at or cutoff
+    pd.to_datetime(str(cutoff), format='%Y%m%d%H%M%S', errors='raise')
+    pd.to_datetime(str(observed), format='%Y%m%d%H%M%S', errors='raise')
+    closed_capture = (snapshot.membership_scope == 'POSTCLOSE_CAPTURE_OBSERVED_LATER'
+                      and cutoff % 1000000 == 150000)
+    if observed < cutoff or (observed // 1000000 != cutoff // 1000000 and not closed_capture):
+        raise ComputeUnavailable('INVALID_OBSERVATION_TIME')
+    return observed
+
+
 def load_snapshot(path):
     """Read a local data-worker manifest and SHA-bound raw files, never a URL.
 
@@ -99,6 +111,9 @@ def _prefix(frame, cutoff, receipt, stock=False, research=False, observed_at=Non
 
 
 def _market(snapshot):
+    if hasattr(snapshot,'_tdx_market_context'):
+        # The native producer verifies the completed context and all artifact SHAs.
+        return snapshot._tdx_market_context
     from materialize_local_market_context_v1 import build, bars_and_days
     from golden_anchor_rules_v2 import replay
     from materialize_multitimeframe_momentum_v1 import build as momentum
@@ -112,7 +127,11 @@ def _market(snapshot):
                         snapshot.receipts.get(symbol), research=(
                             snapshot.membership_scope == 'SNAPSHOT_RECONSTRUCTION_RESEARCH'),
                         observed_at=snapshot.observed_at)
-        rows[symbol] = frame.to_dict('records')
+        # 不做 frame.to_dict('records') — 直接存 DataFrame.
+        # to_dict('records') 会把 15-25MB DataFrame 膨胀成 200-500MB list[dict]
+        # (Python dict 开销), 两个 index 合计 400-1000MB 瞬时峰值, 轻易破 512MiB 限制.
+        # bars_and_days / build 已接受 DataFrame (入口 _as_row_dicts 统一转换).
+        rows[symbol] = frame
         _, complete_days = bars_and_days(rows[symbol], 5)
         if not set(snapshot.days[:-1]) <= set(complete_days):
             raise ComputeUnavailable('INDEX_PAST_DAY_INCOMPLETE:' + symbol)
@@ -121,14 +140,26 @@ def _market(snapshot):
     bars = [dict(day=d, open=v['close'], completed=True, **v) for d, v in sorted(daily.items())
             if d < snapshot.cutoff // 1000000]
     # Anchor contraction uses real daily opens, not close-as-open surrogates.
-    opens = {r['date'] // 1000000: r['open'] for r in reversed(rows['000001.SH'])}
+    # DataFrame 列向取 date/open, 避免 iterrows 循环 (与 to_dict('records') 后 reversed 等价).
+    df_sse = rows['000001.SH']
+    opens = dict(zip(df_sse['date'].iloc[::-1].astype(int) // 1000000,
+                     df_sse['open'].iloc[::-1].astype(float)))
     for bar in bars:
         bar['open'] = opens[bar['day']]
     states = replay(bars)
     if not states:
         raise ComputeUnavailable('GOLDEN_HISTORY_NOT_READY')
-    market = pd.DataFrame([r for symbol in rows for f in (5, 15)
-                           for r in build(rows[symbol], symbol, states, f)])
+    # Each symbol/frequency has independent state. Materialize bounded blocks
+    # instead of retaining all wide Python dictionaries during frame creation.
+    import gc
+    blocks = []
+    for symbol in rows:
+        for f in (5, 15):
+            blocks.append(pd.DataFrame(build(rows[symbol], symbol, states, f)))
+            gc.collect()
+    market = pd.concat(blocks, ignore_index=True).infer_objects(copy=False)
+    del blocks
+    gc.collect()
     # Keep the entire supplied seed history; no arbitrary rolling truncation of
     # Wilder/EMA state. Completion/missing slots remain the frozen kernel's job.
     shared = pd.DataFrame({TIME: [t for d in snapshot.days for t in slots(d, 15)]})
@@ -145,7 +176,17 @@ def _market(snapshot):
                 ('golden_distance_', 'golden_level_', 'time_fraction_distance_'))]
             block = data[[TIME, *cols]].rename(columns={c: f'{name}_{f}m_{c}' for c in cols})
             shared = shared.merge(block, on=TIME, how='left', validate='one_to_one')
-    projected, _ = project_market(momentum(market), set(shared.columns))
+    del data, block
+    gc.collect()
+    # Momentum is independent across symbols and only reads these six columns.
+    # Preserve the complete seed history and frozen numerical implementation.
+    columns = ['symbol', 'frequency_minutes', TIME, 'day', 'source_complete', 'close']
+    blocks = []
+    for symbol in rows:
+        blocks.append(momentum(market.loc[market.symbol == symbol, columns]))
+        gc.collect()
+    projected, _ = project_market(pd.concat(blocks, ignore_index=True), set(shared.columns))
+    del blocks
     shared = shared.merge(projected, on=TIME, how='left', validate='one_to_one')
     return market, states, shared
 
@@ -208,7 +249,7 @@ def _context(frame, codes, members, returns, stock_rows, days, board_codes):
     return frame.merge(context, on=['code', 'cutoff_index'], validate='one_to_one')
 
 
-def build_features(snapshot, candidates):
+def build_features(snapshot, candidates, *, feature_cache=None):
     """Return source, ordered 232 and ordered 266 matrices plus audit metadata.
 
     One snapshot/decision cutoff per call. Membership is the supplied, explicitly
@@ -225,16 +266,13 @@ def build_features(snapshot, candidates):
 
     cutoff = int(snapshot.cutoff)
     pd.to_datetime(str(cutoff), format='%Y%m%d%H%M%S', errors='raise')
-    observed = snapshot.observed_at or cutoff
-    pd.to_datetime(str(observed), format='%Y%m%d%H%M%S', errors='raise')
-    if observed < cutoff or observed // 1000000 != cutoff // 1000000:
-        raise ComputeUnavailable('INVALID_OBSERVATION_TIME')
+    observed = observation_time(snapshot)
     day = cutoff // 1000000
     days = list(snapshot.days)
     if (days != sorted(set(days)) or len(days) < 2 or days[-1] != day
             or cutoff not in slots(day, 15)):
         raise ComputeUnavailable('INVALID_PREFIX_CALENDAR_OR_CUTOFF')
-    if snapshot.membership_scope not in ('SNAPSHOT_RECONSTRUCTION_RESEARCH', 'FORWARD_SNAPSHOT'):
+    if snapshot.membership_scope not in ('SNAPSHOT_RECONSTRUCTION_RESEARCH', 'FORWARD_SNAPSHOT', 'POSTCLOSE_CAPTURE_OBSERVED_LATER'):
         raise ComputeUnavailable('MEMBERSHIP_SCOPE_UNBOUND')
     research = snapshot.membership_scope == 'SNAPSHOT_RECONSTRUCTION_RESEARCH'
     for arrival in (snapshot.available_at, snapshot.membership_known_at):
@@ -267,15 +305,19 @@ def build_features(snapshot, candidates):
         if code not in snapshot.stock_minutes:
             source_missing.append(code)
             continue
-        raw = _prefix(snapshot.stock_minutes[code], cutoff, snapshot.receipts.get(code),
-                      stock=True, research=research, observed_at=observed)
-        rows, _, _ = stock_features(raw, code, np.array(days), set())
+        if feature_cache is not None:
+            rows, ret = feature_cache.stock(code, days, cutoff)
+        else:
+            raw = _prefix(snapshot.stock_minutes[code], cutoff, snapshot.receipts.get(code),
+                          stock=True, research=research, observed_at=observed)
+            rows, _, _ = stock_features(raw, code, np.array(days), set())
         # Reference close must be a complete previous day, exactly as the frozen
         # stock kernel. Never substitute pre_close, ETF or a stale daily close.
         refs = dict(zip(days,
                         rows.groupby(rows.cutoff_index // 16).stock_reference_close_raw.first()
                         .reindex(range(len(days))).to_numpy()))
-        ret, _ = minute_returns(raw, code, days, refs)
+        if feature_cache is None:
+            ret, _ = minute_returns(raw, code, days, refs)
         for f in native:
             native[f][ci[code]] = ret[f][-(240 // f):]
         rows = rows[rows.cutoff_index // 16 == len(days)-1].copy()

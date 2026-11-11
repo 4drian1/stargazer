@@ -1,4 +1,4 @@
-"""Read-only local stockdb evidence for a review. No orders, no research labels."""
+"""Read-only local TDX daily evidence for a review. No orders or HTTP."""
 from datetime import datetime
 from contextlib import closing
 import hashlib
@@ -7,54 +7,25 @@ import os
 from pathlib import Path
 import sqlite3
 import time
-import urllib.parse
-import urllib.request
 
 import paths
 from seven_day_review import positive, evaluate
 
 
-def stockdb_rows(table):
-    import msgpack
-    url = 'http://127.0.0.1:7899/?cmd=get&t=' + urllib.parse.quote(table)
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    req = urllib.request.Request(url, headers={'Accept': 'application/x-msgpack'})
-    with opener.open(req, timeout=8) as response:
-        raw = response.read(8 * 1024 * 1024 + 1)
-    if len(raw) > 8 * 1024 * 1024:
-        raise ValueError('stockdb 单表响应超出8MiB')
-    payload = msgpack.unpackb(raw, raw=False, strict_map_key=False)
-    data = payload.get('data') if isinstance(payload, dict) else payload
-    if not isinstance(data, list):
-        raise ValueError('stockdb 表不可用')
-    return [r[1] if isinstance(r, list) else r for r in data]
 
 
 def local_day(cfg, codes, day):
     """Exact-day synchronized mirror; conflicts remain unusable, never substitute yesterday."""
-    import pyarrow.dataset as ds
-    app = Path(paths.APP_DIR)
-    project = next((p for p in app.parents if (p / 'stargazer_ml').is_dir()), app.parent)
-    configured = (cfg.get('pentacles_demo') or {}).get('daily_dir') or os.environ.get('STARGAZER_DAILY_PARTS')
-    directory = Path(configured) if configured else next((p for p in
-        (project / 'data_daily_parts', Path('D:/a股数据/data_daily_parts')) if p.exists()), None)
-    if directory is None or not directory.exists():
-        return {}, {}
-    files = sorted(directory.glob('part_*.parquet'))
-    if not files:
-        return {}, {}
-    table = ds.dataset([str(p) for p in files], format='parquet').to_table(
-        columns=['code', 'date', 'open', 'high', 'low', 'close', '__filename'],
-        filter=(ds.field('date') == day) & ds.field('code').isin(sorted(codes)))
-    values, conflicts = {}, set()
-    for row in table.to_pylist():
-        code = str(row['code']).zfill(6)
-        if code in values and any(values[code][k] != row[k] for k in ('open','high','low','close')):
-            conflicts.add(code)
-        else:
-            values[code] = row
-    return {c: b for c, b in values.items() if c not in conflicts}, {'source':'SYNCED_DAILY_PARTS',
-            'directory':str(directory), 'conflict_codes':sorted(conflicts)}
+    from tdx_daily_source_v2 import day_path,read_day
+    values={};receipts=[];missing=[]
+    for code in sorted(codes):
+        try:frame,receipt=read_day(day_path(code),int(day))
+        except (OSError,ValueError) as exc:
+            missing.append(dict(code=code,reason=str(exc)));continue
+        row=frame[frame.date==int(day)]
+        if not row.empty:values[code]=dict(row.iloc[0],code=code)
+        receipts.append(receipt)
+    return values,dict(source='TDX_LOCAL_RAW_DAILY',inputs=receipts,conflict_codes=[],missing=missing)
 
 
 def actual_trades(cfg, codes, day):
@@ -123,7 +94,6 @@ def collect(snapshot, day, root, cfg=None):
     except Exception:
         fallback, evidence = {}, {'status':'LOCAL_MIRROR_UNAVAILABLE'}
     facts['daily_mirror'] = evidence
-    http_unavailable = False
     deadline = time.monotonic() + 90
     for row in snapshot['rows']:
         item = {'code': row['code'], 'name': row.get('name', ''), 'setup': row.get('setup'),
@@ -131,19 +101,8 @@ def collect(snapshot, day, root, cfg=None):
         try:
             if time.monotonic() >= deadline:
                 raise ValueError('本轮行情读取时间预算已达，余下候选保留数据不足')
-            try:
-                if http_unavailable:
-                    raise OSError('stockdb HTTP不可用')
-                data = [b for b in stockdb_rows(f"日k:{row['code']}:{day}*")
-                        if int(b.get('date', 0)) == day]
-                item['price_source'] = 'STOCKDB_HTTP'
-            except Exception:
-                http_unavailable = True
-                data = []
-            if not data and row['code'] in fallback:
-                data = [fallback[row['code']]]
-                item['price_source'] = 'SYNCED_DAILY_PARTS'
-                item['source_file'] = fallback[row['code']]['__filename']
+            data = [fallback[row['code']]] if row['code'] in fallback else []
+            item['price_source'] = 'TDX_LOCAL_RAW_DAILY'
             if len(data) != 1:
                 raise ValueError('缺失或重复日K')
             b = data[0]

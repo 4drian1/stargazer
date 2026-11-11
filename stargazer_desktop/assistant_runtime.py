@@ -10,9 +10,13 @@ import assistant_workflow as workflow
 
 def gate(kind, draft, *, approved=None):
     with workflow.LOCK:
+        workflow.reclaim_records()
         total = sum(p.stat().st_size for p in workflow.root().rglob('*') if p.is_file())
         db = workflow.root() / 'graph_checkpoint.sqlite'
-        if total + max(0, 1024 * 1024 - (db.stat().st_size if db.exists() else 0)) > workflow.LIMIT:
+        from persistent_records_v1 import is_record, reserve_space
+        persistent = is_record(workflow.root())
+        if persistent:reserve_space(workflow.root(),1024*1024)
+        if not persistent and total + max(0, 1024 * 1024 - (db.stat().st_size if db.exists() else 0)) > workflow.LIMIT:
             raise ValueError('助手图恢复预算不足；报价和持仓风控继续运行')
         # Dedicated interpreter, never sys.executable (that would recursively launch the exe).
         app = Path(paths.APP_DIR).resolve()
@@ -22,12 +26,11 @@ def gate(kind, draft, *, approved=None):
         if not python.is_file() or not worker.is_file():
             raise ValueError('LangGraph独立运行环境未就绪，草案保留；确认暂停，报价和持仓风控不受影响')
         local_zone = timezone(timedelta(hours=8))
-        expires = (datetime.strptime(str(draft['snapshot']['monitor_date']), '%Y%m%d').replace(
-            hour=9, minute=30, tzinfo=local_zone) if kind == 'plan' else
+        expires = (workflow.plan_deadline(draft['snapshot']) if kind == 'plan' else
             datetime.fromisoformat(draft['created_at']).replace(tzinfo=local_zone) + timedelta(days=1))
         if approved is True and datetime.now(local_zone) >= expires:
             raise ValueError('草案已过期，请重新生成；旧记录保留')
-        body = {'root': str(workflow.root()), 'kind': kind, 'draft_id': draft['id'],
+        body = {'root': str(workflow.root()), 'kind': kind, 'draft_id': draft['id'], 'persistent_records':persistent,
                 'action': 'prepare' if approved is None else 'confirm', 'approved': approved,
                 'expires_at': expires.isoformat(), 'now': datetime.now(local_zone).isoformat()}
         try:

@@ -6,6 +6,11 @@ import sys
 import time
 import urllib.request
 
+if len(sys.argv) == 3 and sys.argv[1] == '--acceptance-monitor':
+    from monitor_release_acceptance_v1 import run
+    run(sys.argv[2])
+    raise SystemExit(0)
+
 if getattr(sys, 'frozen', False):
     import os
     from pathlib import Path
@@ -15,6 +20,14 @@ if getattr(sys, 'frozen', False):
     os.environ['MPLCONFIGDIR'] = str(temporary/'matplotlib')
     os.environ['PYTHONPYCACHEPREFIX'] = str(temporary/'bytecode')
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
+if len(sys.argv) >= 4 and sys.argv[1] in ('--acceptance', '--acceptance-restart'):
+    from acceptance_ui_integration_v1 import run as _ui2_acceptance_run
+    raise SystemExit(0 if _ui2_acceptance_run(sys.argv[1], sys.argv[2:]).get('ok') else 1)
+
+if len(sys.argv) >= 5 and sys.argv[1] == '--acceptance-serve':
+    from acceptance_ui2_serve_v1 import run as _ui2_serve_run
+    raise SystemExit(0 if _ui2_serve_run(sys.argv[2:]).get('ok') else 1)
 
 import server
 
@@ -71,7 +84,8 @@ def main():
     try:
         import webview
         webview.create_window("Stargazer", url, width=1180, height=780,
-                              min_size=(900, 600))
+                              min_size=(900, 600),
+                              text_select=True)  # 正文可拖选+Ctrl+C；按钮/拖拽区不受影响
         webview.start()
     except ImportError:
         import webbrowser

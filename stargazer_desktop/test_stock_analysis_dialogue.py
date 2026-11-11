@@ -56,7 +56,7 @@ class AnalysisDialogueTests(unittest.TestCase):
         node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='chat')
         app=Flask('stock-analysis-route')
         namespace=dict(app=app,request=request,jsonify=jsonify,_brain_lock=threading.RLock(),
-                       get_cfg=lambda:{}, get_brain=lambda: type('BrainStub', (), {'chat': lambda _, msg, on_tool=None: '600792 普通对话'})())
+                       get_cfg=lambda:{}, get_brain=lambda: type('BrainStub', (), {'archive': Path('isolated-analysis-test.jsonl'), 'chat': lambda _, msg, on_tool=None: '600792 普通对话'})())
         exec(compile(ast.Module(body=[node],type_ignores=[]),'server.py','exec'),namespace)
         with patch.object(workflow,'plan_chat',side_effect=AssertionError('PLAN_MUST_NOT_RUN')):
             reply=app.test_client().post('/api/chat',json={'message':'分析600792，不修改计划条件',

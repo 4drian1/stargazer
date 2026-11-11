@@ -25,6 +25,16 @@ class AgentModelTests(unittest.TestCase):
         self.assertEqual(result['model_facts']['000629']['amp_232'], .012)
         self.assertNotIn('model_evidence', result)
 
+    def test_confirmed_plan_view_keeps_manual_group_source(self):
+        import conversation_plans
+        value = {'stocks': [{'code': '000629', 'source': 'USER_MANUAL_REVIEW', 'selection_qualified': False},
+                            {'code': '000510', 'source': 'USER', 'observe_only': True}],
+                 'manual_observations': [{'code': '000510', 'source': 'USER'}], 'model_facts': {}}
+        view = conversation_plans.tool_view(value)
+        self.assertEqual(view['stocks'][0]['source'], 'USER_MANUAL_REVIEW')
+        self.assertFalse(view['stocks'][0]['selection_qualified'])
+        self.assertEqual(view['stocks'][1]['source'], 'USER')
+
     def test_generic_stock_question_does_not_run_models(self):
         answer = SimpleNamespace(content='先看行情和公司事实。', tool_calls=[],
                                  model_dump=lambda **kw: {'role': 'assistant', 'content': '先看行情和公司事实。'})

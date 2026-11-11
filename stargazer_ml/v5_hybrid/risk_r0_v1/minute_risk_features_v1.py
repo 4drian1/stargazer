@@ -1,14 +1,23 @@
 """Explicit-clock 15m diagnostics. Unknown arrival/source semantics never become live facts."""
 from datetime import datetime, timedelta
 import math
+import numpy as np
 
 FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
 
 def parse_ts(value):
-    if type(value) is not int or len(str(value)) != 14:
+    # Accept Python int, numpy integer, and numpy float (DataFrame.iterrows()
+    # promotes mixed int/float columns to float64). Must be integer-valued.
+    if isinstance(value, (int, np.integer)):
+        ival = int(value)
+    elif isinstance(value, float) and value.is_integer():
+        ival = int(value)
+    else:
         raise ValueError('REQUIRES_14_DIGIT_EXCHANGE_CLOCK')
-    return datetime.strptime(str(value), '%Y%m%d%H%M%S')
+    if len(str(ival)) != 14:
+        raise ValueError('REQUIRES_14_DIGIT_EXCHANGE_CLOCK')
+    return datetime.strptime(str(ival), '%Y%m%d%H%M%S')
 
 
 def encode(dt):

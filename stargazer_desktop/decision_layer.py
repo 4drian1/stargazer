@@ -22,6 +22,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+import paths
 import jev_adapter_v1 as jev
 from oracles_v1 import EvidencePack
 
@@ -164,7 +165,12 @@ class KimiJudge(JudgeProvider):
     name = 'Kimi'
     model = None          # 探测后缓存到文件（每日至多一次）
     TEMPERATURE = 1.0     # kimi-for-coding 仅允许 temperature=1
-    _MODEL_CACHE = Path(__file__).resolve().parent / 'data' / 'assistant' / 'kimi_model.txt'
+    # Persist the probed Kimi model name next to the EXE (or source tree under
+    # dev) via paths.data_file, NOT under __file__: a frozen one-file bundle has
+    # no writable location beside the module, and __file__ resolves into the
+    # read-only _MEIPASS temp dir. Config/holdings/plan/info-panel data already
+    # use this same helper.
+    _MODEL_CACHE = Path(paths.data_file('data/assistant/kimi_model.txt'))
 
     def judge(self, request: dict, *, timeout_s: float = 30.0) -> dict:
         if 'hard_gate' in request:

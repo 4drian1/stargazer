@@ -1,26 +1,43 @@
 """Bounded same-cutoff Pyxis worker; shared runtime/quotas, no paid calls or orders."""
+import os
+for _thread_env in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS'):
+    os.environ[_thread_env]='1'
 import contextlib
 import io
 import json
 import gzip
 from pathlib import Path
 import sys
+import traceback
 
 import numpy as np
 
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE.parents[2]/'stargazer_desktop'))
-from live_postclose_source_v1 import produce_live,atomic_json,now_stamp,disk_limit
+from live_postclose_source_v1 import atomic_json,now_stamp,disk_limit
 from live_postclose_job_v1 import pack_from_row
+
+
+def failure_details(error, stage):
+    value = dict(error_type=type(error).__name__, stage=stage,
+                 reason=type(error).__name__+':'+str(error)[:500],
+                 traceback=traceback.format_exc()[-8000:])
+    try:
+        from tdx_native_kernel_v1 import peak_memory
+        value['peak_bytes'] = peak_memory()
+    except OSError:
+        pass
+    return value
 
 
 def execute(body):
     from joint_shadow_service_v1 import verify_fingerprints
-    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261026_v33_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))
     cutoff=int(body['cutoff']);day=cutoff//1000000
     if day!=now_stamp()//1000000 or cutoff>now_stamp():raise ValueError('CURRENT_DAY_PREFIX_REQUIRED')
+    attempt=int(body.get('attempt') or 0)
     plan=body['plan'];positions=body.get('positions') or []
     if plan.get('rule_version')!='TAROT_A_SECOND_CASH_V2' or int(plan['monitor_date'])>day:
         raise ValueError('PLAN_VERSION_OR_DAY_MISMATCH')
@@ -28,27 +45,42 @@ def execute(body):
     codes=sorted({r['code'] for r in active_rows}|{p['code'] for p in positions})
     if not codes or len(codes)>128:raise ValueError('PLAN_AND_POSITION_BATCH_LIMIT')
     root=Path(body['runtime']).resolve()
-    folder=root/f'run_{day}_{cutoff%1000000}_intraday_v2'
+    from shared_risk_context_v1 import kernel
+    import hashlib
+    population=hashlib.sha256(json.dumps(codes).encode()).hexdigest()[:12]
+    suffix='_r%d' % attempt if attempt else ''
+    folder=root/f'run_{day}_{cutoff%1000000}_intraday_native5m_{kernel()[:16]}_{population}{suffix}'
     result_file=folder/'intraday_result.json'
     if result_file.exists():
         cached=json.loads(result_file.read_bytes())
         if cached.get('requested_codes')!=codes:raise ValueError('RISK_TICK_POPULATION_CHANGED')
         return cached
     if folder.exists():raise ValueError('NO_AUTOMATIC_RETRY_OF_TERMINATED_RISK_TICK')
-    used=sum(x.stat().st_size for x in root.rglob('*') if x.is_file())
+    from runtime_disk_limit_v1 import disk_usage
+    used=disk_usage(root)
     if used+2*1024**2>disk_limit(root):raise ValueError('RUNTIME_DISK_BUDGET')
     folder.mkdir(parents=True)
+    stage = 'SOURCE_PREPARE'
     def progress(**state):
+        nonlocal stage
+        stage = state.get('stage', stage)
         atomic_json(folder/'progress.json',dict(cutoff=cutoff,**state))
     try:
-        snapshot,capture,failures=produce_live(day,codes,folder,progress,cutoff=cutoff)
+        from intraday_public_context_v1 import produce
+        snapshot,feature_cache,capture,failures=produce(root,codes,cutoff,folder,progress)
+        from tdx_native_kernel_v1 import memory_guard
+        memory_guard()
         from joint_shadow_context_v1 import build_features
         import rebuild_features_v1 as frozen
         requests=[dict(code=c,P=snapshot.days[-2],E=day,cutoff_ts=cutoff) for c in codes
             if c in snapshot.stock_minutes and any(c in m for m in snapshot.boards.values())]
         if not requests:raise ValueError('NO_CURRENT_CANDIDATE_CONTEXT')
-        frame,x232,x266,_=build_features(snapshot,requests)
-        predictions=[np.clip(frozen.load_booster(m).predict(frozen.native_missing_view(x,list(x))),0,1)
+        progress(stage='BUILD_FEATURES', done=0, total=len(requests))
+        frame,x232,x266,_=build_features(snapshot,requests,feature_cache=feature_cache)
+        memory_guard()
+        capture.save('feature_cache_audit.json',json.dumps(feature_cache.audit).encode())
+        progress(stage='PREDICT', done=0, total=len(requests))
+        predictions=[np.clip(frozen.load_booster(m).predict(frozen.native_missing_view(x,list(x)),num_threads=1),0,1)
             for m,x in [(frozen.MODEL_232,x232),(frozen.MODEL_266,x266)]]
         required=['stock_day_return_raw','context_sector_mean_return_loo_raw','sse_15m_day_return_prev_close',
             'cyb_15m_day_return_prev_close','new_sse_golden_position']
@@ -71,7 +103,7 @@ def execute(body):
         capture.save('intraday_result.json',json.dumps(value,ensure_ascii=False,allow_nan=False).encode())
         return value
     except Exception as error:
-        atomic_json(folder/'terminal.json',dict(status='FAILED',automatic_resume=False,reason=type(error).__name__))
+        atomic_json(folder/'terminal.json',dict(status='FAILED',automatic_resume=False,**failure_details(error,stage)))
         raise
 
 
@@ -79,5 +111,5 @@ if __name__=='__main__':
     try:
         with contextlib.redirect_stdout(io.StringIO()):result=execute(json.load(sys.stdin))
     except Exception as error:
-        result=dict(status='EVIDENCE_INSUFFICIENT',reason=str(error)[:200] if isinstance(error,ValueError) else type(error).__name__)
+        result=dict(status='EVIDENCE_INSUFFICIENT',reason=type(error).__name__+':'+str(error)[:200])
     print(json.dumps(result,ensure_ascii=False,allow_nan=False))

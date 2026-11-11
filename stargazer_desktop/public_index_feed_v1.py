@@ -26,9 +26,8 @@ def read(path):
 
 
 def budget(root,size):
-    policy=read(root/'runtime_budget_v2.json')
-    limit=4*1024**3 if policy.get('user_authorized') is True and policy.get('disk_bytes')==4*1024**3 else 1024**3
-    if sum(p.stat().st_size for p in root.rglob('*') if p.is_file())+size+65536>limit:
+    from runtime_disk_limit_v1 import disk_limit,disk_usage
+    if disk_usage(root)+size+65536>disk_limit(root):
         raise ValueError('RUNTIME_DISK_BUDGET')
 
 
@@ -67,6 +66,15 @@ def fetch(symbol):
         raw=response.read(131073)
     if len(raw)>131072:raise ValueError('PUBLIC_INDEX_RESPONSE_LIMIT')
     return raw,url,int(datetime.now().strftime('%Y%m%d%H%M%S'))
+
+
+def watermark(labels,as_of):
+    day=as_of//1000000;clock=as_of%1000000
+    close=clock>=150500 and len(labels)==48 and labels[-1]==day*1000000+150000
+    lunch=113500<=clock<130500 and len(labels)==24 and labels[-1]==day*1000000+113000
+    if close or lunch:
+        return labels[-1],('POSTCLOSE' if close else 'MIDDAY')+'_SETTLING_ASSUMPTION_NOT_CERTIFIED'
+    return max((x for x in labels[:-1] if x<=as_of),default=0),'FOLLOWING_SOURCE_INTERVAL_OBSERVED; LAST_INTERVAL_PROVISIONAL'
 
 
 def sync_public(updater,mirror,root,as_of,local):
@@ -110,11 +118,22 @@ def sync_public(updater,mirror,root,as_of,local):
                 source=dict(provider='SINA_PUBLIC',url=url,sha256=sha,raw_archive=str(archive),
                     requested_at=as_of,available_at=observed,availability_basis='LOCAL_READER_OBSERVED_RESPONSE_NOT_UPSTREAM_FIRST_ARRIVAL',
                     identity_basis='REQUEST_URL_BOUND',volume_verified=False)
+                history_days=[]
+                if meta.get('source_contract')==CONTRACT:
+                    from index_history_completion_v1 import completion
+                    table,_=updater.load_mirror(symbol,mirror_dir=mirror)
+                    historical,history_days=completion(raw,table.to_pylist() if table is not None else [],day,updater.grid)
+                    rows=historical+rows
                 updater.merge_and_write(symbol,rows,[source],{},mirror_dir=mirror,as_of=as_of,current_day=day,
                     day_release=check['fully_closed'],last_complete_ts=rows[-1]['ts'],
-                    pending_tail_end=min(check['in_progress'],default=None),time_semantics=TIME)
+                    pending_tail_end=min(check['in_progress'],default=None),time_semantics=TIME,
+                    public_revision=dict(day=day,archive_dir=str(folder),history_days=history_days) if meta.get('source_contract')==CONTRACT else None)
                 meta=read(meta_path);meta.update(source_contract=CONTRACT,historical_sources=prior_sources,
                     activity_policy='PUBLIC_VOLUME_AND_AMOUNT_WITHHELD_NULL',available_at=observed)
+                labels=sorted(int(datetime.strptime(x['day'],'%Y-%m-%d %H:%M:%S').strftime('%Y%m%d%H%M%S'))
+                    for x in json.loads(raw) if x['day'].startswith(str(day)[:4]+'-'+str(day)[4:6]+'-'+str(day)[6:]))
+                confirmed,basis=watermark(labels,as_of)
+                meta.update(last_observed_ts=rows[-1]['ts'],last_complete_ts=confirmed,completion_basis=basis)
                 write(meta_path,meta)
             else:
                 import pyarrow.parquet as pq
@@ -122,7 +141,7 @@ def sync_public(updater,mirror,root,as_of,local):
                     raise ValueError('PUBLIC_INDEX_MIRROR_HASH')
                 rows=pq.read_table(path,columns=['ts','day']).to_pylist()
                 check=updater.validate_prefix(rows,day,cutoff,as_of)
-            complete=check['verdict']=='POSTCLOSE_OK'
+            complete=check['verdict']=='POSTCLOSE_OK' and int(meta.get('last_complete_ts') or 0)>=day*1000000+150000
             rep['symbols'][symbol]=dict(status=check['verdict'],rows=len(expected),source_contract=meta.get('source_contract','TDX'))
             release['symbols'][symbol]=dict(symbol=symbol,verdict=check['verdict'],release=complete,
                 last_complete_ts=meta.get('last_complete_ts'),mirror_path=str(path),mirror_sha=meta['sha256'])

@@ -14,8 +14,18 @@ MIRROR = (Path(paths.APP_DIR).parent / 'stargazer_ml' / 'v5_hybrid' /
 if paths.FROZEN:
     MIRROR = Path(paths.APP_DIR).parents[1] / 'stargazer_ml' / 'v5_hybrid' / 'risk_r0_v1' / 'index_minutes_v1'
 
-TDX_ROOT = Path(os.environ.get('STARGAZER_TDX_ROOT') or
-                 r'D:\chat_attachments\local-user-files\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\vipdoc')
+def _tdx_root_default():
+    """TDX vipdoc 路径兜底：本机私有路径不入库。
+    环境变量 > 本机覆盖文件 data/tdx_root.txt（已 gitignore）> 通用占位符。"""
+    override = Path(paths.data_file('data/tdx_root.txt', seed_from_bundle=False))
+    if override.is_file():
+        text = override.read_text(encoding='utf-8').strip()
+        if text:
+            return text
+    return os.environ.get('STARGAZER_TDX_DEFAULT') or 'D:/tdx/vipdoc'
+
+
+TDX_ROOT = Path(os.environ.get('STARGAZER_TDX_ROOT') or _tdx_root_default())
 SOURCE_FILES = {'000001.SH': TDX_ROOT / 'sh/fzline/sh999999.lc5',
                 '399006.SZ': TDX_ROOT / 'sz/fzline/sz399006.lc5'}
 _sync_lock = threading.Lock()
@@ -67,6 +77,7 @@ def sync_once(as_of=None, *, public=None):
             status['symbols'] = {
                 sym: {'status': (symbols.get(sym, {}) or {}).get('status'),
                       'rows': (symbols.get(sym, {}) or {}).get('rows'),
+                      'reason': (symbols.get(sym, {}) or {}).get('reason'),
                       'release': rel_sym.get(sym, {}).get('release')}
                 for sym in SOURCE_FILES
             }
@@ -105,7 +116,8 @@ def get_index_freshness():
         meta = json.loads((MIRROR / f'{name}_5min.meta.json').read_text(encoding='utf-8'))
         if not (MIRROR / f'{name}_5min.parquet').is_file():
             raise ValueError('INDEX_MIRROR_MISSING')
-        symbols[name] = {'last_date': meta.get('last_date'), 'rows': meta.get('rows')}
+        symbols[name] = {'last_date': meta.get('last_date'), 'rows': meta.get('rows'),
+            'last_complete_ts':meta.get('last_complete_ts'), 'last_observed_ts':meta.get('last_observed_ts')}
     dates = [item['last_date'] for item in symbols.values()]
     last_date = min(dates) if all(dates) else None
     checked = str(report.get('checked_at') or report.get('updated_at', ''))[:10]
@@ -117,9 +129,12 @@ def get_index_freshness():
     now = datetime.now()
     behind_close = (now.weekday() < 5 and now.hour >= 15 and
                     (last_date is None or int(last_date) < int(now.strftime('%Y%m%d'))))
+    grid=[m for m in [*range(575,691,5),*range(785,901,5)] if m<=now.hour*60+now.minute]
+    latest=max(grid,default=0)
+    required=int(now.strftime('%Y%m%d'))*1000000+latest//60*10000+latest%60*100
     return {**report, 'last_date': last_date, 'symbols': symbols,
             'stale': bool(report.get('stale', True)) or not status_current or last_date is None or sync_failed or behind_close,
             'status_current': status_current,
             'reason': '' if status_current else 'FRESHNESS_CHECK_OUTDATED',
             'source_sync': sync_status,
-            'intraday_cutoff_verified': False}
+            'intraday_cutoff_verified': bool(grid) and all(int(r.get('last_complete_ts') or 0)>=required for r in symbols.values())}

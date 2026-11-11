@@ -1,7 +1,8 @@
-"""Bounded API input; original history remains in the local business archive."""
+"""Compact API history; user conditions remain verbatim without a local size gate."""
 import json
+import hashlib
 
-MAX_CHARS = 58000
+MAX_CHARS = 58000  # Soft history-compaction target; never reject user conditions.
 
 
 def serialized(value):
@@ -19,6 +20,22 @@ def candidate_table(snapshot):
         for values, row in zip(rows, snapshot['rows']):
             values += [row.get('rank'), row.get('selection_score')]
     return {'columns': columns, 'rows': rows}
+
+
+def plan_entry_rule(rule):
+    """Send every execution band, while keeping historical source detail local."""
+    result = {k: v for k, v in rule.items() if k != 'observation_map'}
+    if rule.get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
+        from plan_rule_profiles import policy, describe
+        result.update(combination_policy=policy(rule.get('execution_profile')),
+                      condition=describe(rule.get('execution_profile')))
+    if 'observation_map' in rule:
+        source = rule['observation_map']
+        result['observation_map_reference'] = {
+            'sha256': hashlib.sha256(serialized(source).encode('utf-8')).hexdigest(),
+            'band_count': len(source.get('bands', [])),
+            'detail': '完整历史地图与波段来源保存在本地选股详情。quote_observation_bands只用于分组触价提醒，含弱来源；observation_bands才是原买入规则的位置范围，不将观察到价当买入。'}
+    return result
 
 
 def bounded_messages(prefix, history):
@@ -56,6 +73,4 @@ def bounded_messages(prefix, history):
             'archived_user_conditions_verbatim': constraints,
             'history_notice': '较早助手/工具输出已归档未载入；用户原条件保留，不自动改写。'})}]
         result = prefix + note + [m for g in recent for m in g]
-    if len(serialized(result)) > MAX_CHARS:
-        raise ValueError('本次事实与用户条件超出单次输入预算；原记录保留，请拆分问题或开新会话（不是API额度不足）')
     return result

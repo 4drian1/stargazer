@@ -14,9 +14,11 @@ tavily:
   api_key: ''
 push:
   enabled: true
-  provider: serverchan
+  provider: dingtalk  # serverchan | pushplus | dingtalk
   serverchan_sendkey: ''
   pushplus_token: ''
+  dingtalk_webhook: ''  # 钉钉群机器人 webhook（安全设置选加签）
+  dingtalk_secret: ''   # 加签 secret，SEC 开头；留空则不签名
   interval_minutes: 30
   close_time: '15:05'
   dedup_hours: 4
@@ -26,6 +28,12 @@ push:
   stop_watch: true
   auction_check: true
   auction_time: '09:26'
+  # 每日塔罗+星象（工作日 time 推送一次；use_llm=false 用本地事实核，不调用付费模型）
+  daily_tarot:
+    enabled: true
+    time: '09:00'
+    use_llm: true
+    persona: klein
 model:
   enabled: true
   # 以下三个路径为"本机开发缺省"，随机器不同必须改：监控机填自己的解释器与脚本绝对路径

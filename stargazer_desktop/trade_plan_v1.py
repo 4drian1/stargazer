@@ -43,7 +43,10 @@ def validate_plan(plan: dict) -> list[str]:
         if not _D8.match(str(plan.get(k, ''))):
             errs.append(f'{k.upper()}_INVALID')
     stocks = plan.get('stocks')
-    if not isinstance(stocks, list) or not stocks:
+    board_only = (plan.get('mode') == 'BOARD_ONLY_OBSERVATION' and isinstance(plan.get('boards'),list)
+                  and bool(plan['boards']) and all(isinstance(b,dict) and isinstance(b.get('name'),str)
+                  and b['name'].strip() for b in plan['boards']))
+    if not isinstance(stocks, list) or (not stocks and not board_only):
         errs.append('STOCKS_REQUIRED')
         stocks = []
     seen = set()
@@ -101,6 +104,8 @@ def save_plan(plan: dict, path: Path | None = None) -> Path:
         raise ValueError('|'.join(errs[:8]))
     file = path or TRADE_PLAN_FILE
     file.parent.mkdir(parents=True, exist_ok=True)
+    from persistent_records_v1 import is_record, reserve_space
+    if is_record(file):reserve_space(file,len(json.dumps(plan,ensure_ascii=False).encode('utf8'))*2)
     tmp = file.with_suffix('.tmp')
     tmp.write_text(json.dumps(plan, ensure_ascii=False), encoding='utf-8')
     os.replace(tmp, file)

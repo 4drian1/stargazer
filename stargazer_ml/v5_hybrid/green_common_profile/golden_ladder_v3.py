@@ -136,6 +136,19 @@ def completed_bars(rows,code,day,cutoff):
         return [],[],[],'INVALID_MINUTE_PRICE'
     current=[];history=[];history_closes=[]
     for date,group in f.groupby(f.date//1000000):
+        native=group.get('source_frequency_minutes')
+        if native is not None and native.eq(5).any():
+            if not native.eq(5).all():return [],[],[],'MIXED_SOURCE_FREQUENCY'
+            clocks=group.date.astype('int64')%1000000
+            expected=list(STOPS) if date!=day else [t for t in STOPS if date*1000000+t<=cutoff]
+            if clocks.tolist()!=expected:return [],[],[],'NATIVE_5M_DAY_INCOMPLETE'
+            for r in group.to_dict('records'):
+                b=dict(t=int(r['date'])%1000000,day=int(date),open=float(r['open']),
+                       high=float(r['high']),low=float(r['low']),close=float(r['close']),
+                       volume=float(r['volume']) if pd.notna(r.get('volume')) else None)
+                history_closes.append(b['close'])
+                (current if date==day else history).append(b)
+            continue
         lookup={int(r['date'])%1000000:r for r in group.to_dict('records')}
         allowed={93000,130000}
         for stop in STOPS:

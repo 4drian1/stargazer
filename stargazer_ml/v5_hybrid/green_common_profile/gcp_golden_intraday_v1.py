@@ -17,6 +17,7 @@ sys.path.insert(0, str(HERE.parent/'risk_r0_v1'))
 sys.path.insert(0, str(HERE.parents[2]/'stargazer_desktop'))
 import joint_shadow_compute_v2 as compute
 from golden_rules import VERSION, digest
+from public_stock_minutes_v1 import current_minutes, CONTRACT as MINUTE_SOURCE_CONTRACT
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -152,15 +153,12 @@ def run(body):
     root = Path(body['runtime'])
     root.mkdir(parents=True, exist_ok=True)
     # The launcher uses the existing 1GiB runtime, not a new unbounded directory.
-    def budget(size):
-        used = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
-        from live_postclose_source_v1 import disk_limit
-        if used+size+65536 > disk_limit(root):
-            raise ValueError('RUNTIME_DISK_BUDGET_STOP')
+    from minute_history_v1 import DiskBudget,load_days
+    budget=DiskBudget()
     folder = root/'golden_intraday'/str(day)
     folder.mkdir(parents=True, exist_ok=True)
     key = digest(plan)
-    target = folder/f'{key}_{cutoff}.json'
+    target = folder/f'{key}_{cutoff}_{MINUTE_SOURCE_CONTRACT}.json'
     if target.exists():
         return json.loads(target.read_bytes())
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
@@ -199,29 +197,26 @@ def run(body):
     for row in plan['rows']:
         code = row['code']
         try:
-            if failed:
-                raise ValueError('PREVIOUS_FETCH_FAILED_NO_EXPANSION')
+
             if rule_policy:=row['entry_rule'].get('policy'):
                 if rule_policy!='GOLDEN_RESONANCE_CROSSDAY_V4':
                     raise ValueError('RULE_POLICY_RECONFIRM_REQUIRED')
-            previous = [v for k,v in fetch('分钟k',code,str(plan['data_date'])+'*',True)]
+            days=row['entry_rule'].get('history_days') or [int(plan['data_date'])]
+            if (not 1<=len(days)<=4 or days!=sorted(set(days)) or days[-1]!=int(plan['data_date'])):
+                raise ValueError('HISTORY_DAY_CONTRACT_INVALID')
+            history,refs=load_days(code,days,budget)
+            receipts.extend(refs)
+            previous = [v for v in history if int(v['date'])//1000000==int(plan['data_date'])]
             previous = sorted((v for v in previous if int(v['date'])//1000000==int(plan['data_date'])),key=lambda v:int(v['date']))
             if not previous or any(str(v.get('code')).zfill(6)!=code for v in previous):
                 raise ValueError('PREVIOUS_DAY_RAW_MINUTES_MISSING')
             if int(previous[-1]['date'])%1000000 < 145900:
                 raise ValueError('PREVIOUS_DAY_FINAL_CLOSE_MISSING')
             minute = [v for k,v in fetch('分钟k',code,str(day)+'*')]
+            minute,minute_source=current_minutes(folder,code,int(plan['data_date']),cutoff,
+                float(previous[-1]['close']),minute,budget,receipts)
             if rule_policy=='GOLDEN_RESONANCE_CROSSDAY_V4':
-                history,refs=bound_history(root,plan['data_date'],code)
-                receipts.extend(refs)
-                days=row['entry_rule'].get('history_days') or [int(plan['data_date'])]
-                if (not 1<=len(days)<=4 or days!=sorted(set(days)) or days[-1]!=int(plan['data_date'])):
-                    raise ValueError('HISTORY_DAY_CONTRACT_INVALID')
-                history=[v for v in history if int(v['date'])//1000000 in days]
-                for seed_day in days:
-                    if seed_day==int(plan['data_date']):continue
-                    existing=[v for v in history if int(v['date'])//1000000==seed_day]
-                    if not existing:history.extend(v for k,v in fetch('分钟k',code,str(seed_day)+'*',True) if int(v['date'])//1000000==seed_day)
+
                 unique={}
                 for item in history+previous+minute:
                     stamp=int(item['date'])
@@ -231,15 +226,16 @@ def run(body):
                         raise ValueError('HISTORY_OVERLAP_CONFLICT')
                     unique[stamp]=item
                 minute=[unique[k] for k in sorted(unique)]
-            adjustments = fetch('复权',code,'*')
-            if not adjustments:
-                raise ValueError('CORPORATE_ACTION_SOURCE_EMPTY_UNVERIFIED')
+            from tdx_corporate_events_v1 import checked_events
+            adjustments,action_receipt=checked_events(code,day,int(plan['data_date']),root)
+            receipts.append(action_receipt)
             rows[code] = prefix_result(row,day,cutoff,minute,float(previous[-1]['close']),adjustments)
+            rows[code]['minute_source']=minute_source
         except Exception as exc:
             rows[code] = dict(status='DATA_INSUFFICIENT', reason=str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
-            failed = True
+            # A single unavailable stock must not suppress other stocks.
         rows[code]['rule_hash'] = digest(row['entry_rule'])
-    result = dict(rule_version=plan['rule_version'], plan_hash=key, cutoff=cutoff, rows=rows, raw_evidence=receipts)
+    result = dict(rule_version=plan['rule_version'], plan_hash=key, cutoff=cutoff, minute_source_contract=MINUTE_SOURCE_CONTRACT, rows=rows, raw_evidence=receipts)
     raw = json.dumps(result,ensure_ascii=False,allow_nan=False).encode()
     budget(len(raw))
     with target.open('xb') as stream:

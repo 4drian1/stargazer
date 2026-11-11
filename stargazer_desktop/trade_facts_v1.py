@@ -2,7 +2,7 @@
 import math
 import re
 
-CONTRACT = 'CODE_FACT_REFERENCES_V4_CROSSDAY_TRIAL'
+CONTRACT = 'CODE_FACT_REFERENCES_V5_TWO_OF_THREE_O20_CROSS1'
 
 
 def fact_table(cutoff,risk,signal=None,selection=None):
@@ -16,6 +16,26 @@ def fact_table(cutoff,risk,signal=None,selection=None):
         else:add(key,f'{label}：未知',status='UNKNOWN')
     number('stock.price',context.get('stock_close'),'当前个股价')
     number('stock.volume_ratio',context.get('stock_volume_ratio'),'个股量比（原风险上下文口径，独立于指数量能）')
+    # 闭环3：成交量、同刻量比与成交额是三种不同口径，分别展示；缺证据就明确未知，
+    # 绝不把成交额解释成成交量，也不据成交额认定放量缩量。
+    amount=context.get('stock_amount_yi')
+    if isinstance(amount,(int,float)) and math.isfinite(amount):
+        amount_asof=context.get('stock_amount_asof')
+        add('stock.amount',f'个股累计成交额 {amount:.2f} 亿元'
+            +(f'（报价时间 {amount_asof}）' if amount_asof else '（报价时间未提供）')
+            +'；成交额快照口径，不是成交量，也不据此认定放量缩量',amount)
+    else:
+        add('stock.amount','个股累计成交额：未知（本次巡检无同截止成交额证据）；不能以成交额代替成交量或推断放量缩量',status='UNKNOWN')
+    volume=context.get('stock_volume')
+    if isinstance(volume,(int,float)) and math.isfinite(volume):
+        number('stock.volume',volume,'个股累计成交量（原口径，独立于成交额与量比）')
+    else:
+        add('stock.volume','个股成交量：未知（本次巡检无同截止成交量证据）；与成交额、量比分开，未核实不冒充可用',status='UNKNOWN')
+    same_time=context.get('stock_same_time_ratio')
+    if isinstance(same_time,(int,float)) and math.isfinite(same_time):
+        number('stock.same_time_ratio',same_time,'同刻量比（与历史同刻累计对比；独立于量比与成交额）')
+    else:
+        add('stock.same_time_ratio','同刻量比：未知（本次巡检无同刻历史基线证据）；未核实保持未知',status='UNKNOWN')
     for key in ['amp_232','amp_266']:
         number('risk.'+key,context.get(key),key+'未来120交易分钟不利下探幅度预测（非概率、非确定损失）',True)
     number('risk.reference_price',context.get('amp_reference_price',context.get('stock_close')),'Pyxis幅度预测参考价（按其原截止，不能换用新现价）')
@@ -52,6 +72,28 @@ def fact_table(cutoff,risk,signal=None,selection=None):
             evidence_time=fifteen['evidence_time'])
         add(f'index.{name}.repair',evidence['summary'])
         add(f'index.{name}.volume','指数成交量口径未核销；缩量与强弱修复资格未知',status='UNKNOWN')
+        comparison = evidence.get('divergence') or {}
+        if comparison.get('asof') == cutoff:
+            descriptions = []
+            for period in ('5', '15'):
+                item = (comparison.get('periods') or {}).get(period) or {}
+                known = item.get('status') == 'KNOWN'
+                labels = []
+                for field, label in (('rsi_divergence', 'RSI'), ('dif_divergence', 'DIF')):
+                    result = item.get(field) if known else None
+                    result = result if type(result) is bool else None
+                    text = (('待核验（原因：'+str(item.get('reason') or '同截止完整K线证据未齐，不借昨日结果')+'）')
+                            if result is None else ('有' if result else '未见'))
+                    add(f'index.{name}.divergence.{period}.{field}',
+                        f'{name}{period}分钟跨日低点{label}底背离：{text}',
+                        result, 'KNOWN' if result is not None else 'UNKNOWN',
+                        evidence_time=item.get('evidence_time'), comparison=item)
+                    labels.append(label + text)
+                descriptions.append(period + '分钟' + '/'.join(labels))
+            add(f'index.{name}.divergence_summary', '；'.join(descriptions),
+                '；'.join(descriptions),
+                'KNOWN' if any((comparison.get('periods') or {}).get(p, {}).get('status') == 'KNOWN'
+                               for p in ('5', '15')) else 'UNKNOWN')
         bands=evidence.get('resonance_bands') or []
         price=evidence.get('last_close')
         nearest=sorted(bands,key=lambda b:abs(b['node']-price))[:6] if isinstance(price,(int,float)) else []
@@ -62,6 +104,27 @@ def fact_table(cutoff,risk,signal=None,selection=None):
         if trial.get('asof')==cutoff and trial.get('status')=='EXPERIMENTAL_MODEL_OUTPUT':
             for field in ['raw_state','protected_state']:
                 add(f'trial.{name}.{field}',f'{name}试运行39维模型{field}：{trial[field]}；量能假设未核销，原验收失败，仅供综合参考',trial[field],status='TRIAL')
+    if (signal or {}).get('provisional'):
+        add('signal.provisional','实时试算、未收盘；不是收盘确认，后续数值可变',True)
+        for period,pair in ((signal.get('comparisons') or {}).get('periods') or {}).items():
+            for side in ('previous','current'):
+                value=pair.get(side)
+                if value:
+                    for key in ('price','rsi6','rsi15','dif','dea'):
+                        number(f'stock.{period}.{side}.{key}',value.get(key),f'{period}分钟{side}低点根{key}（当前根可未收盘）')
+        for name,quote in (context.get('live_index_quotes') or {}).items():
+            if quote.get('status')=='KNOWN':
+                facts[name]=dict(quote,asof=cutoff)
+        for name,evidence in (context.get('live_market_preview') or {}).items():
+            if evidence.get('status')!='OBSERVED_PRICE_PREVIEW':
+                add('live.index.'+name,'指数实时分钟指标待核验',status='UNKNOWN');continue
+            for period in ('five','fifteen'):
+                for key in ('rsi6','rsi15'):
+                    number(f'live.index.{name}.{period}.{key}',evidence[period].get(key),f'{name} {period} {key}实时试算（未收盘）')
+            add('live.index.'+name+'.completed','指数真正完整五分钟截止：'+str(evidence['complete_watermark']),evidence['complete_watermark'])
+            add('live.index.'+name+'.levels','前收盘冻结黄金档位与两根完整收盘事实：'+str(evidence['levels']),evidence['levels'])
+        for board in (context.get('live_sector_observations') or {}).get('boards',[]):
+            add('live.pool.'+board['name'],'强势观察池内情况（不代表全板块）：'+str(board),board)
     add('corvus.unknown','信息层未知，不等于没有利空',status='UNKNOWN')
     add('risk.partial','风险上下文按已披露来源覆盖计算；缺失不补造',status='UNKNOWN')
     add('risk.qualification','幅度预测值可用；不是保证的最大损失，也不代表研究修复状态已验收',status='UNKNOWN')
@@ -71,6 +134,14 @@ def fact_table(cutoff,risk,signal=None,selection=None):
     for key,value in (context.get('market_repair_research') or {}).items():
         add('research.'+key,str(value),status='RESEARCH')
     if signal:
+        combination=signal.get('combination') or {}
+        if signal.get('combination_policy')=='POSITION_TWO_OF_THREE_O20_CROSS1_V1' or str(signal.get('combination_policy','')).startswith('PLAN_CUSTOM_V1:'):
+            add('signal.combination','位置到达为必要条件；本计划三项中至少'+str(combination.get('required'))+'项成立即通过；当前通过项数：'+str(combination.get('count')),
+                signal.get('status')=='RULE_TRIGGERED')
+            for name,label in [('repair','位置修复'),('momentum','动能（跨日底背离＋'+str(combination.get('momentum_crosses_required'))+'次上穿＋当前RSI6高于RSI15）'),('oversold','当日曾RSI6低于固定昨日低点RSI6的'+str(combination.get('oversold_ratio',.2)*100)+'%')]:
+                value=combination.get('votes',{}).get(name)
+                add('signal.vote.'+name,label+'：'+('已满足' if value is True else '未满足' if value is False else '未知'),value,
+                    'UNKNOWN' if value is None else 'KNOWN')
         if signal.get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
             band=signal.get('band') or {};div=signal.get('divergence') or {}
             number('signal.band_lower',band.get('lower'),'本次原始共振带下沿')
@@ -95,18 +166,26 @@ def fact_table(cutoff,risk,signal=None,selection=None):
         if len(bars)==3 and all(b.get('volume') is not None for b in bars):
             add('signal.volume',f"下探根成交量{bars[0]['volume']:.0f}，随后两根均量{(bars[1]['volume']+bars[2]['volume'])/2:.0f}；仅描述量收敛，不推断资金流")
         rsi=signal.get('rsi') or {}
-        number('rsi.fast',rsi.get('rsi6'),'个股5分钟RSI6')
-        number('rsi.slow',rsi.get('rsi15'),'个股5分钟RSI15')
+        # 闭环3：RSI6/RSI15 展示必须带截止时间；无截止就明确"截止未提供"，不冒充当刻值。
+        rsi_asof=rsi.get('asof') or signal.get('asof') or signal.get('trigger_time')
+        rsi_suffix=('（截至 '+str(rsi_asof)+'）' if rsi_asof else '（截止未提供）')
+        number('rsi.fast',rsi.get('rsi6'),'个股5分钟RSI6'+rsi_suffix)
+        number('rsi.slow',rsi.get('rsi15'),'个股5分钟RSI15'+rsi_suffix)
         add('rsi.crosses','本次前缀已确认上穿时刻：'+str(rsi.get('cross_up_times',[])))
-        add('rsi.relation','当前RSI6高于RSI15：'+str(rsi.get('above'))+'；不等同底背离',rsi.get('above'),
+        add('rsi.relation','当前RSI6高于RSI15：'+str(rsi.get('above'))+'；不等同底背离'+rsi_suffix,rsi.get('above'),
             'KNOWN' if rsi.get('above') is not None else 'UNKNOWN')
         divergence=signal.get('divergence')
-        add('signal.divergence','既定口径底背离：'+('未知' if divergence is None else str(bool(divergence))),
+        if isinstance(divergence,dict) and 'confirmed' in divergence:divergence=divergence['confirmed']
+        add('signal.divergence','既定口径底背离：'+(
+            '未知（原因：'+str(signal.get('divergence_reason') or '同截止背离核验证据未齐')+'）' if divergence is None else str(bool(divergence))),
             None if divergence is None else bool(divergence),'UNKNOWN' if divergence is None else 'KNOWN')
     risk_time=risk.get('asof_ts',cutoff)
     for key,fact in facts.items():
-        if key.startswith(('risk.amp','risk.reference_price','market.','board_states.','leader_states.','stock.price','stock.volume_ratio')):
+        if key.startswith(('risk.amp','risk.reference_price','market.','board_states.','leader_states.',
+                           'stock.price','stock.volume_ratio','stock.amount','stock.volume','stock.same_time_ratio')):
             observed=context.get('stock_price_asof',risk_time) if key=='stock.price' else risk_time
+            if key.startswith(('risk.amp','risk.reference_price')):observed=context.get('amp_reference_asof') or risk_time
+            elif key in (context.get('live_index_quotes') or {}):observed=context['live_index_quotes'][key]['evidence_time']
             fact['evidence_time']=observed
             if str(observed)!=str(cutoff):fact['text']=f'证据截止{observed}（非当前新推理）：'+fact['text']
     return facts
@@ -125,9 +204,15 @@ PROMPT=('你是Stargazer综合判断层。只依据computed_facts选择同截止
     '指数RSI高不等于个股追高；量能未核销不称缩量/放量确认，不把价格修复称为已确认强修复。'
     'TRIAL是用户授权试运行的模型意见，可以有限引用支持或反对，也可因未验收保留于unknown_ids；必须与KNOWN事实分开，不可称已验收事实或覆盖已知风险。'
     '只有指数量能未核销，不可把KNOWN的个股量比也说成未核销。rationale仅解释权衡，具体事实与未知由引用渲染，勿扩大未知范围。'
+    'signal.combination在场时，本计划技术门已经由代码核验；所需票数按该事实明示的required，不得暗改次数、比例或强制第三项。'
+    '可因大盘、板块、领涨或预测下探风险建议DEFER，但应分别说明实际风险；不把第三票、量能核销或无利空证明追加为必须条件。'
+    'decision不得写ENTRY或HOLDING，这只是场景类型；三票分别引用signal.vote，不能将同一组合ID放进多个数组。'
     '收回路径的曾跌破、逐档失守记录本身不是新的否决门；不得把同一收回事实又作反对。'
     '个股量比低于一不自动作利空：缩量止跌与拉升缺量须按阶段区分，不额外要求放量反转阳线。'
     '已由代码确认的STOP_ABOVE不要再强加RECLAIM或底背离；高档未收回可以讨论，不改变既定规则。'
+    'info.*是Corvus公告信息证据（I33重要性仅排序、不删除、不等于涨跌预测）：KNOWN的info事实（观察日前已披露且D2分析完成）可作支持或反对；'
+    'UNKNOWN的info事实（D2等待、披露晚于观察日、权威日期未匹配、旧版已更正、该股暂无导入公告）只能入unknown_ids，'
+    '不得把信息缺失说成无利空，也不得把待证公告当已知事实引用。'
     '信息未知不等于无利空，原始缺失保留。BUY仅供人工考虑，无自动交易。')
 
 

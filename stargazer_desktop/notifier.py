@@ -3,9 +3,18 @@
 - 交易时段每5分钟止损盯梢：持仓盘中触及止损线/观察名单单日-5% 立即推；
 - 每个交易日 morning_time（默认09:05）自动发晨报（隔夜美股+昨日情绪+持仓风控，规则化免LLM）；
 有信号 → 微信推送 + 窗口内提醒（SSE广播）。
-同一股票同一动作 dedup_hours 小时内不重复推；止损盯梢按 (code,方向) 每日去重。"""
+同一股票同一动作 dedup_hours 小时内不重复推；止损盯梢按 (code,方向) 每日去重。
+
+Step2 稳定性修复：
+- 去重键一律是可序列化稳定字符串（SHA-256 十六进制），不再使用 Python hash()；
+- 去重/回执状态持久化到磁盘（重启去重）；状态损坏按损坏处理（隔离留证 + 明确风险），
+  绝不当空状态盲目重推；
+- 去重预约写盘失败 → 不得继续发送（fail-closed）；
+- 推送回执（成功/失败）逐条落盘，失败明确记风险，不静默当成功。"""
 import datetime as dt
+import hashlib
 import json
+import os
 import queue
 import threading
 import time
@@ -30,6 +39,98 @@ def log(msg):
                     f.write(line + "\n")
             except OSError:
                 pass
+
+
+# ---------- 推送去重/回执持久化（Step2） ----------
+PUSH_STATE_FILENAME = "push_state_v1.json"
+PUSH_RECEIPT_FILENAME = "push_receipts_v1.jsonl"
+PUSHED_MAX_AGE_DAYS = 7  # 去重时间戳保留窗口（dedup_hours 远小于此）
+
+
+def push_state_path():
+    """去重/回执状态文件路径。延迟导入 paths，避免拖慢启动。"""
+    try:
+        import paths
+        return paths.data_file(PUSH_STATE_FILENAME)
+    except Exception:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), PUSH_STATE_FILENAME)
+
+
+def stable_digest_key(text):
+    """可序列化稳定去重键：SHA-256 十六进制。
+
+    绝不使用 Python hash()——它按进程加盐，跨进程/重启都不稳定，无法做去重键。
+    """
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+
+
+def load_dedup_state(path):
+    """加载去重状态；损坏时隔离留证并按'未知'处理，绝不当空状态盲目重推。
+
+    返回 dict(pushed, stop_fired, fired, corrupt=bool)，并修剪过期项。
+    """
+    state = {"pushed": {}, "stop_fired": [], "fired": [], "corrupt": False}
+    if not path or not os.path.exists(path):
+        return state
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if not isinstance(raw, dict):
+            raise ValueError("not a dict")
+        pushed, stop_fired, fired = raw.get("pushed"), raw.get("stop_fired"), raw.get("fired")
+        if not isinstance(pushed, dict) or not isinstance(stop_fired, list) or not isinstance(fired, list):
+            raise ValueError("bad structure")
+        now = time.time()
+        max_age = PUSHED_MAX_AGE_DAYS * 86400
+        state["pushed"] = {str(k): float(v) for k, v in pushed.items()
+                           if isinstance(v, (int, float)) and (now - float(v)) < max_age}
+        today = dt.datetime.now().strftime("%Y-%m-%d")
+        state["stop_fired"] = [str(x) for x in stop_fired if str(x).startswith(today)]
+        state["fired"] = [str(x) for x in fired if str(x).startswith(today)]
+    except Exception as e:
+        # 损坏：隔离留证，绝不当空状态。调用方据此保守跳过一次推送。
+        state = {"pushed": {}, "stop_fired": [], "fired": [], "corrupt": True}
+        try:
+            quarantined = f"{path}.corrupt-{dt.datetime.now():%Y%m%d_%H%M%S}"
+            os.replace(path, quarantined)
+            log(f"推送去重状态损坏，已隔离留证: {quarantined} ({type(e).__name__}: {e})")
+        except OSError:
+            log(f"推送去重状态损坏且隔离失败: {type(e).__name__}: {e}")
+    return state
+
+
+def save_dedup_state(path, state):
+    """原子保存去重状态；失败时抛出（调用方必须 fail-closed，不得继续发送）。"""
+    payload = {"pushed": state.get("pushed", {}),
+               "stop_fired": state.get("stop_fired", []),
+               "fired": state.get("fired", [])}
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def record_push_receipt(kind, title, ok, msg, wechat_enabled):
+    """逐条推送回执落盘（成功/失败都记录）。写盘失败仅记日志，绝不抛出。"""
+    receipt = {"time": dt.datetime.now().isoformat(timespec="seconds"),
+               "key": str(kind), "title": str(title), "ok": bool(ok),
+               "msg": str(msg), "wechat_enabled": bool(wechat_enabled)}
+    try:
+        directory = os.path.dirname(push_state_path())
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        rp = os.path.join(directory, PUSH_RECEIPT_FILENAME)
+        with open(rp, "a", encoding="utf-8") as f:
+            f.write(json.dumps(receipt, ensure_ascii=False) + "\n")
+        return True
+    except Exception as e:
+        log(f"推送回执写盘失败（风险留痕）: {type(e).__name__}: {e}")
+        return False
 
 
 # ---------- SSE 订阅（窗口内提醒） ----------
@@ -72,6 +173,34 @@ def send_wechat(cfg, title, desp):
                                          headers={"Content-Type": "application/json"})
             r = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
             return (r.get("code") == 200), r.get("msg", str(r.get("code")))
+        if provider == "dingtalk":
+            webhook = p.get("dingtalk_webhook", "").strip()
+            if not webhook:
+                return False, "未配置 dingtalk_webhook"
+            secret = p.get("dingtalk_secret", "").strip()
+            url = webhook
+            if secret:
+                # 加签：timestamp + "\n" + secret 做 HMAC-SHA256，base64 后 URL 编码
+                import hmac as _hmac
+                import base64 as _b64
+                import time as _time
+                timestamp = str(round(_time.time() * 1000))
+                sign = urllib.parse.quote_plus(_b64.b64encode(
+                    _hmac.new(secret.encode("utf-8"),
+                              (timestamp + "\n" + secret).encode("utf-8"),
+                              hashlib.sha256).digest()).decode("utf-8"))
+                url += ("&" if "?" in url else "?") + "timestamp=" + timestamp + "&sign=" + sign
+            # 钉钉 markdown 会把单个 \n 折叠：段落升级为空行分隔，保留既有空行不倍增
+            paragraphs = [seg for seg in desp.replace("\r\n", "\n").split("\n")
+                          if seg.strip()]
+            text = "\n\n".join(paragraphs)
+            body = json.dumps({"msgtype": "markdown",
+                               "markdown": {"title": title, "text": text}},
+                              ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(url, data=body,
+                                         headers={"Content-Type": "application/json"})
+            r = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
+            return (r.get("errcode") == 0), str(r.get("errmsg") or r)
         key = p.get("serverchan_sendkey", "").strip()
         if not key:
             return False, "未配置 serverchan_sendkey"
@@ -320,9 +449,13 @@ class Notifier(threading.Thread):
     def __init__(self, get_cfg):
         super().__init__(daemon=True)
         self.get_cfg = get_cfg
-        self._fired = set()      # 已触发的时刻标记 "2026-08-14 10:30"
-        self._pushed = {}        # 去重 {(code, action): 时间戳}
-        self._stop_fired = set()  # 止损盯梢每日去重 {"2026-08-14|600207|stop"}
+        # 重启去重：从磁盘恢复去重/已触发状态；损坏时保守处理（见 load_dedup_state）。
+        persisted = load_dedup_state(push_state_path())
+        self._pushed = persisted["pushed"]
+        self._stop_fired = set(persisted["stop_fired"])   # 止损盯梢每日去重
+        self._fired = set(persisted["fired"])             # 已触发的时刻标记
+        self._dedup_corrupt = bool(persisted.get("corrupt"))
+        self._dedup_error = None
         self.last_report = None  # 最近一次巡检文本（供界面查看）
         self.last_check_at = None
 
@@ -339,11 +472,33 @@ class Notifier(threading.Thread):
         return None
 
     def _dedup_ok(self, key, hours):
+        """去重预约：命中窗口内 → False；否则登记并落盘。
+
+        预约写盘失败 → 回滚登记并返回 False（fail-closed，不得继续发送）。
+        """
+        key = key if isinstance(key, str) else stable_digest_key(repr(key))
         last = self._pushed.get(key)
         if last and (time.time() - last) < hours * 3600:
             return False
+        if self._dedup_corrupt:
+            # 状态曾损坏：内容未知，绝不当空状态盲目重推；保守跳过一次并留痕。
+            self._dedup_corrupt = False
+            self._dedup_error = "DEDUP_STATE_WAS_CORRUPT_SKIPPED_ONCE"
+            log("推送去重状态曾损坏，本次保守跳过推送（风险留痕）")
+            return False
         self._pushed[key] = time.time()
-        return True
+        try:
+            save_dedup_state(push_state_path(),
+                             {"pushed": self._pushed,
+                              "stop_fired": sorted(self._stop_fired),
+                              "fired": sorted(self._fired)})
+            self._dedup_error = None
+            return True
+        except Exception as e:
+            self._pushed.pop(key, None)
+            self._dedup_error = f"DEDUP_SAVE_FAILED:{type(e).__name__}"
+            log(f"推送去重预约写盘失败，跳过本次推送: {e}")
+            return False
 
     def run_once(self, kind="manual"):
         """执行一次巡检；返回 (推送文本 or None, 推送结果说明)。"""
@@ -361,30 +516,40 @@ class Notifier(threading.Thread):
             self.last_report = f"[{now:%H:%M}] 巡检完成，无信号。"
             log("巡检完成，无信号")
             return None, "无信号"
-        # 去重：收盘总结不去重；盘中按 (全文哈希) 简化——同内容 dedup_hours 内不重复
+        self.last_report = text
+        # 展示与发送资格分开：推送关闭时只在窗口展示，不消耗外部去重资格；
+        # 去重只在真实发送前登记（已发送/送达未知仍不盲目重发的规则保留）
         pcfg = cfg.get("push", {})
-        if kind != "close" and not self._dedup_ok(("digest", hash(text)), pcfg.get("dedup_hours", 4)):
+        wechat_enabled = bool(pcfg.get("enabled", True))
+        if wechat_enabled and kind != "close" and \
+                not self._dedup_ok(stable_digest_key(text), pcfg.get("dedup_hours", 4)):
             self.last_report = text
             log("信号与上次相同，去重跳过推送")
             return text, "信号重复，已去重未推送"
-        self.last_report = text
         title = "Stargazer 风控提醒" if kind != "close" else "Stargazer 收盘巡检"
         ok, msg = False, "推送已禁用"
-        if pcfg.get("enabled", True):
+        if wechat_enabled:
             ok, msg = send_wechat(cfg, title, text)
         log(f"巡检有信号，微信推送: {'成功' if ok else '未发'} ({msg})")
+        if wechat_enabled and not ok:
+            log(f"推送回执失败，明确记风险: kind={kind} msg={msg}")
+        record_push_receipt(kind, title, ok, msg, wechat_enabled)
         if pcfg.get("in_app_notify", True):
             broadcast({"type": "push", "kind": kind, "title": title, "body": text,
                        "wechat": ok, "wechat_msg": msg, "time": now.strftime("%H:%M:%S")})
         return text, msg
 
     def _deliver(self, cfg, title, text, kind):
-        """统一出口：微信推送 + 窗口提醒。"""
+        """统一出口：微信推送 + 窗口提醒（回执逐条落盘，失败明确记风险）。"""
         pcfg = cfg.get("push", {})
         ok, msg = False, "推送已禁用"
-        if pcfg.get("enabled", True):
+        wechat_enabled = bool(pcfg.get("enabled", True))
+        if wechat_enabled:
             ok, msg = send_wechat(cfg, title, text)
         log(f"{title}: 微信{'成功' if ok else '未发'} ({msg})")
+        if wechat_enabled and not ok:
+            log(f"推送回执失败，明确记风险: kind={kind} msg={msg}")
+        record_push_receipt(kind, title, ok, msg, wechat_enabled)
         if pcfg.get("in_app_notify", True):
             broadcast({"type": "push", "kind": kind, "title": title, "body": text,
                        "wechat": ok, "wechat_msg": msg,
@@ -450,6 +615,29 @@ class Notifier(threading.Thread):
         if text:
             self._deliver(cfg, f"Stargazer 竞价检查 {now:%m-%d}", text, "auction")
 
+    def _maybe_daily_tarot(self, cfg, now):
+        """每个交易日 daily_tarot.time（默认09:00）推送今日塔罗+星象；周末不发，当日仅一次。
+
+        文案层 daily_tarot_v1：抽牌/星象为确定性事实，LLM 仅润色口吻，失败或校验
+        不通过静默回退事实核；免责页脚由代码追加。不进交易链路。"""
+        tc = (cfg.get("push", {}) or {}).get("daily_tarot", {}) or {}
+        if not tc.get("enabled", True) or now.weekday() >= 5:
+            return
+        at = tc.get("time", "09:00")
+        stamp = now.strftime("%Y-%m-%d ") + at
+        if now.strftime("%H:%M") != at or stamp in self._fired:
+            return
+        self._fired.add(stamp)
+        log("触发今日塔罗")
+        try:
+            import daily_tarot_v1
+            text = daily_tarot_v1.compose_daily_tarot(cfg, now)
+        except Exception as e:
+            log(f"今日塔罗生成失败: {type(e).__name__}: {e}")
+            return
+        self.last_report = text
+        self._deliver(cfg, f"今日塔罗 · {now:%m-%d}", text, "daily_tarot")
+
     def run(self):
         log("定时巡检线程已启动")
         while True:
@@ -467,6 +655,7 @@ class Notifier(threading.Thread):
                         self.run_once(kind)
                     self._maybe_morning(cfg, now)
                     self._maybe_auction(cfg, now)
+                    self._maybe_daily_tarot(cfg, now)
                     self._maybe_stop_watch(cfg, now)
             except Exception as e:
                 log(f"巡检循环异常: {e}")

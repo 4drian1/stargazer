@@ -1,17 +1,27 @@
-"""Cached DeepSeek scenarios and half-hour reports; no orders or plan mutations."""
+"""Cached DeepSeek scenarios and half-hour reports; no orders or plan mutations.
+
+闭环3：AI 预约（AI_ATTEMPT_RESERVED）生命周期——占位带 owner pid 与开始时间，
+只区分"进行中/进程已退出/超时/已记录失败"；占位绝不冒充结果。DeepSeek 失败时
+完整保留本地事实并单独显示分析失败原因。
+"""
 from datetime import datetime
 from copy import deepcopy
 import json
 import math
+import os
 import re
 import threading
+import time
+from subprocess import SubprocessError
 
 import postclose_risk_runtime as runtime
 from golden_rules import digest
 
+AI_ATTEMPT_TTL=900.0
+
 _lock=threading.Lock()
 _threads={}
-CONTRACT='RISK_OUTLOOK_V4_OBSERVATION_CLOCKS'
+CONTRACT='RISK_OUTLOOK_V7_REBOUND_MAP'
 CONDITIONS={
     'TWO_5M_CLOSES_BELOW':'同一黄金带下沿连续两根完整五分钟收盘失守，且未收复，警惕继续下探',
     'RSI_TURNS_DOWN':'五分钟RSI6回到RSI15下方、低点继续下降，警惕修复中断',
@@ -26,6 +36,8 @@ PROMPT=('你是Stargazer风险研判助手。只用computed_facts，沪指为主
     'focus_ids为至多六个黄金档位或共振带事实ID；supporting_ids/opposing_ids各至多十个ID，unknown_ids至多四十个ID，三组互斥；'
     'danger_signals与repair_signals为条件枚举数组，只能使用conditions中的key，各至多三项；'
     'sections不得重写价格、日期、百分比或给出数字，数值与信号由代码渲染，可使用RSI6/RSI15。'
+    'sections为纯文字判读，连计数也不得写入：如"跌超4家"必须写作"跌超阈值的家数"，'
+    '"5只转弱"写作"多只转弱"；一切数量、计数、价位均由代码渲染。'
     'UNKNOWN/RESEARCH仅能归unknown_ids；TRIAL可作有限参考或因未验收归unknown_ids，须明确试运行且量能未核销，不能声称已验收；'
     '不能用昨日或旧截止值冒充当前。KNOWN负涨跌幅不排除当刻修复；未知不等于利空。'
     '黄金带来源数不是独立投票，单档不称三重共振。不能编造持仓、成本、消息或资金流。'
@@ -39,13 +51,31 @@ PROMPT += ('严格遵守reference_policy中的引用资格：unknown_only_ids中
 PROMPT += ('QUOTE_SNAPSHOT是独立实时报价，按其evidence_time及observed_at描述当前涨跌，'
            '不是bar_cutoff时的完整K线，不能证明RSI、两根收回、板块联动或Pyxis已就绪。'
            'asof由请求绑定；已有asof必须与请求一致，不输出type=json_object来代替asof。')
+PROMPT += ('supporting_ids/opposing_ids/unknown_ids合计必须至少引用一个输入事实ID，不得全部为空。'
+           '仅有指数报价也须引用market.sse或market.cyb等实际使用的ID；没有计划或持仓不免除大盘分析的依据引用。'
+           'plan_status=NO_CURRENT_PLAN时只讨论大盘与真实登记持仓，不沿用旧候选、不建议给不存在的持仓加仓。')
+PROMPT += ('focus_ids只能从reference_policy.focus_allowed_ids选；清单为空必须输出[]。'
+           'market.sse/market.cyb实时报价不是黄金位，不能放focus_ids；应按事实放依据引用数组。')
+PROMPT += ('rebound_map是独立的下跌高点到其后低点反弹地图，不是原执行地图，也不是Pyxis预测。'
+           '结合锚点、反弹所处档位解释下一观察条件、守低失败条件和指数间是否同步；价位由代码渲染，sections仍不写数字。'
+           '低点之后经过若干交易日不等于已确认双底；下影不证明承接资金流入。量能未核验时不能声称放量、缩量或量价共振。')
 
 
 def half_hour(cutoff):
     return cutoff%1000000 in (100000,103000,110000,113000,133000,140000,143000,150000)
 
 
+def outlook_input(view):
+    """Do not carry yesterday's plan stocks into a newer market-only discussion."""
+    day=view.get('market_data_date')
+    if day and str(day)!=str(view.get('data_date')):
+        return dict(data_date=day,monitor_date=view.get('market_monitor_date'),items=[],
+                    plan_status='NO_CURRENT_PLAN')
+    return view
+
+
 def view_id(view):
+    view=outlook_input(view)
     return digest(dict(contract=CONTRACT,data_date=view.get('data_date'),monitor_date=view.get('monitor_date'),
         items=[{k:i.get(k) for k in ('code','facts','plan_levels')} for i in view.get('items',[])]))
 
@@ -107,15 +137,24 @@ def live_index_facts(cutoff,now=None):
         key,label=name
         facts['market.'+key]=dict(asof=int(row['time']),evidence_time=int(row['time']),
             observed_at=observed,bar_cutoff=cutoff,evidence_kind='QUOTE_SNAPSHOT',
-            source='TENCENT_PUBLIC_INDEX_QUOTE',status='KNOWN',value=pct/100,
+            source='TENCENT_PUBLIC_INDEX_QUOTE',status='KNOWN',value=pct/100,price=price,
             text=f'{label}实时报价 {price:.4f}，相对昨收 {pct:+.2f}%；报价时间 {row["time"]}；快照不代表完整五分钟确认')
+        amount = row.get('amount_yi')
+        if (type(amount) in (int, float) and math.isfinite(amount) and amount >= 0):
+            facts['market.'+key+'.amount_yi'] = dict(
+                asof=int(row['time']), evidence_time=int(row['time']), observed_at=observed,
+                bar_cutoff=cutoff, evidence_kind='QUOTE_SNAPSHOT',
+                source='TENCENT_PUBLIC_INDEX_QUOTE', status='KNOWN', value=amount, unit='亿元',
+                text=f'{label}截至报价{row["time"]}累计成交额{amount:.1f}亿元；'
+                     '成交额快照，非同截止成交量或历史同刻量比，不据此认定放量缩量')
     return facts
 
 
 def collect(view,cutoff,positions=None,signals=None,overlay=True):
     from trade_facts_v1 import fact_table
     from plan_evidence import archived_price_overlay
-    prices=archived_price_overlay(cutoff) if overlay else {}
+    _overlay_error={}
+    prices=archived_price_overlay(cutoff,_overlay_error) if overlay else {}
     if signals is None and view.get('plan_hash'):
         try:
             observed=json.loads((runtime.directory()/'tarot_events/latest.json').read_bytes())
@@ -123,6 +162,19 @@ def collect(view,cutoff,positions=None,signals=None,overlay=True):
                 signals=observed.get('rows')
         except (OSError,ValueError):pass
     facts={};items=view.get('items') or []
+    if overlay and not prices:
+        facts['index.price_overlay']=dict(asof=cutoff,status='UNKNOWN',value=None,
+            text='指数价格覆盖层不可用：'+(_overlay_error.get('reason') or '未知原因'))
+    if not items and prices:
+        # Market evidence is independent of candidate/holding membership.
+        for key,fact in fact_table(cutoff,dict(context=dict(market_price_evidence=prices))).items():
+            if not key.startswith(('index.','trial.','market.','corvus.')):continue
+            stamp=fact.get('evidence_time')
+            if stamp:
+                age=(datetime.strptime(str(cutoff),'%Y%m%d%H%M%S')-datetime.strptime(str(stamp),'%Y%m%d%H%M%S')).total_seconds()
+                if age<0 or age>900:
+                    fact.update(status='UNKNOWN',historical_value=fact.get('value'),value=None,text='过期或截止不符，仅历史参考：'+fact['text'])
+            facts[key]=fact
     for i,item in enumerate(items):
         code=item['code'];risk=item.get('facts') or {};ctx=dict(risk.get('context') or {})
         if prices:ctx['market_price_evidence']=prices
@@ -164,11 +216,42 @@ def collect(view,cutoff,positions=None,signals=None,overlay=True):
         if isinstance(price,(int,float)) and isinstance(node,(int,float)) and node>0:
             distance=(price-node)/node
             relation=f'现价 {price:.4f}；下一观察档 {node:.4f}；距离 {distance:.2%}，不是触位买入'
-        facts[code+'.progress']=dict(asof=cutoff,status='KNOWN',value=signal.get('status'),text=f'{code}规则进度 {signal.get("status")}；{relation}')
+        progress=signal.get('status')
+        # DATA_INSUFFICIENT 对推理不可用，标 UNKNOWN 让引用资格与模型直觉一致（同 generate 动态证据排除口径）。
+        facts[code+'.progress']=dict(asof=cutoff,
+            status='UNKNOWN' if progress in (None,'DATA_INSUFFICIENT') else 'KNOWN',
+            value=progress,text=f'{code}规则进度 {progress}；{relation}')
     if view.get('plan_hash'):
         for item in items:
             code=item['code']
             facts.setdefault(code+'.progress',dict(asof=cutoff,status='UNKNOWN',value=None,text=code+'同截止分钟进度待证，不能判断是否快到位'))
+    for name,evidence in prices.items():
+        if evidence.get('status')!='PRICE_FACTS_ONLY' or evidence.get('asof')!=cutoff:
+            # 源未更新/缺槽/过期：保留具体原因，不静默丢弃（反例3仍拒读，但说明拒什么）
+            facts['index.'+name+'.price_state']=dict(asof=cutoff,status='UNKNOWN',value=None,
+                text=name+'盘中价格证据未就绪：'+(evidence.get('reason') or '同截止完整五分钟不满足'))
+            continue
+        critical=evidence.get('critical_position') or {}
+        state=critical.get('state','UNKNOWN')
+        facts['index.'+name+'.critical_state']=dict(asof=cutoff,status='KNOWN' if state!='UNKNOWN' else 'UNKNOWN',value=state if state!='UNKNOWN' else None,
+            text=name+'盘前固定关键位置状态：'+state,position=critical)
+        if evidence.get('status')=='PRICE_FACTS_ONLY':
+            # Three-layer map input: raw same-cutoff evidence (levels, node,
+            # session facts, big-picture outlook), consumed by
+            # index_map_layers_v1; never model prose.
+            facts['index.'+name+'.map_input']=dict(asof=cutoff,status='KNOWN',value=evidence)
+        facts['market.'+name+'.price']=dict(asof=cutoff,status='KNOWN',value=evidence['last_close'],text=name+'完整五分钟收盘价 '+str(evidence['last_close']))
+        from index_outlook_v1 import facts_for
+        facts.update(facts_for(name,evidence,cutoff))
+    try:
+        from strong_sector_watch_v1 import root as strong_root
+        packet=json.loads((strong_root()/'summary.json').read_bytes())
+        age=(datetime.strptime(str(cutoff),'%Y%m%d%H%M%S')-datetime.strptime(str(packet['asof']),'%Y%m%d%H%M%S')).total_seconds()
+        if -120<=age<=360:
+            for board in packet.get('boards',[]):
+                facts['sector.watch.'+board['name']]=dict(asof=packet['asof'],observed_at=packet['asof'],bar_cutoff=cutoff,evidence_kind='QUOTE_SNAPSHOT',
+                    status='KNOWN',value=board,text=board['name']+'冻结强势池报价观察：'+json.dumps(board,ensure_ascii=False)+'；并非全板块龙头认定')
+    except (OSError,ValueError,KeyError):pass
     return facts
 
 
@@ -201,6 +284,30 @@ def qualify_references(value,facts):
     return result,notes
 
 
+def focus_allowed_ids(facts):
+    return [k for k,f in facts.items() if f['status']=='KNOWN' and
+        ('.band.' in k or '.plan.' in k or re.fullmatch(r'index\.(sse|cyb)\.(\d+|rebound\.\d+)',k) or
+         (k.endswith('.reclaim') and isinstance(f.get('value'),list) and f['value']))]
+
+
+def qualify_focus(value,facts):
+    """Drop only known quote highlights; never invent a position or alter analysis."""
+    focus=value.get('focus_ids')
+    if (not isinstance(focus,list) or len(focus)>6 or
+            any(not isinstance(k,str) or k not in facts for k in focus) or len(set(focus))!=len(focus)):
+        raise ValueError('OUTLOOK_POSITION_REFERENCE')
+    allowed=set(focus_allowed_ids(facts));removed=[]
+    for k in focus:
+        if k in allowed:continue
+        if (k not in ('market.sse','market.cyb') or facts[k]['status']!='KNOWN' or
+                facts[k].get('evidence_kind')!='QUOTE_SNAPSHOT'):
+            raise ValueError('OUTLOOK_POSITION_REFERENCE')
+        removed.append(dict(fact_id=k,reason='QUOTE_IS_NOT_GOLDEN_POSITION'))
+    result=deepcopy(value)
+    result['focus_ids']=[k for k in focus if k in allowed]
+    return result,removed
+
+
 def validate(value,facts,cutoff):
     if type(value.get('asof')) is not int or value['asof']!=cutoff or value.get('bias') not in ('REPAIR_BIAS','DOWNSIDE_BIAS','MIXED','UNKNOWN'):
         raise ValueError('OUTLOOK_TIME_OR_BIAS')
@@ -220,12 +327,14 @@ def validate(value,facts,cutoff):
             if facts[k]['status']=='KNOWN' and group=='unknown_ids':raise ValueError('OUTLOOK_KNOWN_AS_UNKNOWN')
     if not used:raise ValueError('OUTLOOK_NO_BASIS')
     focus=value.get('focus_ids')
-    if not isinstance(focus,list) or len(focus)>6 or len(set(focus))!=len(focus) or any(k not in facts or facts[k]['status']!='KNOWN' or not ('.band.' in k or '.plan.' in k or re.fullmatch(r'index\.(sse|cyb)\.\d+',k) or (k.endswith('.reclaim') and isinstance(facts[k].get('value'),list) and facts[k]['value'])) for k in focus):
+    if not isinstance(focus,list) or len(focus)>6 or any(not isinstance(k,str) for k in focus) or len(set(focus))!=len(focus) or any(k not in focus_allowed_ids(facts) for k in focus):
         raise ValueError('OUTLOOK_POSITION_REFERENCE')
     for field,allowed in [('danger_signals',set(list(CONDITIONS)[:3])),('repair_signals',set(list(CONDITIONS)[3:]))]:
         values=value.get(field)
         if not isinstance(values,list) or len(values)>3 or len(set(values))!=len(values) or not set(values)<=allowed:raise ValueError('OUTLOOK_CONDITIONS_INVALID')
-    lines=['DeepSeek条件研判（非确定预测）：'+sections['market']]
+    from index_outlook_v1 import render as render_map
+    lines=[render_map(facts)] if render_map(facts) else []
+    lines+=['DeepSeek条件研判（非确定预测）：'+sections['market']]
     lines += [k+'：'+sections[n] for n,k in [('boards','板块'),('leaders','领涨股'),('plan','计划')]]
     lines += ['持仓：'+sections['holdings'] if any(k.endswith('.holding') for k in facts) else '持仓：本包未提供实际持仓，不输出持仓结论。']
     lines += ['关注位置：'+facts[k]['text'] for k in focus]
@@ -241,19 +350,113 @@ def validate(value,facts,cutoff):
     return '\n'.join(lines)
 
 
+def _ai_reservation_reclaimable(stored):
+    """AI_ATTEMPT_RESERVED 占位是否可收回重算（区分进行中/已退出/超时/遗留占位）。"""
+    if not isinstance(stored,dict) or stored.get('status')!='AI_ATTEMPT_RESERVED':
+        return False
+    try:owner=int(stored.get('owner_pid') or 0)
+    except (TypeError,ValueError):owner=0
+    try:started=float(stored.get('started_epoch') or 0.0)
+    except (TypeError,ValueError):started=0.0
+    if not owner or not started:
+        return True  # 遗留占位（旧版本无身份）：无法证明仍在计算 → 收回
+    try:
+        from cross_process_lock_v1 import pid_alive
+        return not pid_alive(owner)  # 进程已退出 → 收回续算
+    except Exception:
+        return False  # 无法确认死亡，保留本地事实，不并发重调。
+
+
+def with_local_failure(result):
+    """Readable code facts on failure or pending AI; never repair or approve the AI opinion.
+
+    闭环3：失败/进行中都完整保留本地事实（含 RSI6/15 及截止、背离、成交额、
+    成交量、同刻量比），并单独显示分析失败原因；绝不把已有指标统一写成待核验。
+    """
+    if result.get('status') not in ('AI_FAILED','AI_ATTEMPT_RESERVED') or result.get('text'):
+        return result
+    facts=result.get('computed_facts') or {};request=result.get('request') or {}
+    if result.get('status')=='AI_ATTEMPT_RESERVED':
+        code='AI_ATTEMPT_RESERVED'
+        reason='AI分析仍在进行（另一实例正在调用），未自动重试；以下为本地事实'
+    else:
+        code=result.get('validation_error') or result.get('reason') or 'AI_UNAVAILABLE'
+        reason='AI回复未填写事实依据引用' if code=='OUTLOOK_NO_BASIS' else 'AI解释暂不可用'
+    lines=[f'依据截止 {result["asof"]}；{reason}（{code}）；未自动重试。',
+           '以下为程序读取的本地事实，不是AI研判或买卖建议：']
+    from index_outlook_v1 import render as render_map
+    if render_map(facts):lines.append(render_map(facts))
+    shown=set()
+    for name,label in [('sse','沪指'),('cyb','创业板')]:
+        quote=facts.get('market.'+name,{})
+        lines.append(quote['text'] if quote.get('status')=='KNOWN' else label+'当前涨跌：未知')
+        shown.add('market.'+name)
+        repair=facts.get('index.'+name+'.repair',{})
+        if repair.get('status')=='KNOWN':
+            lines.append(repair['text']);shown.add('index.'+name+'.repair')
+    known=[f['text'] for k,f in sorted(facts.items())
+           if f.get('status')=='KNOWN' and f.get('text') and k not in shown]
+    if known:
+        lines.append('本地事实（程序逐条读取，非AI研判）：')
+        lines+=['· '+t for t in known]
+    unknown=[f['text'] for k,f in sorted(facts.items())
+             if f.get('status')=='UNKNOWN' and f.get('text') and
+             any(t in k for t in ('rsi','divergence','amount','volume','same_time','progress','price_state','missing'))]
+    if unknown:
+        lines.append('未核实项（保持未知，不冒充成功）：')
+        lines+=['· '+t for t in unknown]
+    if request.get('plan_status')=='NO_CURRENT_PLAN' or request.get('candidate_codes')==[]:
+        lines.append('计划：本次没有当日已确认候选，不沿用旧名单；大盘巡检继续。')
+    holdings=request.get('holding_codes')
+    lines.append('持仓：当前登记为空。' if holdings==[] else
+                 '持仓：未提供实际持仓，不输出持仓结论。' if holdings is None else
+                 '持仓：实际登记'+ '、'.join(holdings)+'；AI持仓评估未完成，请核对本地风控。')
+    lines.append('完整五分钟修复、板块龙头与Pyxis幅度须有同截止证据；缺失保持未知，报价不替代K线确认；成交额不解释为成交量或放量。')
+    return dict(result,text='\n'.join(lines),fallback_kind='CODE_FACTS_ONLY')
+
+
+def _cached_result(path):
+    """Read a cached result; an AI reservation placeholder is never a result.
+
+    占位区分：另一存活实例在算（且未超时）→ 返回带本地事实的进行中结果；
+    进程已退出 / 超时 / 遗留占位 → 视为缓存未命中（None，由调用方收回重算）。
+    """
+    try:cached=json.loads(path.read_bytes())
+    except (OSError,ValueError):return None
+    if isinstance(cached,dict) and cached.get('status')=='AI_ATTEMPT_RESERVED':
+        if _ai_reservation_reclaimable(cached):
+            return None  # 收回：重算（新占位将携带 reclaimed_from 证据）
+        return with_local_failure(cached)
+    return cached
+
+
 def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overlay=True,plan_id=None):
     from tarot_monitor_v2 import save,fresh
     import deepseek_api
     slot_key=digest(dict(mode=mode,cutoff=cutoff,plan_id=plan_id,plan_hash=view.get('plan_hash')))
     if mode=='INTRADAY':
         prior=runtime.directory()/'risk_outlook'/f'{slot_key}.json'
-        if prior.exists():return json.loads(prior.read_bytes())
+        if prior.exists():
+            cached=_cached_result(prior)
+            if cached is not None:return cached
     facts=collect(view,cutoff,positions,signals,overlay)
     if mode=='INTRADAY' and view.get('observe_live'):
         try:
             for key,fact in live_index_facts(cutoff).items():
                 if facts.get(key,{}).get('status')!='KNOWN':facts[key]=fact
         except (OSError,ValueError):pass  # Failed quotes remain unknown; no retry.
+        quote=facts.get('market.sse') or {}
+        if quote.get('status')=='KNOWN' and quote.get('evidence_kind')=='QUOTE_SNAPSHOT':
+            from strong_sector_watch_v1 import invoke
+            try:
+                price=quote['price']
+                market=invoke(dict(mode='RULE_CONTEXT',as_of=datetime.now().isoformat(),
+                    quote=dict(price=price,time=quote['evidence_time'])))
+                facts['market.sse.pullback_environment']=dict(status='KNOWN' if market['state']!='UNKNOWN' else 'UNKNOWN',
+                    asof=quote['evidence_time'],observed_at=quote['observed_at'],evidence_kind='QUOTE_SNAPSHOT',
+                    bar_cutoff=cutoff,value=market,text='强势回调规则环境；不替代Pyxis风险幅度或计划票三选二')
+            except (OSError,ValueError,KeyError,SubprocessError) as exc:
+                facts['market.sse.pullback_environment']=dict(status='UNKNOWN',asof=cutoff,value=None,text=str(exc)[:120])
         dynamic=any(f['status']=='KNOWN' and (k.startswith(('market.','index.','board_states.','leader_states.'))
                     or '.stock.price' in k or '.risk.amp_' in k or
                     (k.endswith('.progress') and f.get('value') not in (None,'DATA_INSUFFICIENT')))
@@ -267,15 +470,32 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
             return result  # No paid slot reserved; later real evidence may proceed.
     key=slot_key if mode=='INTRADAY' else digest(dict(mode=mode,cutoff=cutoff,plan_id=plan_id,facts=facts))
     path=runtime.directory()/'risk_outlook'/f'{key}.json'
-    if path.exists():return json.loads(path.read_bytes())
+    if path.exists():
+        cached=_cached_result(path)
+        if cached is not None:return cached
     result=dict(status='AI_ATTEMPT_RESERVED',key=key,asof=cutoff,mode=mode,plan_id=plan_id,
-        plan_hash=view.get('plan_hash'),computed_facts=facts,automatic_trading=False,prompt_contract=CONTRACT)
+        plan_hash=view.get('plan_hash'),computed_facts=facts,automatic_trading=False,prompt_contract=CONTRACT,
+        owner_pid=os.getpid(),started_epoch=time.time())
+    if isinstance(json.loads(path.read_bytes()) if path.exists() else None,dict):
+        # 收回续算：保留被收回占位的身份证据，可审计（不删除原证据）。
+        prior=json.loads(path.read_bytes())
+        if prior.get('request') or prior.get('transport_started'):
+            result.update(status='AI_FAILED', reason='AI_DELIVERY_UNKNOWN_NO_AUTO_RETRY',
+                          reclaimed_from=dict(owner_pid=prior.get('owner_pid'), key=prior.get('key')),
+                          automatic_retry=False)
+            save(path, result)
+            return with_local_failure(result)
+        result['reclaimed_from']=dict(owner_pid=prior.get('owner_pid'),
+            started_epoch=prior.get('started_epoch'),key=prior.get('key'))
     save(path,result)
     try:
         body=dict(asof=cutoff,mode=mode,computed_facts=facts,conditions=CONDITIONS,
+            plan_status=view.get('plan_status','UNKNOWN'),
             candidate_codes=[x['code'] for x in view.get('items',[])],
             holding_codes=None if positions is None else [x['code'] for x in positions],
             reference_policy=dict(known_ids=[k for k,f in facts.items() if f['status']=='KNOWN'],
+                focus_allowed_ids=focus_allowed_ids(facts),
+                minimum_total_references=1,
                 unknown_only_ids=[k for k,f in facts.items() if f['status'] in ('UNKNOWN','RESEARCH')],
                 trial_ids=[k for k,f in facts.items() if f['status']=='TRIAL']))
         settings=dict(cfg,deepseek=dict(cfg.get('deepseek') or {},max_tokens=2000))
@@ -287,6 +507,7 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
         parsed,normalization=parse_reply(result['raw_reply']);result['syntax_normalization']=normalization
         parsed,clock_notes=bind_reply_time(parsed,cutoff);result['clock_binding']=clock_notes
         parsed,notes=qualify_references(parsed,facts);result['reference_qualification']=notes
+        parsed,notes=qualify_focus(parsed,facts);result['focus_qualification']=notes
         text=validate(parsed,facts,cutoff)
         text=f'依据截止 {cutoff}；'+('次日计划观察日 '+str(view.get('monitor_date','未知')) if mode=='POSTCLOSE' else '当前半小时巡检')+'\n'+text
         if mode=='INTRADAY' and view.get('data_wait_reason'):
@@ -298,13 +519,14 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
         if isinstance(exc,ValueError) and str(exc).startswith('OUTLOOK_'):
             result['validation_error']=str(exc)
             result['reason']='AI回复未通过事实校验（'+str(exc)+'），本地事实仍可查看'
+    result=with_local_failure(result)
     save(path,result)
     save(runtime.directory()/'risk_outlook'/('latest_'+mode.lower()+'.json'),result)
     return result
 
 
 def latest(mode='POSTCLOSE'):
-    try:return json.loads((runtime.directory()/'risk_outlook'/('latest_'+mode.lower()+'.json')).read_bytes())
+    try:return with_local_failure(json.loads((runtime.directory()/'risk_outlook'/('latest_'+mode.lower()+'.json')).read_bytes()))
     except (OSError,ValueError):return dict(status='NOT_GENERATED')
 
 
@@ -312,7 +534,7 @@ def queue(cfg,view,cutoff,**kwargs):
     mode=kwargs.get('mode','POSTCLOSE')
     if mode=='INTRADAY':
         path=runtime.directory()/'risk_outlook'/f'{digest(dict(mode=mode,cutoff=cutoff,plan_id=kwargs.get("plan_id"),plan_hash=view.get("plan_hash")))}.json'
-        if path.exists():return json.loads(path.read_bytes())
+        if path.exists():return with_local_failure(json.loads(path.read_bytes()))
     with _lock:
         thread=_threads.get(mode)
         if thread and thread.is_alive():return dict(status='RUNNING')

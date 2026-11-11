@@ -10,6 +10,9 @@ import paths
 import postclose_risk_runtime as runtime
 from golden_rules import VERSION, digest
 
+COMBINATION_POLICY='POSITION_TWO_OF_THREE_O20_CROSS1_V1'
+MINUTE_SOURCE_CONTRACT='SINA_STOCK_1M_WITH_FIXED_HISTORY_V2'
+
 
 def evaluate(plan, now, *, five_minute=False):
     from joint_risk_bridge import _worker_paths
@@ -56,7 +59,7 @@ def validate_result(value, plan):
         if item.get('status') == 'RULE_TRIGGERED':
             if plan.get('rule_version')=='TAROT_A_SECOND_CASH_V2':
                 if row['entry_rule'].get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4':
-                    validate_v4(item,row,value['cutoff'])
+                    validate_combination(item,row,value['cutoff'])
                     continue
                 new_policy=row['entry_rule'].get('policy')=='GOLDEN_LADDER_STOP_V3'
                 trigger=item.get('trigger_time')
@@ -129,10 +132,65 @@ def validate_v4(item,row,cutoff):
     else:raise ValueError('V4_BRANCH_INVALID')
 
 
+def validate_combination(item,row,cutoff):
+    from plan_rule_profiles import validate, policy
+    profile=validate(row['entry_rule'].get('execution_profile'))
+    required=profile['required_votes'];cross_required=profile['momentum_crosses_required'];ratio=profile['oversold_ratio']
+    rule=row['entry_rule'];band=item.get('band') or {};c=item.get('combination') or {};votes=c.get('votes') or {}
+    live=item.get('provisional') is True and item.get('evaluation_basis')=='LIVE_OBSERVED_TWO_OF_THREE_V1'
+    if item.get('provisional') and not live:raise ValueError('UNRECOGNIZED_PROVISIONAL_CONTRACT')
+    trigger=item.get('trigger_time');touch=item.get('touch_time');div=item.get('divergence') or {};anchor=item.get('cross_day_anchor') or {}
+    low_time=div.get('event_time');crosses=item.get('event_cross_times') or [];bars=item.get('confirmation_bars') or [];rsi=item.get('rsi') or {}
+    def number(v):return type(v) in (int,float) and math.isfinite(v)
+    def high(a,b):return number(a) and number(b) and a>b and not math.isclose(a,b,rel_tol=1e-12,abs_tol=1e-12)
+    def time(v):return type(v) is int and v//1000000==cutoff//1000000 and v<=trigger
+    if (item.get('policy')!='GOLDEN_RESONANCE_CROSSDAY_V4' or item.get('combination_policy')!=policy(profile) or
+        band not in (rule.get('observation_bands') or []) or item.get('node')!=band.get('lower') or item['node'] not in rule['levels'] or
+        type(trigger) is not int or trigger//1000000!=cutoff//1000000 or trigger>cutoff or item.get('price_asof')!=cutoff or
+        not time(low_time) or not time(touch) or item.get('session_low')!=div.get('event_low') or
+        type(anchor.get('time')) is not int or anchor['time']//1000000!=rule['p_date'] or
+        anchor.get('low')!=div.get('anchor_low') or anchor.get('rsi6')!=div.get('anchor_rsi') or
+        not number(anchor.get('rsi6')) or not 0<=anchor['rsi6']<=100 or
+        set(votes)!={'repair','momentum','oversold'} or any(v is not None and type(v) is not bool for v in votes.values()) or
+        c.get('count')!=sum(v is True for v in votes.values()) or c['count']<required or
+        c.get('required')!=required or c.get('momentum_crosses_required')!=cross_required or c.get('oversold_ratio')!=ratio or
+        crosses!=sorted(set(crosses)) or any(not time(t) or t<max(low_time,touch) for t in crosses) or
+        len(bars)<(2 if required>1 or votes['repair'] else 1) or
+        (not live and bars[-1].get('t')!=trigger%1000000) or
+        (live and (item.get('observed_asof')!=cutoff or item.get('current_bar_complete') is not False or
+            any(not isinstance(b.get('t'),int) or b['t']>trigger%1000000 for b in bars))) or
+        (live and votes['repair'] and any(b.get('complete') is not True for b in bars))):
+        raise ValueError('TWO_OF_THREE_EVIDENCE_INVALID')
+    divergence=high(div.get('anchor_low'),div.get('event_low')) and high(div.get('event_rsi'),div.get('anchor_rsi'))
+    expected_m=bool(divergence and high(rsi.get('rsi6'),rsi.get('rsi15')) and len(crosses)>=cross_required) if number(div.get('event_rsi')) else None
+    if votes['momentum']!=expected_m:raise ValueError('ONE_CROSS_MOMENTUM_EVIDENCE_INVALID')
+    event=item.get('oversold_evidence')
+    if votes['oversold']:
+        if (not isinstance(event,dict) or not time(event.get('time')) or event.get('anchor_rsi6')!=anchor['rsi6'] or
+            event.get('ratio')!=ratio or not number(event.get('rsi6')) or not 0<=event['rsi6']<anchor['rsi6']*ratio):
+            raise ValueError('OVERSOLD20_EVIDENCE_INVALID')
+    elif event is not None:raise ValueError('OVERSOLD_VOTE_MISMATCH')
+    if not votes['repair']:
+        if item.get('branch')!='MOMENTUM_OVERSOLD' or sum(votes[k] is True for k in ('momentum','oversold'))<required:
+            raise ValueError('POSITION_OPTIONAL_BRANCH_INVALID')
+    elif item.get('branch')=='RECLAIM':
+        if not all(b['close']>=band['upper'] for b in bars[-2:]):raise ValueError('WHOLE_BAND_RECLAIM_REQUIRED')
+    elif item.get('branch')=='STOP_ABOVE':
+        if (len(bars)!=3 or not band['lower']<=bars[0]['low']<=band['zone_upper'] or
+            not bars[2]['low']>=bars[1]['low']>=bars[0]['low'] or not bars[2]['close']>bars[1]['close']>=bars[0]['close'] or
+            any(not number(b.get('volume')) or b['volume']<0 for b in bars) or (bars[1]['volume']+bars[2]['volume'])/2>bars[0]['volume']):
+            raise ValueError('STOP_EVIDENCE_INVALID')
+    else:raise ValueError('REPAIR_BRANCH_INVALID')
+
+
 def status_for(formal_plan, code, ts):
     """Read only: UI queries cannot start capture or resurrect a future signal."""
     try:
         file = runtime.directory()/'golden_intraday/state.json'
+        live=runtime.directory()/'tarot_events_live/latest.json'
+        if live.exists():
+            candidate=json.loads(live.read_bytes())
+            if candidate.get('plan_id')==formal_plan.get('assistant_plan_id'):file=live
         if file.stat().st_size > 512*1024:
             raise ValueError('STATE_SIZE')
         value = json.loads(file.read_bytes())
@@ -150,6 +208,8 @@ def status_for(formal_plan, code, ts):
             raise ValueError('STATE_RULE_CHANGED')
         if row.get('trigger_time') and int(row['trigger_time']) > int(ts):
             raise ValueError('FUTURE_TRIGGER')
+        if (stock.get('entry_rule') or {}).get('policy')=='GOLDEN_RESONANCE_CROSSDAY_V4' and row.get('combination_policy')!=__import__('plan_rule_profiles').policy((stock.get('entry_rule') or {}).get('execution_profile')):
+            raise ValueError('STATE_EXECUTION_CONTRACT_CHANGED')
         return row
     except (OSError, ValueError, KeyError, TypeError):
         return {'status':'WAIT_MINUTE_EVIDENCE','reason':'等待本计划已完成5分钟K线的下杀、止跌、背离核验；报价触价不构成信号'}

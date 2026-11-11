@@ -77,7 +77,7 @@ def status():
 
 
 def record_result(db, model, purpose, max_tokens, *, finish_reason=None, usage=None,
-                  outcome='OK', error_type=None):
+                  outcome='OK', error_type=None, error_details=None):
     """Metadata only: no prompt, response text, credentials, or raw SDK exception strings."""
     def count(name):
         value = getattr(usage, name, None)
@@ -93,7 +93,41 @@ def record_result(db, model, purpose, max_tokens, *, finish_reason=None, usage=N
                      (datetime.now().isoformat(), str(model)[:80], purpose, max_tokens, reason,
                       count('prompt_tokens'), count('completion_tokens'), count('total_tokens'),
                       outcome, error_type))
+        if error_details is not None:
+            conn.execute('CREATE TABLE IF NOT EXISTS request_errors('
+                         'created_at TEXT,purpose TEXT,details TEXT)')
+            conn.execute('INSERT INTO request_errors VALUES(?,?,?)',
+                         (datetime.now().isoformat(), purpose, json.dumps(error_details)))
         conn.commit()
+
+
+def request_failure(exc):
+    """Only exception class names/codes; never message, URL, headers or body."""
+    chain, seen = [], set()
+    current = exc
+    for _ in range(6):
+        if current is None or id(current) in seen:
+            break
+        seen.add(id(current))
+        chain.append(type(current).__name__)
+        current = current.__cause__
+    status = getattr(exc, 'status_code', None)
+    status = status if type(status) is int else None
+    kind = 'REQUEST_ERROR'
+    if status == 401:
+        kind, note = 'AUTH_ERROR', '服务端拒绝鉴权，请核对本机密钥；不是余额判断'
+    elif status == 402:
+        kind, note = 'BALANCE_ERROR', '服务端返回余额不足，请核对该密钥所属账户'
+    elif status == 429:
+        kind, note = 'RATE_LIMIT', '服务端限流，请稍后手动再试；不是余额判断'
+    elif any('Timeout' in name for name in chain):
+        kind, note = 'TIMEOUT', '等待服务端响应超时，不能据此判断余额不足'
+    elif 'APIConnectionError' in chain:
+        kind, note = 'CONNECTION_ERROR', '连接中断或未取得完整响应，不能据此判断余额不足；请检查网络或代理'
+    else:
+        note = '服务请求未完成，请查看本地错误分类；不能据此判断余额不足'
+    return (f'DeepSeek 请求失败（{type(exc).__name__}）；{note}；未自动重试',
+            dict(kind=kind, cause_types=chain, http_status=status))
 
 
 def complete(cfg, messages, *, tools=None, structured=False, purpose='chat'):
@@ -105,8 +139,6 @@ def complete(cfg, messages, *, tools=None, structured=False, purpose='chat'):
     max_tokens = min(int(settings.get('max_tokens', 2000)), 4000)
     if max_tokens < 1:
         raise ValueError('DeepSeek 输出Token上限必须为正数')
-    if len(json.dumps(messages, ensure_ascii=False)) > 60000:
-        raise ValueError('单次输入打包超过本地安全预算；请拆分问题或新建会话，原记录保留（非DeepSeek上下文已满）')
     # Account before sending without a daily cap. Failed requests count; no hidden retries.
     db = Path(paths.data_file('data/assistant/deepseek_usage.sqlite', seed_from_bundle=False))
     reserve = len(json.dumps(messages, ensure_ascii=False).encode('utf-8')) + max_tokens + 1000
@@ -131,9 +163,10 @@ def complete(cfg, messages, *, tools=None, structured=False, purpose='chat'):
                           timeout=60.0, max_retries=0).chat.completions.create(**kwargs)
     except Exception as exc:
         # SDK error text can include request contents; never forward it.
+        message, details = request_failure(exc)
         record_result(db, kwargs['model'], purpose, max_tokens,
-                      outcome='REQUEST_ERROR', error_type=type(exc).__name__)
-        raise ValueError(f'DeepSeek 请求失败（{type(exc).__name__}）；请检查密钥、余额或网络') from None
+                      outcome='REQUEST_ERROR', error_type=type(exc).__name__, error_details=details)
+        raise ValueError(message) from None
     with _lock, closing(sqlite3.connect(db)) as conn:
         actual = getattr(response.usage, 'total_tokens', None)
         if isinstance(actual, int) and actual >= 0:
