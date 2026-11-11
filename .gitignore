@@ -121,7 +121,11 @@
 !/stargazer_ml/v5_hybrid/opportunity_v2/contracts/README_v2.md
 
 # ── 其它 ──
+!/docs/
+!/docs/*.md
 !/migration_support/
+!/docs/
+!/docs/*.md
 !/migration_support/*
 /migration_support/config_portable.yaml
 
