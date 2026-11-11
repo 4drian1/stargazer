@@ -21,6 +21,7 @@ MISSING/ERROR:.../STALE), reason, sample。
 """
 import sys
 import json
+import math
 import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone as _tz
@@ -119,6 +120,39 @@ def _degrade_all(items, status, reason):
         it["reason"] = reason
 
 
+def _is_daily_bond(item, row):
+    """国债收益率是日度发布序列，不能按分时行情的小时级时效判定。"""
+    return (item.get("category") == "国债" and
+            str(row.get("quote_flag") or "") == "AKSHARE_BOND_ZH_US_RATE" and
+            bool(row.get("data_date") or row.get("quote_time")))
+
+
+def _daily_bond_stale(item, row, now, max_age_hours):
+    """按日度发布日期判定新鲜度；返回 True 时写入具体 STALE 原因。
+
+    基点差(change/bp)由采集端用两个**不同有效发布日**的同口径值计算；
+    这里只读结果，不重算、不拿单日值冒充变动。
+    """
+    day = str(row.get("data_date") or "")[:10] or str(row.get("quote_time") or "")[:10]
+    try:
+        published = datetime.fromisoformat(day).date()
+    except (ValueError, TypeError):
+        item["reason"] = f"日度发布日期无法解析（{day}），按过期处理，不得标为决策可用"
+        return True
+    now_day = now.astimezone(_tz(timedelta(hours=8))).date()
+    lag = (now_day - published).days
+    if lag < 0:
+        item["reason"] = f"日度发布日期 {day} 来自未来，不得标为决策可用"
+        return True
+    # 周五发布遇周末要到周一才更新；日度数据至少允许到下一个有效发布日。
+    allowed = max(4, math.ceil(float(max_age_hours) / 24.0))
+    if lag > allowed:
+        item["reason"] = (f"日度发布日 {day} 距今 {lag} 个自然日（允许 ≤{allowed} 天），"
+                          f"已过期，决策不可用；不按小时级行情口径误判")
+        return True
+    return False
+
+
 def global_overview(snapshot_path=None, max_age_hours=None):
     """GET 契约：零网络，只读隔离快照；缺失/过期/时间异常/样本标记逐级降级。"""
     path = Path(snapshot_path) if snapshot_path else global_overview_snapshot_path()
@@ -158,6 +192,10 @@ def global_overview(snapshot_path=None, max_age_hours=None):
                    "quote_flag": row.get("quote_flag"),
                    "scrape_time": row.get("scrape_time"),
                    "sample": bool(row.get("sample", False))})
+        # 保留采集端写入的具体缺失原因（如日经225 东财断连/字段无效），
+        # 不得用通用「无数值」把它覆盖掉。
+        collected_reason = str(row.get("reason") or "").strip()
+        date_only = _is_daily_bond(it, row) or it["quote_flag"] == "STOXX_LAST_CLOSE"
         # 独立检查样本标记：样本永远不是 OK，不进入决策
         if it["sample"]:
             it["status"] = "SAMPLE"
@@ -165,20 +203,24 @@ def global_overview(snapshot_path=None, max_age_hours=None):
             continue
         qt = _parse_iso(it["quote_time"])
         if it["value"] is None:
-            it["status"], it["reason"] = "MISSING", "快照无该品种数值"
+            it["status"] = "MISSING"
+            it["reason"] = collected_reason or "快照无该品种数值"
         elif qt is None:
             it["status"] = "ERROR:TIME_INVALID"
             it["reason"] = f"quote_time 无法解析（{it['quote_time']}），不得标为决策可用"
         elif qt > now + timedelta(seconds=_FUTURE_TOLERANCE_S):
             it["status"] = "ERROR:TIME_INVALID"
             it["reason"] = "quote_time 来自未来，不得标为决策可用"
-        elif (now - qt).total_seconds() > max_age * 3600.0:
+        elif date_only and _daily_bond_stale(it, row, now, max_age):
+            it["status"] = "STALE"
+        elif not date_only and (now - qt).total_seconds() > max_age * 3600.0:
             it["status"] = "STALE"
             it["reason"] = (f"行情时间已过期（{round((now - qt).total_seconds() / 3600.0, 1)}"
                             f" 小时，超过 {max_age} 小时），决策不可用")
         else:
             it["status"] = "OK"
             it["quote_flag"] = it["quote_flag"] or "LAST_CLOSE"
+            it["reason"] = None  # 不残留骨架的「快照未覆盖该品种」文字
 
     # 快照级时间校验（generated_at）
     gen = _parse_iso(snap.get("generated_at"))

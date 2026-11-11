@@ -41,6 +41,10 @@ _IDENTITIES = [
          index_code='885531', web_id='301079', legacy_codes=['301079.TI'],
          frozen_ref='301079.TI',
          frozen_note='历史成员快照20261017（未认证当日完整成员），随本模块独立保存'),
+    dict(key='ths:886069', name='人形机器人', source='ths', type='concept',
+         index_code='886069', web_id='309119', legacy_codes=['309119.TI'],
+         frozen_ref='309119.TI',
+         frozen_note='历史成员快照20261017（未认证当日完整成员），随本模块独立保存'),
 ]
 
 _FROZEN_CACHE = None

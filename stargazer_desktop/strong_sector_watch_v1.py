@@ -35,17 +35,25 @@ def save(file,value):
 
 
 def archive(file,value):
+    payload=encoded(value)
     if file.exists():
-        if gzip.decompress(file.read_bytes())!=encoded(value):raise ValueError('STRONG_ARCHIVE_CACHE_CHANGED')
+        if gzip.decompress(file.read_bytes())!=payload:raise ValueError('STRONG_ARCHIVE_CACHE_CHANGED')
         return
     from runtime_disk_limit_v1 import disk_limit,disk_usage,MONITOR_RESERVE
     import postclose_risk_runtime
-    raw=gzip.compress(encoded(value),mtime=0);base=postclose_risk_runtime.directory()
+    raw=gzip.compress(payload,mtime=0);base=postclose_risk_runtime.directory()
     if len(raw)>16*1024**2 or disk_usage(base)+len(raw)*2+MONITOR_RESERVE>disk_limit(base):
         raise ValueError('STRONG_ARCHIVE_BUDGET')
-    file.parent.mkdir(parents=True,exist_ok=True)
-    if not file.exists():
-        with file.open('xb') as f:f.write(raw)
+    with cpl.FileLock(file.parent / '.publish'):
+        if file.exists():
+            if gzip.decompress(file.read_bytes())!=payload:raise ValueError('STRONG_ARCHIVE_CACHE_CHANGED')
+            return
+        part=file.with_name(file.name+'.'+secrets.token_hex(8)+'.part')
+        try:
+            with part.open('xb') as f:f.write(raw)
+            part.replace(file)
+        finally:
+            part.unlink(missing_ok=True)
 
 
 def constituent_versions(names):
@@ -440,9 +448,15 @@ def observe(plan,cfg,now,quotes,broadcast,send,active):
 
 def schedule(plan,cfg,now,quotes,broadcast,send,active=lambda:True,*,prepare_only=False):
     from sector_watch_v1 import names
-    boards=names(plan or {})
-    if not boards or not active():return
+    if not active():return
     outside=prepare_only or now.hour>=15 or now.hour<9 or now.hour==9 and now.minute<30
+    boards=names(plan or {})
+    if outside:
+        from plan_board_change_v1 import preparation_boards
+        from zoneinfo import ZoneInfo
+        observed=now.replace(tzinfo=ZoneInfo('Asia/Shanghai')) if now.tzinfo is None else now.astimezone(ZoneInfo('Asia/Shanghai'))
+        boards=names({'boards':preparation_boards(plan,root().parent/'board_identities',observed)})
+    if not boards:return
     with LOCK:
         # Archive historical sessions independently; slow review IO never blocks live quotes.
         today=now.strftime('%Y%m%d')
@@ -464,15 +478,14 @@ def schedule(plan,cfg,now,quotes,broadcast,send,active=lambda:True,*,prepare_onl
         def work():
             try:
                 if outside:
-                    if not prepare_only and now.hour==15 and now.minute<=6:observe(plan,cfg,now,quotes,broadcast,send,active)
+                    if not prepare_only and now.hour==15 and now.minute<=6 and names(plan or {}):
+                        observe(plan,cfg,now,quotes,broadcast,send,active)
                     from ths_board_supply_v1 import ensure as prepare_constituents
                     for name in boards:
                         prepared=prepare_constituents(name,root().parent/'board_identities')
                         if prepared and prepared.get('reason'):
                             HEALTH.update(constituent_refresh_reason=prepared['reason'])
                     from sector_rule_scan import source_context,project_root
-                    from zoneinfo import ZoneInfo
-                    observed=now.replace(tzinfo=ZoneInfo('Asia/Shanghai')) if now.tzinfo is None else now.astimezone(ZoneInfo('Asia/Shanghai'))
                     context=source_context(project_root(),observed.isoformat())
                     parts=[sorted(set(boards)),context['key'],'TURNOVER_REFERENCE_V1',CONTRACT]
                     versions=constituent_versions(boards)
@@ -651,7 +664,7 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
         level_label='共振带' if band.get('source_waves', 0) >= 2 else '黄金位',
         priority_label='P1' if band.get('primary') else 'P2',
         wave_low=row.get('low'), wave_high=row.get('high'), wave_return=row.get('wave_return'),
-        indicator_basis='价格触位先行；5/15分钟指标后台计算中', period_pairs={},
+        indicator_basis='价格触位先行；5/15分钟指标后台计算中', period_pairs={}, indicators_pending=True,
         relative_turnover=dict(status='UNKNOWN', reason='指标后台计算中；不影响价格触位事实'),
         morning_mark='首次观察到触位；发送前已重新核验报价和冻结观察带',
         trigger_text=('价格到达路标；完整K线收盘确认待核验' if row['pool'] == 'LANDMARK' else None))
@@ -870,6 +883,7 @@ def compute_touch_indicators(event_id, state_file, plan_ref):
         finished = datetime.now().isoformat(timespec='seconds')
         lane.update_event(state_file, event_id, indicator_status='FAILED',
                           indicator_finished_at=finished, indicator_started_at=indicator_started_at,
+                          indicator_supplement_status='PENDING',
                           indicator_result=dict(status='FAILED', reason=type(exc).__name__ + ':' + str(exc)[:160]))
         return
     finished = datetime.now().isoformat(timespec='seconds')
@@ -878,6 +892,7 @@ def compute_touch_indicators(event_id, state_file, plan_ref):
                if k in result}
     lane.update_event(state_file, event_id, indicator_status=result.get('status', 'UNKNOWN'),
                       indicator_finished_at=finished, indicator_started_at=indicator_started_at,
+                      indicator_supplement_status='PENDING',
                       indicator_result=summary)
 
 
@@ -902,14 +917,12 @@ def _supplement_message(event, row, quote):
     indicator = event.get('indicator_result') or {}
     status = str(indicator.get('status') or event.get('indicator_status') or 'UNKNOWN')
     if status == 'AVAILABLE':
+        from push_compact_v1 import indicator_lines
         periods = indicator.get('periods') or {}
-        for frame in ('5', '15'):
-            cur = (periods.get(frame) or {}).get('current') or {}
-            for key in ('rsi6', 'rsi14', 'rsi15'):
-                v = cur.get(key)
-                if isinstance(v, (int, float)) and math.isfinite(v):
-                    lines.append('RSI(%s分钟 %s): %.2f（截至 %s）' % (
-                        frame, key, float(v), str(cur.get('time') or indicator.get('last_time') or '未知')))
+        if periods:
+            lines.extend(indicator_lines(dict(period_pairs=periods), include_times=True))
+        else:
+            lines.append('5/15分钟低点指标：未提供')
         rel = indicator.get('relative_turnover')
         if isinstance(rel, dict):
             ratio = rel.get('ratio')
@@ -924,8 +937,6 @@ def _supplement_message(event, row, quote):
                 lines.append('量能比率: %.2f' % float(ratio))
             else:
                 lines.append('量能比率: 未知（%s）' % str(vr.get('reason') or '未核实'))
-        if not any(l.startswith(('RSI', '同刻量比', '量能比率')) for l in lines[4:]):
-            lines.append('指标摘要: 无已核实数值')
     else:
         lines.append('指标状态: ' + status +
                      (('（' + str(indicator.get('reason') or '') + '）') if indicator.get('reason') else ''))
@@ -938,7 +949,7 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
     """指标完成后，对已 SENT 的首条提醒做一次同事件身份的补充（恰好一次，持久化）。
 
     终态（重启不重复）：SENT / UNKNOWN / SUPPRESSED_DUPLICATE / SKIPPED_*。
-    - 首条未 SENT（UNKNOWN/FAILED/未发）→ SKIPPED_FIRST_NOT_SENT，绝不追加；
+    - 首条仍在排队、复核或发送中 → 等待；首条终态未 SENT → SKIPPED_FIRST_NOT_SENT；
     - 计划/池/带变化或报价失效 → SKIPPED_*，不补发过时提示；
     - PRE_SEND_RESERVED 被另一存活 pid 持有 → SUPPRESSED_DUPLICATE 不重复启动；
       死亡 pid 的预约 → 收回续发；SENDING 被他主持有 → UNKNOWN 不重发；
@@ -954,16 +965,33 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
     current = str(event.get('indicator_supplement_status') or '')
     if current in SUPPLEMENT_TERMINAL:
         return  # 终态：重启不重复
-    if current == 'SENDING':
-        # 上次尝试标记了发送开始但未写回执（如崩溃）：按 UNKNOWN 终态处理，不重发。
-        lane.update_event(state_file, event_id, indicator_supplement_status='UNKNOWN',
-                          supplement_finished_at=datetime.now().isoformat(timespec='seconds'))
-        return
-    if event.get('delivery_status') != 'SENT':
-        lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_FIRST_NOT_SENT',
-                          supplement_finished_at=datetime.now().isoformat(timespec='seconds'))
+    primary = event.get('delivery_status')
+    if primary in ('PENDING', 'WAIT_REVERIFY', 'PROCESSING', 'SENDING'):
         return
     now = datetime.now()
+    alerts_file = root() / 'alerts.json'
+    with _alerts_lock():
+        saved = json.loads(alerts_file.read_bytes()) if alerts_file.exists() else {}
+        first = saved.get(event_id) or {}
+        previous = first.get('supplement') or {}
+        prior_status = previous.get('status')
+        if prior_status in ('SENT', 'UNKNOWN', 'SENDING') or current == 'SENDING':
+            # A restart can occur between the durable receipt and event-state update.
+            lane.update_event(state_file, event_id,
+                              indicator_supplement_status='SENT' if prior_status == 'SENT' else 'UNKNOWN',
+                              supplement_finished_at=now.isoformat(timespec='seconds'))
+            return
+        if primary == 'UNKNOWN' and first.get('delivery') == 'SENT':
+            lane.update_event(state_file, event_id, delivery_status='SENT',
+                              sent_at=first.get('sent_at'))
+            primary = 'SENT'
+    if primary != 'SENT':
+        lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_FIRST_NOT_SENT',
+                          supplement_finished_at=now.isoformat(timespec='seconds'))
+        return
+    from notifier import market_open
+    if str(event.get('day')) != now.strftime('%Y%m%d') or not market_open(now):
+        return
     try:
         cfg = get_cfg() or {}
     except Exception:
@@ -1007,7 +1035,6 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
         return
 
     key = digest([int(event['day']), row['code'], row['pool'], band['lower'], band['upper']])
-    alerts_file = root() / 'alerts.json'
     attempt_id = secrets.token_hex(8)
     my_pid = os.getpid()
     title, body = _supplement_message(event, row, quote)
@@ -1028,10 +1055,10 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
             _finish('SKIPPED_FIRST_NOT_SENT')
             return
         sup = rec.get('supplement') or {}
-        if sup.get('status') in ('SENT', 'UNKNOWN'):
-            _finish(str(sup['status']))
+        if sup.get('status') in ('SENT', 'UNKNOWN', 'SENDING'):
+            _finish('SENT' if sup['status'] == 'SENT' else 'UNKNOWN')
             return
-        if sup.get('status') in ('PRE_SEND_RESERVED', 'SENDING'):
+        if sup.get('status') == 'PRE_SEND_RESERVED':
             ex_pid = int((sup.get('owner') or {}).get('pid') or 0)
             if ex_pid and ex_pid != my_pid and cpl.pid_alive(ex_pid):
                 _finish('SUPPRESSED_DUPLICATE')

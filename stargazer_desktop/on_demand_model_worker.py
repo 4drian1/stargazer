@@ -16,7 +16,7 @@ def infer(request):
     sys.path.insert(0, str(risk_dir))
     import joint_shadow_compute_v2 as compute
     from joint_shadow_service_v1 import verify_fingerprints
-    expected = json.loads(gzip.decompress((risk_dir / 'live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
+    expected = json.loads(gzip.decompress((risk_dir / 'live_monitor_fingerprints_20261111_v213_flow.json.gz').read_bytes()))
     mismatch, ok = verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH')

@@ -728,7 +728,11 @@ class PriceMonitor:
                 from push_presenter_v1 import report as render_report, review_notice
                 from services import wl_load
                 if review['decision']=='REPORT':
-                    rendered=render_report(bulletin,plan,result,live,wl_load(dict(cfg,agent=cfg.get('agent') or {})).get('positions',[]),data.get('template_state'),observed_at=actual)
+                    # 强势池通道真实健康状态：NOT_OWNER/零报价不得写成「无异动」。
+                    with self.lock:
+                        strong_scan = dict(self.strong_touch_health or {})
+                    rendered=render_report(bulletin,plan,result,live,wl_load(dict(cfg,agent=cfg.get('agent') or {})).get('positions',[]),data.get('template_state'),observed_at=actual,
+                                           strong_scan=strong_scan)
                     data['template_state']=rendered['next_state']
                 else:
                     selected=next((r for r in plan.get('rows',[]) if r['code']==code),{})
@@ -823,7 +827,7 @@ class PriceMonitor:
                 root as strong_root, deliver_touch_event, compute_touch_indicators,
                 deliver_indicator_supplement)
             from strong_touch_lane_v1 import (
-                poll, start_workers, restore_pending_events,
+                poll, start_workers, restore_pending_events, enqueue_pending,
                 POLL_INTERVAL_SECONDS, QUOTE_TIMEOUT_SECONDS,
                 QUOTE_BATCH_SIZE, QUOTE_WORKERS)
             usage_file = Path(self.directory()) / 'quote_request_usage.json'
@@ -858,19 +862,18 @@ class PriceMonitor:
                 deliver_touch_event(event_id, file, plan_ref, get_plan=get_plan,
                     get_cfg=get_cfg, quote_fn=fetch_reverify, broadcast=broadcast,
                     send=send_wechat, active=enabled)
+                enqueue_pending(file, plan_ref)
 
             def indicators(event_id, file, plan_ref):
                 compute_touch_indicators(event_id, file, plan_ref)
-                # 闭环2：指标完成后对已 SENT 的首条提醒做一次同事件身份补充。
-                # 补充自带的预约/终态语义保证重启不重复；失败与跳过均持久化留痕。
-                try:
-                    deliver_indicator_supplement(event_id, file, plan_ref, get_plan=get_plan,
-                        get_cfg=get_cfg, quote_fn=fetch_reverify, broadcast=broadcast,
-                        send=send_wechat, active=enabled)
-                except Exception:
-                    pass
+                enqueue_pending(file, plan_ref)
 
-            start_workers(deliver, indicators, self.stop)
+            def supplement(event_id, file, plan_ref):
+                deliver_indicator_supplement(event_id, file, plan_ref, get_plan=get_plan,
+                    get_cfg=get_cfg, quote_fn=fetch_reverify, broadcast=broadcast,
+                    send=send_wechat, active=enabled)
+
+            start_workers(deliver, indicators, self.stop, supplement_handler=supplement)
             # 任务书阶段1 P1: 显式启动时主动恢复待处理事件 (在 worker 拉起后、首次 poll 之前)
             try:
                 restored = restore_pending_events(state_dir, get_plan() or {})

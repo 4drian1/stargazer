@@ -23,7 +23,7 @@ from golden_rules import digest
 VERSION='TAROT_A_SECOND_CASH_V2'
 FIT=HERE/'tarot_a_second_leg_fit_20261022_v1'
 MODEL=FIT/'initial_node_cash_fit_20261023_v1/model.pkl'
-MANIFEST=HERE/'tarot_live_manifest_v194_20261110_rel.json.gz'
+MANIFEST=HERE/'tarot_live_manifest_v201_20261111_rel.json.gz'
 
 
 def _project_root():

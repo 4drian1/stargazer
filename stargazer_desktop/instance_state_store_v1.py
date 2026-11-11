@@ -75,6 +75,32 @@ def _identity_matches(meta, fid: str) -> bool:
             and meta.get("pid") == my_id[0] and meta.get("nonce") == my_id[1])
 
 
+def _claim_if_available(file, value, *, ttl, fid):
+    """Claim the lease inside the caller's ``FileLock``, but ONLY when the
+    ``.owner`` record is absent or its pid is *confirmed dead*.
+
+    This is the single legitimate-takeover path used for both a missing state
+    JSON and a day rollover.  A live competing owner, an unconfirmable-dead
+    owner, or a corrupt ``.owner`` file is never seized; the caller gets a
+    strictly read-only value.  When we already hold the lease (pid+nonce match)
+    the heartbeat is refreshed instead of re-claiming, so a process that claimed
+    but crashed before writing the state JSON does not lock itself out.
+    """
+    lease = cpl.OwnerLease(file, ttl=ttl)
+    meta = lease.read()
+    if _identity_matches(meta, fid):
+        lease.refresh()
+        value["owner"] = meta
+        return value, True
+    if not lease.is_stale(meta):
+        value["owner"] = dict(meta) if isinstance(meta, dict) else None
+        return value, False
+    rec = lease.claim()
+    _OWNER_IDENTITY[fid] = (rec["pid"], rec["nonce"])
+    value["owner"] = rec
+    return value, True
+
+
 def read_state(
     file: Any,
     *,
@@ -99,24 +125,21 @@ def read_state(
         if not file.exists():
             if day is None:
                 raise FileNotFoundError(str(file))
-            value = build_default(day, pool_id)
-            owner = cpl.OwnerLease(file, ttl=ttl)
-            rec = owner.claim()
-            _OWNER_IDENTITY[fid] = (rec["pid"], rec["nonce"])
-            value["owner"] = rec
-            return value, True
+            # A missing state JSON does NOT imply a free lease.  Another process
+            # may have already claimed .owner and be about to write its first
+            # state, so check the reservation under the same lock first.
+            return _claim_if_available(file, build_default(day, pool_id),
+                                       ttl=ttl, fid=fid)
         if file.stat().st_size > MAX_STATE_BYTES:
             raise ValueError("STRONG_TOUCH_STATE_TOO_LARGE")
         value = json.loads(file.read_text(encoding="utf-8"))
         if value.get("contract") != contract:
             raise ValueError("STRONG_TOUCH_STATE_CONTRACT_MISMATCH")
         if day is not None and int(value.get("day") or 0) != int(day):
-            value = build_default(day, pool_id)
-            owner = cpl.OwnerLease(file, ttl=ttl)
-            rec = owner.claim()
-            _OWNER_IDENTITY[fid] = (rec["pid"], rec["nonce"])
-            value["owner"] = rec
-            return value, True
+            # Day rollover must honour a still-live reservation created by the
+            # process that owns this file; never seize it unconditionally.
+            return _claim_if_available(file, build_default(day, pool_id),
+                                       ttl=ttl, fid=fid)
         if pool_id is not None and value.get("pool_id") != pool_id:
             # Same-day per-symbol quote history is kept; events stay bound to
             # their original frozen pool (cancelled by the worker).
@@ -150,8 +173,11 @@ def read_state(
             value["owner"] = meta
             return value, True
         # A *different* live process owns this file: read-only, no recovery.
+        # A corrupt .owner is an opaque sentinel object; never put a
+        # non-JSON-serialisable value into the state (it would break callers
+        # that snapshot the health dict).
         value.pop("_restart_recovery_pending", None)
-        value["owner"] = meta
+        value["owner"] = dict(meta) if isinstance(meta, dict) else None
         return value, False
 
 

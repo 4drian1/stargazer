@@ -78,7 +78,7 @@ def load_draft(root, identifier):
 
 
 def latest(root):
-    files = sorted(_root(root).glob('plan_*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = sorted(Path(root).glob('plan_*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
     if not files:
         return None
     identifier = files[0].stem.split('_', 1)[1]
@@ -245,6 +245,11 @@ def preview(message, prior_boards, root, store_dir, *, formal=None, assistant_pl
     parsed = parse(message)
     if not parsed:
         return None
+    return _preview(parsed, message, prior_boards, root, store_dir,
+                    formal=formal, assistant_plan_path=assistant_plan_path)
+
+
+def _preview(parsed, message, prior_boards, root, store_dir, *, formal, assistant_plan_path):
     prior = _normalize_boards(prior_boards)
     prior_keys = {_board_key(b) for b in prior}
     additions = [t for t in parsed['add'] if t['key'] not in prior_keys]
@@ -258,7 +263,8 @@ def preview(message, prior_boards, root, store_dir, *, formal=None, assistant_pl
             index_code=item['index_code'], web_id=item['web_id']))
     statuses = {}
     for item in additions + parsed['remove']:
-        statuses[item['key']] = ths.monitor_status(item, store_dir)['status']
+        if item.get('index_code'):
+            statuses[item['key']] = ths.monitor_status(item, store_dir)['status']
     lines = ['监控板块变更预览（仅板块，不重新选股、不需要个股风险准备、不调用 DeepSeek）：']
     lines.append('确认后监控板块：' + ('、'.join(b['name'] for b in new_boards) if new_boards else '（空）'))
     if additions:
@@ -269,6 +275,8 @@ def preview(message, prior_boards, root, store_dir, *, formal=None, assistant_pl
     if already:
         lines.append('已存在，不重复添加：' + '、'.join(item['name'] for item in already))
     lines.append('个股、关注位、补仓位、止损位、数量偏好与已发送提醒记录均不改变。')
+    if not plan_effective(formal) and (additions or removed):
+        lines.append('当前计划已结束或尚未生效。确认后保存为下一份计划的板块偏好。')
     lines.append('确认前不改变现行计划。' + ('' if additions or removed else '本次无实际变更。'))
     reply = '\n'.join(lines)
     assistant_baseline = None
@@ -293,23 +301,49 @@ def preview(message, prior_boards, root, store_dir, *, formal=None, assistant_pl
 
 def try_sector_change(message, *, root, store_dir, formal_plan_path, assistant_plan_path=None):
     """服务端接线入口：板块-only 返回 {'reply','draft'}；其余返回 None 走原 plan_chat。"""
-    if not is_sector_only(message):
+    parsed = parse(message)
+    if not parsed:
         return None
-    formal = None
-    prior = []
-    try:
-        import trade_plan_v1
-        formal = trade_plan_v1.load_plan(Path(formal_plan_path))
-        if formal:
-            prior = formal.get('boards') or []
-    except Exception:
-        formal = None
-    if not prior:
-        previous = latest(root)
-        if previous and isinstance(previous.get('boards'), list):
-            prior = previous['boards']
-    return preview(message, prior, root, store_dir, formal=formal,
-                   assistant_plan_path=assistant_plan_path)
+    formal, prior = current_boards(formal_plan_path, store_dir)
+    return _preview(parsed, message, prior, root, store_dir, formal=formal,
+                    assistant_plan_path=assistant_plan_path)
+
+
+def current_boards(formal_plan_path, store_dir):
+    import trade_plan_v1
+    formal = trade_plan_v1.load_plan(Path(formal_plan_path))
+    return formal, preparation_boards(formal, store_dir)
+
+
+def preparation_boards(formal, store_dir, now=None):
+    """Use saved preferences for preparation once the formal plan has expired."""
+    prior = (formal or {}).get('boards')
+    if not plan_effective(formal, now):
+        preference = pending_preferences(store_dir)
+        if preference:
+            prior = preference['boards']
+    return _normalize_boards(prior)
+
+
+def preview_selection(action, token, *, root, store_dir, formal_plan_path, assistant_plan_path=None):
+    """Build the same confirmation draft from an exact UI selection."""
+    formal, prior = current_boards(formal_plan_path, store_dir)
+    token = token.strip() if isinstance(token, str) else ''
+    if action == 'add':
+        item = ths.resolve(token)
+        if not item:
+            raise ValueError('此板块身份尚未核验，请从已核验的同花顺板块中选择。')
+    elif action == 'remove':
+        board = next((b for b in prior if b['name'] == token), None)
+        if not board:
+            raise ValueError('当前板块列表中找不到该名称，请刷新后重试。')
+        item = dict(key=_board_key(board), name=board['name'])
+    else:
+        raise ValueError('无效的板块操作')
+    parsed = {'add': [], 'remove': []}
+    parsed[action].append(item)
+    return _preview(parsed, token, prior, root, store_dir, formal=formal,
+                    assistant_plan_path=assistant_plan_path)
 
 
 def pending_preferences(store_dir):

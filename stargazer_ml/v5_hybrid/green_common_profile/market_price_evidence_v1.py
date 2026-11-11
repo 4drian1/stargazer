@@ -241,7 +241,7 @@ if __name__=='__main__':
     from joint_shadow_service_v1 import verify_fingerprints
     cutoff=int(json.load(sys.stdin)['cutoff'])
     root=RISK_DIR/'index_minutes_v1'
-    expected=json.loads(gzip.decompress((RISK_DIR/'live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((RISK_DIR/'live_monitor_fingerprints_20261111_v213_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch[:5])+(' 等%d项'%len(mismatch) if len(mismatch)>5 else ''))

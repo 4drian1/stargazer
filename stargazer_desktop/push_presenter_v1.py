@@ -51,7 +51,10 @@ def gate(states):
     a,b=states.get('sse'),states.get('cyb')
     missing=[label for label,state in (('沪指',a),('创业板',b))
              if state not in ('BROKEN','REPAIRED','PENDING')]
-    if missing:return '⚪灰（关键位置证据不齐：缺'+'、'.join(missing)+'关键位置状态）'
+    # 灰灯是「指数关键位置证据不齐」，不是行情灯，也不是已判定破位/修复。
+    if missing:
+        return ('⚪灰（指数关键位置证据不齐：缺' + '、'.join(missing) +
+                '关键位置状态；证据未就绪，不等于安全或失守）')
     if a==b=='BROKEN':return '🔴红（双指数失守未修复；非自动卖出指令）'
     if a=='REPAIRED' and b!='BROKEN':return '🟢绿（沪指修复；不等于低风险）'
     return '🟡黄（单边失守或修复待确认）'
@@ -109,13 +112,108 @@ def review_notice(review,signal,row,quote):
     return rendered
 
 
-def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=None,observed_at=None):
+def quote_coverage_text(observed):
+    """把「报价 0/N」写成可判读的覆盖说明，而不是让人误读成 0 只异动票。
+
+    * 无观测 / 池数缺失 -> 待核验
+    * valid=0           -> 明确「未取得有效报价」，不等于池内无异动
+    * 0<valid<pool      -> 部分覆盖，未覆盖票不参与异动判断
+    * valid=pool        -> 全覆盖
+    """
+    if not observed:
+        return '待核验'
+    try:
+        valid = int(observed.get('valid_count') or 0)
+        pool = int(observed.get('pool_count') or 0)
+    except (TypeError, ValueError):
+        return '报价覆盖待核验（计数不可用）'
+    if pool <= 0:
+        return '报价覆盖待核验（池内数量未提供）'
+    if valid <= 0:
+        return (f'本时段未完成扫描（有效报价 0/{pool}，未取得有效报价；'
+                f'不代表池内无异动）')
+    if valid < pool:
+        return (f'有效报价 {valid}/{pool}（部分覆盖；未覆盖的 {pool - valid} 只'
+                f'不参与本轮异动判断）')
+    return f'有效报价 {pool}/{pool}（全覆盖）'
+
+
+# 只有这些状态才代表本时段确实完成了扫描并拿到了有效报价。
+_SCANNED_OK = {'MONITORING', 'DEGRADED'}
+_SCAN_REASONS = {
+    'NOT_STARTED': '强势池扫描线程尚未启动',
+    'NOT_OWNER': '写入权未取得（NOT_OWNER），本轮零报价请求',
+    'LANE_ERROR': '强势池通道异常',
+    'QUOTE_ERROR': '报价请求失败，未取得有效报价',
+    'WAIT_POOL': '冻结强势池未就绪',
+    'WAIT_BOARDS': '板块名单未就绪',
+    'DISABLED': '强势池通道已停用',
+    'PLAN_NOT_READY': '当日计划未就绪',
+    'WAITING_FOR_MONITOR_DATE': '等待计划交易日',
+    'OUTSIDE_SESSION': '非交易时段',
+    'PLAN_NOT_CONFIRMED': '计划未确认',
+    'DAY_CHANGED_DURING_SCAN': '扫描跨日，结果已作废',
+}
+
+
+def scan_status_text(strong_scan, asof=None, max_age_seconds=900):
+    """把强势池通道健康状态写成「本时段是否完成扫描」的明确结论。
+
+    上午漏扫事故：通道因 NOT_OWNER 零报价，但巡检只显示「本时段无」，
+    被误读成「无异动」。这里明确区分：
+      * 未扫描 / 零报价 / 状态陈旧  -> 「本时段未完成扫描」+ 具体原因
+      * 已扫描且有有效报价          -> 「本时段已完成扫描」，此时才允许说无新增异动
+    """
+    if not isinstance(strong_scan, dict) or not strong_scan:
+        return '本时段未完成扫描（强势池扫描状态未提供，不能据此判断有无异动）'
+    status = str(strong_scan.get('status') or 'UNKNOWN')
+    valid = strong_scan.get('valid_quotes')
+    pool = strong_scan.get('pool_count')
+    checked_at = str(strong_scan.get('checked_at') or '')
+
+    # 陈旧状态不能冒充本时段扫描结果。
+    stale = False
+    if asof and checked_at:
+        try:
+            import datetime as _dt
+            stamp = _dt.datetime.fromisoformat(checked_at.replace('Z', '+00:00'))
+            expected = _dt.datetime.strptime(str(asof)[:12], '%Y%m%d%H%M')
+            if stamp.tzinfo is not None:
+                expected = expected.replace(tzinfo=stamp.tzinfo)
+            stale = abs((stamp - expected).total_seconds()) > max_age_seconds
+        except (ValueError, TypeError):
+            stale = False
+    reason = _SCAN_REASONS.get(status)
+    error = strong_scan.get('error') or strong_scan.get('request_error')
+    detail = '；'.join(x for x in (reason, ('错误：' + str(error)[:120]) if error else None) if x)
+
+    if stale:
+        return (f'本时段未完成扫描（最近一次扫描 {checked_at} 已过时，'
+                f'不得用旧状态判断本时段有无异动）')
+    if status not in _SCANNED_OK:
+        return '本时段未完成扫描（' + (detail or '通道状态：' + status) + '）'
+    try:
+        valid_i, pool_i = int(valid or 0), int(pool or 0)
+    except (TypeError, ValueError):
+        valid_i, pool_i = 0, 0
+    if valid_i <= 0:
+        return (f'本时段未完成扫描（有效报价 0/{pool_i or "?"}；'
+                f'{detail or "未取得有效报价"}，不代表池内无异动）')
+    if pool_i and valid_i < pool_i:
+        return (f'本时段已完成扫描（有效报价 {valid_i}/{pool_i}，部分覆盖；'
+                f'未覆盖的 {pool_i - valid_i} 只不参与异动判断）')
+    return f'本时段已完成扫描（有效报价 {valid_i}/{pool_i or valid_i}，全覆盖）'
+
+
+def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=None,observed_at=None,
+           strong_scan=None):
     facts=bulletin.get('computed_facts') or {};asof=bulletin['asof']
     analysis=bulletin.get('analysis') or {};sections=analysis.get('sections') or {}
     def value(k):
         f=facts.get(k) or {}
         return f.get('value') if f.get('status')=='KNOWN' else None
-    packet=dict(asof=asof,plan_id=plan.get('assistant_plan_id'),plans=[],boards=[],holdings=None if positions is None else [],new_events=sector_events or [])
+    packet=dict(asof=asof,plan_id=plan.get('assistant_plan_id'),plans=[],boards=[],holdings=None if positions is None else [],new_events=sector_events or [],
+                scan_status_text=scan_status_text(strong_scan, asof))
     quote_times=[int(q['time']) for q in quotes.values() if str(q.get('time','')).isdigit() and str(q['time'])[:8]==str(asof)[:8]]
     quote_times += [f['asof'] for f in facts.values() if f.get('evidence_kind')=='QUOTE_SNAPSHOT' and type(f.get('asof')) is int and f['asof']//1000000==asof//1000000]
     if quote_times:packet['quote_asof']=max(quote_times)
@@ -154,9 +252,17 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
         passed = any(combination_passed(s) for s in signals.values())
         rules_text = '三选二通过' if passed else '已运行未通过'
     else:
-        rules_text = '未运行'
+        # 无同截止规则结果时一律「待核验」：不得显示成"未运行"让人误以为
+        # 已核验过且无信号，也不得当成规则通过/不通过的结论。
+        rules_text = '待核验（本轮无同截止规则结果）'
     if bulletin.get('status') == 'READY':
         ai_text = '已完成'
+    elif bulletin.get('status') == 'AI_FAILED' or bulletin.get('validation_error'):
+        # OUTLOOK_SECTION_INVALID 等事实校验失败必须如实显示，不能说成"未完成"
+        # 或伪装成研判完成；本地事实保留且不自动付费重试。
+        err = str(bulletin.get('validation_error') or '')
+        ai_text = '回复未通过事实校验' + ('（' + err + '）' if err else '')
+        packet['ai_failure_text'] = (ai_text + '；本地事实仍可查看，未自动付费重试')
     elif bulletin.get('status') in ('WAITING_SOURCE', 'SOURCE_LATE', 'DATA_WAIT'):
         ai_text = '等待数据：' + str(bulletin.get('status'))
     else:
@@ -171,6 +277,10 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
             amounts.append(f'{label}{amount:.1f}亿元（报价{fact.get("evidence_time")}累计成交额）')
     packet['volume_text'] = ('；'.join(amounts) + '；' if amounts else '') + (
         '指数成交量及同刻量比待核验：历史量额口径未通过校验；不据此判断放量缩量')
+    packet['volume_scope_text'] = (
+        '以上为报价时点累计成交额快照（单位亿元，非同截止成交量）；'
+        '同刻量比需历史同刻成交量与已完成K线，当前口径未通过校验，标待核验，'
+        '不得用累计成交额比值或当前根未收盘量比冒充放量/缩量结论')
     divergence = []
     for name, label in (('sse', '沪指'), ('cyb', '创业板')):
         text = value('index.'+name+'.divergence_summary')
@@ -194,11 +304,23 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
         observed=value('sector.watch.'+board['name']) or {}
         leader=observed.get('leader') or {}
         leader_text=('池内领涨候选 '+str(leader.get('name') or leader.get('code'))+' %+.1f%%'%(leader['return_value']*100)) if leader else '待核验'
-        changes=('池内%d只跌超4%%；报价%d/%d'%(observed['drop4_count'],observed['valid_count'],observed['pool_count'])) if observed else '待核验'
+        if observed:
+            drop4 = observed.get('drop4_count')
+            changes = (('池内%s只跌超4%%；' % (drop4 if finite(drop4) else '未知数量')
+                       if 'drop4_count' in observed else '异动统计待核验；')
+                       + quote_coverage_text(observed))
+        else:
+            changes = '待核验'
         packet['boards'].append(dict(name=board['name'],leader_text=leader_text,change_text=changes))
     for pos in positions or []:
         code=pos['code'];price=value(code+'.stock.price');cost=pos.get('entry');policy=pos.get('tarot_execution') or {}
+        # 持仓报价独立于板块池/计划票报价：只从该持仓自己的事实字段取，
+        # 缺失时如实「未知」，不拿池内其它票的价格或关注价冒充。
+        if not finite(price):
+            price = None
+        quote_origin = '持仓独立事实字段' if price is not None else '未取得持仓独立报价（不用关注价/池内价冒充）'
         packet['holdings'].append(dict(code=code,name=pos.get('name'),price=price,cost=cost,
+            quote_origin=quote_origin,
             pnl=price/cost-1 if finite(price) and finite(cost) and cost>0 else None,
             stop_loss=policy.get('stop_price'),take_profit=pos.get('take_profit'),state_text='；'.join(sections.get('holdings','').splitlines()) or '待研判'))
     packet.update(advice_status='ADVICE_READY' if bulletin.get('status')=='READY' else None,

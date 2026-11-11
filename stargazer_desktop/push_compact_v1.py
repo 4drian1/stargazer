@@ -8,7 +8,7 @@ def clock(x):return datetime.strptime(str(x),'%Y%m%d%H%M%S').strftime('%H:%M')
 def check(x):return '✓' if x is True else '✗' if x is False else '待核'
 def flat(x):return ' '.join(str(x or '').split())
 def identity(p):return flat(p.get('name'))+' '+flat(p.get('code'))
-def indicator_lines(p):
+def indicator_lines(p, *, include_times=False):
     lines=[]
     for period in ('5','15'):
         pair=(p.get('period_pairs') or {}).get(period) or {};a=pair.get('previous') or {};b=pair.get('current') or {}
@@ -17,12 +17,15 @@ def indicator_lines(p):
             'RSI6 '+number(a.get('rsi6'))+' → '+number(b.get('rsi6'))+' ｜ RSI15 '+number(a.get('rsi15'))+' → '+number(b.get('rsi15')),
             'MACD：DIF '+number(a.get('dif'),4)+' → '+number(b.get('dif'),4)+' ｜ DEA '+number(a.get('dea'),4)+' → '+number(b.get('dea'),4),
             '跨日底背离：DIF '+check(pair.get('dif_divergence'))+' ｜ RSI '+check(pair.get('rsi_divergence'))]
+        if include_times:
+            lines.append('低点对照时间：'+str(a.get('time') or '待核')+' → '+str(b.get('time') or '待核'))
     return lines
 
 def strong(p):
     priority=flat(p.get('priority_label'));title='异动'+('·'+priority if priority else '')
     lower,upper=p.get('level_lower'),p.get('level_upper');price=p.get('price');low=((p.get('period_pairs') or {}).get('5') or {}).get('current') or {}
-    state='状态：低点'+number(low.get('price'))+' ｜ '+flat(p.get('level_label') or '黄金位')+number(lower)+'—'+number(upper)
+    price_only=p.get('indicators_pending') is True
+    state=('状态：' if price_only else '状态：低点'+number(low.get('price'))+' ｜ ')+flat(p.get('level_label') or '黄金位')+number(lower)+'—'+number(upper)
     if finite(price) and finite(lower) and finite(upper) and 0<lower<=upper:
         if lower<=price<=upper:state+=' ｜ 现价'+number(price)+'，带内'
         else:
@@ -35,8 +38,10 @@ def strong(p):
         from strong_pullback_policy_v1 import render
         rules=render(p['pullback_rule'])
     lines=['【'+title+'】'+identity(p)+' ｜ '+flat(p.get('board') or '板块待核')+' ｜ '+clock(p['asof'])+'触发',
-        '━━━━━━━━━━━━━━━━━━━',state,*rules,'背离强度：'+strength+'（仅指标计数）','───────────────────',*indicator_lines(p),
-        '━━━━━━━━━━━━━━━━━━━','程序未下单。']
+        '━━━━━━━━━━━━━━━━━━━',state,*rules]
+    if not price_only:
+        lines+=['背离强度：'+strength+'（仅指标计数）','───────────────────',*indicator_lines(p)]
+    lines+=['━━━━━━━━━━━━━━━━━━━','程序未下单。']
     return dict(title=title,body='\n\n'.join(lines))
 
 def trigger(p):

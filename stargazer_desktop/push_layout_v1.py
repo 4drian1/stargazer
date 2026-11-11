@@ -59,9 +59,12 @@ def plan_line(row):
 
 
 def holdings_line(row):
-    return '%s | 成本%s 现价%s 浮盈%s | 止盈%s 止损%s | %s' % (
+    line = '%s | 成本%s 现价%s 浮盈%s | 止盈%s 止损%s | %s' % (
         identity(row),price(row.get('cost')),price(row.get('price')),percent(row.get('pnl')),
         price(row.get('take_profit')),price(row.get('stop_loss')),row.get('state_text') or '待研判')
+    if row.get('price') is None and row.get('quote_origin'):
+        line += ' | 报价来源：' + str(row['quote_origin'])
+    return line
 
 
 def half_hour(packet,previous=None):
@@ -86,12 +89,25 @@ def half_hour(packet,previous=None):
     if packet.get('pullback_environment_text'):lines.append('强势回调环境｜'+packet['pullback_environment_text'])
     if packet.get('lane_status_text'):
         lines.append('环节状态: '+packet['lane_status_text'])
+    if packet.get('ai_failure_text'):
+        lines.append('DeepSeek 失败说明: '+packet['ai_failure_text'])
+    if packet.get('volume_scope_text'):
+        lines.append('成交额/量比口径: '+packet['volume_scope_text'])
     lines.append('风险模型的分析：'+(packet.get('risk_analysis') or '未提供同截止研判'))
     lines+=['','▍板块扫描']
     lines.extend([str(r['name'])+' | 龙头:'+(r.get('leader_text') or '待核验')+' | 异动:'+(r.get('change_text') or '待核验')
                   for r in packet.get('boards',[])] or ['无已配置板块'])
     lines+=['','▍盘中异动（本时段新触发）']
-    lines.extend([str(r['text']) for r in packet.get('new_events',[])] or ['本时段无'])
+    events=[str(r['text']) for r in packet.get('new_events',[])]
+    scan_text=str(packet.get('scan_status_text') or '')
+    if events:
+        lines.extend(events)
+        lines.append(scan_text or '扫描状态待核验')
+    else:
+        # 只在确认「本时段已完成扫描」后才允许说无新增异动；
+        # 未扫描/零报价/状态陈旧时必须如实显示未完成及具体原因。
+        lines.append(scan_text + '；本时段无新增异动' if ('已完成扫描' in scan_text)
+                     else (scan_text if scan_text else '本时段未完成扫描（扫描状态未提供）'))
     lines+=['','▍持仓']
     holdings=packet.get('holdings')
     lines.extend([holdings_line(r) for r in holdings] if holdings else ['无已登记持仓' if holdings==[] else '实际持仓未提供'])

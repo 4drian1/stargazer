@@ -807,6 +807,40 @@ def poll_policy():
                 note='页面自动刷新暂停不等于后台任务超时或失败；后台超时由 owner/PID/nonce 三态独立判定')
 
 
+_IDENTITY_LABELS = {
+    'IDENTITY_CONFIRMED': '身份已确认',
+    'MONITOR_ENABLED': '身份已确认 · 监控已启用',
+    'CONSTITUENTS_PENDING': '成分待准备',
+    'IDENTITY_UNKNOWN': '身份未解析',
+    'LEGACY_CATALOG': '旧目录（无新身份）',
+    'SOURCE_PENDING': '板块身份待接入',
+}
+
+
+def _identity_label(status):
+    return _IDENTITY_LABELS.get(status, str(status or '身份未提供'))
+
+
+def _member_source_note(provenance):
+    """成员来源性质说明：抓取日/快照日≠成分生效日，不把 day 冒充官方生效日。"""
+    kind = provenance.get('kind')
+    day = provenance.get('snapshot_date') or provenance.get('day')
+    if kind == 'FETCHED':
+        bits = [f'当日抓取版本（抓取日 {day}）' if day else '当日抓取版本']
+        if provenance.get('fetched_at'):
+            bits.append('抓取时刻 ' + str(provenance['fetched_at']))
+        bits.append('网页未提供成分生效日' if not provenance.get('source_asof')
+                    else '网页成分生效日 ' + str(provenance['source_asof']))
+        bits.append('抓取日不等于成分生效日')
+        return '；'.join(bits)
+    if kind == 'FROZEN_ARCHIVE':
+        return (f'历史成员快照（快照日 {day}）；未认证当日完整成员，'
+                '不作为当日完整成分' if day else '历史成员快照；未认证当日完整成员')
+    if kind == 'LEGACY_CATALOG':
+        return '旧目录派生（无新身份）；成员日期来自旧目录数据日，不是官方成分生效日'
+    return '成员来源性质未提供；不得据此推断当日完整成分'
+
+
 def state(boards=None, now=None):
     """逐板块状态：当前请求状态与已有有效结果分别表达。纯读，不启动计算。
 
@@ -839,6 +873,9 @@ def state(boards=None, now=None):
     request_state = (job or {}).get('state')
     request_reason = ((job or {}).get('permanent_reason') or (job or {}).get('last_error')
                       or (job or {}).get('reason'))
+    last_error = (job or {}).get('last_error')
+    if request_reason == 'MAX_ATTEMPTS' and last_error and last_error != request_reason:
+        request_reason += ' · ' + last_error
     current_request = dict(
         state=request_state, job_id=(job or {}).get('job_id'),
         attempt_id=(job or {}).get('attempt_id'),
@@ -874,17 +911,32 @@ def state(boards=None, now=None):
             identity = None
         if identity is not None:
             provenance = identity.get('provenance') or {}
-            row.update(identity_status=identity['status'],
+            status = identity['status']
+            # 身份状态（是否已确认/监控已启用）与成员来源日期是两件不同的事：
+            # 前者只说明目录身份解析结果，后者说明成员名单来自哪一天、什么渠道。
+            row.update(identity_status=status,
+                       identity_label=_identity_label(status),
                        member_count=identity.get('member_count'),
                        member_source=(provenance.get('snapshot_date') or provenance.get('day')),
                        member_provenance=provenance.get('kind'),
+                       member_source_date=provenance.get('snapshot_date') or provenance.get('day'),
+                       member_source_asof=provenance.get('source_asof'),
+                       member_fetched_at=provenance.get('fetched_at'),
+                       member_source_note=_member_source_note(provenance),
                        identity_index_code=(identity.get('identity') or {}).get('index_code'))
         else:
             legacy = legacy_map.get(name) or {}
+            legacy_provenance = dict(kind=legacy.get('member_provenance'),
+                                     snapshot_date=legacy.get('member_source'))
             row.update(identity_status='LEGACY_CATALOG',
+                       identity_label='旧目录（无新身份）',
                        member_count=legacy.get('member_count'),
                        member_source=legacy.get('member_source'),
                        member_provenance=legacy.get('member_provenance'),
+                       member_source_date=legacy.get('member_source'),
+                       member_source_asof=None,
+                       member_fetched_at=None,
+                       member_source_note=_member_source_note(legacy_provenance),
                        identity_index_code=legacy.get('identity_index_code'))
         row.update(current_request_state=request_state,
                    result_origin='EXISTING_VALIDATED_RESULT' if pool is not None else 'CURRENT_REQUEST')

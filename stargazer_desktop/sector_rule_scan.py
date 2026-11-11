@@ -13,7 +13,7 @@ import subprocess
 import sys
 import threading
 
-FINGERPRINT='live_monitor_fingerprints_20261110_v206_flow.json.gz'
+FINGERPRINT='live_monitor_fingerprints_20261111_v213_flow.json.gz'
 ZONE=ZoneInfo('Asia/Shanghai')
 CACHE={}
 LOCK=threading.RLock()

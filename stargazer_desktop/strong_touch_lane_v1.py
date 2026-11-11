@@ -37,8 +37,10 @@ _STATE_LOCK = threading.RLock()
 _WORKER_LOCK = threading.Lock()
 _DELIVERY_QUEUE = queue.Queue(maxsize=1024)
 _INDICATOR_QUEUE = queue.Queue(maxsize=1024)
+_SUPPLEMENT_QUEUE = queue.Queue(maxsize=MAX_EVENTS)
+_SUPPLEMENT_INFLIGHT = set()  # transient queue reservations, rebuilt from event state
 _WORKERS = []
-_INFLIGHT = {'delivery': 0, 'indicators': 0}
+_INFLIGHT = {'delivery': 0, 'indicators': 0, 'supplements': 0}
 
 
 def state_file(state_dir, day):
@@ -80,16 +82,31 @@ def is_state_owner(state_file):
     return iss.is_owner(Path(state_file), ttl=STATE_LEASE_TTL)
 
 
-def _read_state(file, day=None, pool_id=None, codes=None):
-    """Cross-process safe read.  See instance_state_store_v1.read_state.
+def _read_state_owned(file, day=None, pool_id=None, codes=None):
+    """Cross-process safe read AND the only legitimate lease-claim path.
+
+    Returns ``(value, owned)``.  ``owned`` is True only when this process holds
+    the reservation (no owner / previous owner confirmed dead / already ours);
+    a live competitor, an unconfirmable-dead owner or a corrupt ``.owner`` gives
+    ``owned=False`` and a strictly read-only value.
+
+    Callers MUST gate scans, writes, quote requests, enqueues and sends on
+    ``owned`` rather than on ``iss.is_owner()``: the latter is a cheap in-memory
+    identity check that is necessarily empty on the first call of a fresh
+    process, which used to deadlock the whole lane into ``NOT_OWNER`` forever.
 
     On a legitimate takeover of a dead owner, ``value['_restart_recovery_pending']``
     is set so callers re-enqueue PENDING/WAIT_REVERIFY work without ever re-sending.
     """
     file = Path(file)
-    value, is_owner = iss.read_state(
+    return iss.read_state(
         file, contract=CONTRACT, day=day, pool_id=pool_id, codes=codes,
         build_default=_default_state, ttl=STATE_LEASE_TTL)
+
+
+def _read_state(file, day=None, pool_id=None, codes=None):
+    """Read-only snapshot helper; ownership is deliberately not consulted."""
+    value, _owned = _read_state_owned(file, day, pool_id, codes)
     return value
 
 
@@ -316,6 +333,7 @@ def _queue_depths():
     return dict(
         delivery=_DELIVERY_QUEUE.qsize(),
         indicators=_INDICATOR_QUEUE.qsize(),
+        supplements=_SUPPLEMENT_QUEUE.qsize(),
         delivery_inflight=_INFLIGHT['delivery'],
         indicators_inflight=_INFLIGHT['indicators'],
         # ---- 线程数监控 (新增) ----
@@ -344,17 +362,30 @@ def restore_pending_events(state_dir, plan, *, stop_event=None):
     """
     # 扫描所有 state 文件 (不仅今日)
     files = sorted(Path(state_dir).glob('*.json'))
+    today_stem = datetime.now().strftime('%Y%m%d')
     delivery_restored = 0
     indicator_restored = 0
+    supplements_restored = 0
     for file in files:
         try:
             now = datetime.now()
             import queue as _q
-            if not iss.is_owner(file, ttl=STATE_LEASE_TTL):
-                # Do not touch a file owned by a live competitor.
-                continue
             with _STATE_LOCK:
-                state = _read_state(file)
+                if file.stem == today_stem:
+                    # Today's file: claim/confirm inside the lock instead of the
+                    # old in-memory is_owner() gate, which was always empty at
+                    # startup and silently skipped every pending event.
+                    state, owned = _read_state_owned(file)
+                else:
+                    # Historical files are read-only unless we already own them.
+                    # Never create a fresh .owner lease for an expired day (that
+                    # would leave orphan reservations the pruner cannot see).
+                    owned = iss.is_owner(file, ttl=STATE_LEASE_TTL)
+                    state = _read_state(file) if owned else None
+                if not owned:
+                    # Live competitor / unconfirmable-dead / corrupt .owner:
+                    # read-only, never enqueue or send on its behalf.
+                    continue
                 dirty = bool(state.pop('_restart_recovery_pending', False))
                 for event_id, event in state.get('events', {}).items():
                     event_day=int(event.get('day') or state.get('day') or 0)
@@ -390,12 +421,13 @@ def restore_pending_events(state_dir, plan, *, stop_event=None):
                             event['indicator_queued_at'] = now.isoformat(timespec='seconds')
                             indicator_restored += 1
                             dirty = True
+                    supplements_restored += _enqueue_supplement(file, event_id, event, plan, now)
                 if dirty:
                     _write_state(file, state)
         except (OSError, ValueError, json.JSONDecodeError):
             continue
     return dict(delivery_restored=delivery_restored, indicator_restored=indicator_restored,
-                files_scanned=len(files))
+                supplements_restored=supplements_restored, files_scanned=len(files))
 
 
 def _usage_snapshot(usage_file, day):
@@ -424,13 +456,19 @@ def poll(plan, now, *, state_dir, quote_fn=None, usage_file=None, clock=None):
     row_by_code = {str(row['code']): row for row in rows}
     codes = list(row_by_code)
     file = state_file(state_dir, day)
-    if not iss.is_owner(file, ttl=STATE_LEASE_TTL):
-        # We do not own this day's state — never scan/write/enqueue it.  Leave the
-        # owner's file untouched (no pruning, no quote writes).
-        return dict(status='NOT_OWNER', pool_count=len(rows))
-    prune_state_files(state_dir, day)
     with _STATE_LOCK:
-        state = _read_state(file, day, pool.get('rows_sha256'), codes)
+        # Claim (or confirm) the lease FIRST, under the same cross-process lock
+        # used to read .owner.  Gating on iss.is_owner() here used to be a
+        # self-deadlock: on the first poll of a fresh process the in-memory
+        # identity is empty, so the only path that can populate it was never
+        # reached and the lane reported NOT_OWNER forever without quoting.
+        state, owned = _read_state_owned(file, day, pool.get('rows_sha256'), codes)
+        if not owned:
+            # A live competitor, an unconfirmable-dead owner or a corrupt
+            # .owner holds this file — possibly with no state JSON written yet.
+            # Zero scan, zero quote, zero write, zero enqueue.
+            return dict(status='NOT_OWNER', pool_count=len(rows))
+        prune_state_files(state_dir, day)
         selected = select_scan_codes(rows, state['symbols'])
         attempt_epoch = now.timestamp()
         attempt_stamp = now.isoformat(timespec='seconds')
@@ -472,7 +510,11 @@ def poll(plan, now, *, state_dir, quote_fn=None, usage_file=None, clock=None):
         return dict(status='DAY_CHANGED_DURING_SCAN', pool_count=len(rows), scanned_count=len(selected))
     cutoff = _cutoff(completed_at)
     with _STATE_LOCK:
-        state = _read_state(file, day, pool.get('rows_sha256'), codes)
+        state, owned = _read_state_owned(file, day, pool.get('rows_sha256'), codes)
+        if not owned:
+            # Ownership changed while quotes were in flight: drop the results
+            # instead of writing or enqueueing into another process's state.
+            return dict(status='NOT_OWNER', pool_count=len(rows), scanned_count=len(selected))
         valid_count = 0
         for code in selected:
             symbol = state['symbols'].setdefault(code, dict(attempts=0))
@@ -629,12 +671,37 @@ def update_event(file, event_id, **fields):
     return _mutate_event(file, event_id, fields)
 
 
+def _enqueue_supplement(file, event_id, event, plan, now):
+    """Join persisted indicator results and the first-send outcome under _STATE_LOCK."""
+    if event.get('indicator_supplement_status') not in ('PENDING', 'WAIT_RETRY', 'SENDING'):
+        return False
+    if (event.get('indicator_status') in (None, 'PENDING', 'PROCESSING')
+            or event.get('delivery_status') in (None, 'PENDING', 'WAIT_REVERIFY', 'PROCESSING', 'SENDING')
+            or str(event.get('day')) != now.strftime('%Y%m%d')
+            or _epoch(event.get('supplement_retry_after_epoch')) > now.timestamp()):
+        return False
+    from notifier import market_open
+    if not market_open(now):
+        return False
+    key = (str(file), event_id)
+    if key in _SUPPLEMENT_INFLIGHT:
+        return False
+    _SUPPLEMENT_INFLIGHT.add(key)
+    try:
+        _SUPPLEMENT_QUEUE.put_nowait((*key, plan))
+    except queue.Full:
+        _SUPPLEMENT_INFLIGHT.discard(key)
+        return False
+    return True
+
+
 def enqueue_pending(file, plan, *, now=None):
     now = now or datetime.now()
     if not iss.is_owner(file, ttl=STATE_LEASE_TTL):
         # Non-owner must not enqueue delivery/indicator work (zero enqueue).
-        return dict(delivery=0, indicators=0, queue_depths=_queue_depths())
+        return dict(delivery=0, indicators=0, supplements=0, queue_depths=_queue_depths())
     queued_delivery = queued_indicators = 0
+    queued_supplements = 0
     with _STATE_LOCK:
         state = _read_state(file)
         dirty = False
@@ -661,10 +728,11 @@ def enqueue_pending(file, plan, *, now=None):
                     event['indicator_queued_at'] = now.isoformat(timespec='seconds')
                     queued_indicators += 1
                     dirty = True
+            queued_supplements += _enqueue_supplement(file, event_id, event, plan, now)
         if dirty:
             state.setdefault('health', {})['queue_depths'] = _queue_depths()
             _write_state(file, state)
-    return dict(delivery=queued_delivery, indicators=queued_indicators,
+    return dict(delivery=queued_delivery, indicators=queued_indicators, supplements=queued_supplements,
                 queue_depths=_queue_depths())
 
 
@@ -676,6 +744,9 @@ def _worker_loop(work_queue, handler, stop_event, lane):
             continue
         if not iss.is_owner(file, ttl=STATE_LEASE_TTL):
             # Non-owner: drop the item without enqueue/broadcast/indicate/send.
+            if lane == 'supplements':
+                with _STATE_LOCK:
+                    _SUPPLEMENT_INFLIGHT.discard((file, event_id))
             work_queue.task_done()
             continue
         _INFLIGHT[lane] += 1
@@ -684,7 +755,7 @@ def _worker_loop(work_queue, handler, stop_event, lane):
             if lane == 'delivery':
                 update_event(file, event_id, delivery_queued=False,
                              delivery_status='PROCESSING', delivery_phase='PRE_SEND_VERIFY')
-            else:
+            elif lane == 'indicators':
                 update_event(file, event_id, indicator_queued=False,
                              indicator_status='PROCESSING', indicator_started_at=stamp)
             handler(event_id, Path(file), plan)
@@ -696,27 +767,38 @@ def _worker_loop(work_queue, handler, stop_event, lane):
                 fields.update(delivery_status='UNKNOWN' if attempted else 'WAIT_REVERIFY',
                               delivery_retry_after_epoch=time.time()+POLL_INTERVAL_SECONDS,
                               delivery_finished_at=datetime.now().isoformat(timespec='seconds'))
+            elif lane == 'indicators':
+                fields.update(indicator_status='FAILED', indicator_finished_at=datetime.now().isoformat(timespec='seconds'),
+                              indicator_supplement_status='PENDING',
+                              indicator_result=dict(status='FAILED', reason=fields['error']))
             else:
-                fields.update(indicator_status='FAILED', indicator_finished_at=datetime.now().isoformat(timespec='seconds'))
+                fields = dict(supplement_error=fields['error'],
+                              supplement_retry_after_epoch=time.time()+POLL_INTERVAL_SECONDS)
             try:
                 update_event(file, event_id, **fields)
             except Exception:
                 pass
         finally:
+            if lane == 'supplements':
+                with _STATE_LOCK:
+                    _SUPPLEMENT_INFLIGHT.discard((file, event_id))
             _INFLIGHT[lane] = max(0, _INFLIGHT[lane] - 1)
             work_queue.task_done()
 
 
-def start_workers(delivery_handler, indicator_handler, stop_event):
-    """Start two independent delivery workers and two indicator workers once."""
+def start_workers(delivery_handler, indicator_handler, stop_event, *, supplement_handler=None):
+    """Start bounded delivery, indicator and supplement workers once."""
     with _WORKER_LOCK:
         alive = [thread for thread in _WORKERS if thread.is_alive()]
         _WORKERS[:] = alive
-        for lane, work_queue, handler in (
-                ('delivery', _DELIVERY_QUEUE, delivery_handler),
-                ('indicators', _INDICATOR_QUEUE, indicator_handler)):
+        for lane, work_queue, handler, limit in (
+                ('delivery', _DELIVERY_QUEUE, delivery_handler, 2),
+                ('indicators', _INDICATOR_QUEUE, indicator_handler, 2),
+                ('supplements', _SUPPLEMENT_QUEUE, supplement_handler, 1)):
+            if handler is None:
+                continue
             count = sum(thread.name.startswith('strong-touch-' + lane + '-') for thread in alive)
-            for index in range(count, 2):
+            for index in range(count, limit):
                 thread = threading.Thread(target=_worker_loop,
                     args=(work_queue, handler, stop_event, lane), daemon=True,
                     name='strong-touch-' + lane + '-' + str(index + 1))

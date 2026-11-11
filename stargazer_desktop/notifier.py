@@ -115,11 +115,54 @@ def save_dedup_state(path, state):
     os.replace(tmp, path)
 
 
-def record_push_receipt(kind, title, ok, msg, wechat_enabled):
+def load_push_receipts(limit=50, path=None):
+    """只读推送回执，供助手页「系统通知」展示。
+
+    保留原始正文(msg)、时间(time)、类型(key)、送达状态(ok/wechat_enabled)，
+    绝不改写/截断；坏行跳过并计入 bad_lines。返回 (items, bad_lines, path)。
+    """
+    if path is None:
+        rp = os.path.join(os.path.dirname(push_state_path()), PUSH_RECEIPT_FILENAME)
+    else:
+        rp = str(path)
+    items, bad_lines = [], 0
+    try:
+        with open(rp, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return [], 0, rp
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            bad_lines += 1
+            continue
+        if not isinstance(row, dict):
+            bad_lines += 1
+            continue
+        ok = bool(row.get("ok"))
+        enabled = bool(row.get("wechat_enabled"))
+        if row.get("provider") not in (None, "dingtalk"):
+            continue
+        delivery = row.get("delivery") or ("SENT" if ok else "FAILED" if enabled else "DISABLED")
+        items.append(dict(
+            ts=row.get("time"), kind=str(row.get("key") or "UNKNOWN"),
+            title=str(row.get("title") or ""), body=str(row.get("body") or ""),
+            delivery=delivery,
+            delivery_note={"SENT": "接口已受理", "FAILED": "发送失败",
+                           "UNKNOWN": "送达未知", "DISABLED": "推送未启用"}.get(delivery),
+            wechat_enabled=enabled))
+    return items[-max(1, int(limit)):][::-1], bad_lines, rp
+
+
+def record_push_receipt(kind, title, ok, msg, wechat_enabled, *, body=None, provider=None, delivery=None):
     """逐条推送回执落盘（成功/失败都记录）。写盘失败仅记日志，绝不抛出。"""
     receipt = {"time": dt.datetime.now().isoformat(timespec="seconds"),
                "key": str(kind), "title": str(title), "ok": bool(ok),
-               "msg": str(msg), "wechat_enabled": bool(wechat_enabled)}
+               "msg": str(msg), "wechat_enabled": bool(wechat_enabled),
+               "body": body, "provider": provider, "delivery": delivery}
     try:
         directory = os.path.dirname(push_state_path())
         if directory:
@@ -162,6 +205,7 @@ def send_wechat(cfg, title, desp):
     """返回 (ok, 说明)。"""
     p = cfg.get("push", {})
     provider = p.get("provider", "serverchan")
+    dingtalk_attempted = False
     try:
         if provider == "pushplus":
             token = p.get("pushplus_token", "").strip()
@@ -176,6 +220,8 @@ def send_wechat(cfg, title, desp):
         if provider == "dingtalk":
             webhook = p.get("dingtalk_webhook", "").strip()
             if not webhook:
+                record_push_receipt("dingtalk", title, False, "未配置钉钉", True,
+                                    body=desp, provider=provider, delivery="FAILED")
                 return False, "未配置 dingtalk_webhook"
             secret = p.get("dingtalk_secret", "").strip()
             url = webhook
@@ -199,8 +245,12 @@ def send_wechat(cfg, title, desp):
                               ensure_ascii=False).encode("utf-8")
             req = urllib.request.Request(url, data=body,
                                          headers={"Content-Type": "application/json"})
+            dingtalk_attempted = True
             r = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
-            return (r.get("errcode") == 0), str(r.get("errmsg") or r)
+            ok = r.get("errcode") == 0
+            record_push_receipt("dingtalk", title, ok, "接口受理" if ok else "接口拒绝", True,
+                                body=desp, provider=provider, delivery="SENT" if ok else "FAILED")
+            return ok, str(r.get("errmsg") or r)
         key = p.get("serverchan_sendkey", "").strip()
         if not key:
             return False, "未配置 serverchan_sendkey"
@@ -209,6 +259,10 @@ def send_wechat(cfg, title, desp):
         r = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
         return (r.get("code") == 0), str(r.get("message") or r)
     except Exception as e:
+        if provider == "dingtalk":
+            record_push_receipt("dingtalk", title, False, type(e).__name__, True,
+                                body=desp, provider=provider,
+                                delivery="UNKNOWN" if dingtalk_attempted else "FAILED")
         return False, f"推送请求失败: {e}"
 
 
@@ -533,7 +587,9 @@ class Notifier(threading.Thread):
         log(f"巡检有信号，微信推送: {'成功' if ok else '未发'} ({msg})")
         if wechat_enabled and not ok:
             log(f"推送回执失败，明确记风险: kind={kind} msg={msg}")
-        record_push_receipt(kind, title, ok, msg, wechat_enabled)
+        if not wechat_enabled or pcfg.get("provider") != "dingtalk":
+            record_push_receipt(kind, title, ok, msg, wechat_enabled,
+                                provider=pcfg.get("provider", "serverchan"))
         if pcfg.get("in_app_notify", True):
             broadcast({"type": "push", "kind": kind, "title": title, "body": text,
                        "wechat": ok, "wechat_msg": msg, "time": now.strftime("%H:%M:%S")})
@@ -549,7 +605,9 @@ class Notifier(threading.Thread):
         log(f"{title}: 微信{'成功' if ok else '未发'} ({msg})")
         if wechat_enabled and not ok:
             log(f"推送回执失败，明确记风险: kind={kind} msg={msg}")
-        record_push_receipt(kind, title, ok, msg, wechat_enabled)
+        if not wechat_enabled or pcfg.get("provider") != "dingtalk":
+            record_push_receipt(kind, title, ok, msg, wechat_enabled,
+                                provider=pcfg.get("provider", "serverchan"))
         if pcfg.get("in_app_notify", True):
             broadcast({"type": "push", "kind": kind, "title": title, "body": text,
                        "wechat": ok, "wechat_msg": msg,

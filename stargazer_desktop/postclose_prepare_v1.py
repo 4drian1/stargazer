@@ -34,7 +34,7 @@ def after_selection(snapshot):
     previous=workflow.plan_preferences(saved_previous)
     # Preserve explicit preferences, not stale tickers or a former confirmation.
     boards=deepcopy(previous.get('boards') or [])
-    if not boards:
+    if not boards and not previous.get('board_preference_id'):
         import pentacles_demo
         try:boards=json.loads(pentacles_demo.snapshot_path().with_name('assistant_plan.json').read_bytes()).get('boards',[])
         except (OSError,ValueError):pass

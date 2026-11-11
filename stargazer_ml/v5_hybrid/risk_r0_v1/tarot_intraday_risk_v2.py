@@ -32,7 +32,7 @@ def failure_details(error, stage):
 
 def execute(body):
     from joint_shadow_service_v1 import verify_fingerprints
-    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261110_v206_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261111_v213_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))
     cutoff=int(body['cutoff']);day=cutoff//1000000

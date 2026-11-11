@@ -98,7 +98,10 @@ class ReportDecouplingTest(unittest.TestCase):
         rendered = self._report(dict(status='EVIDENCE_FAILED',
                                      reason='ValueError:REALTIME_CONTEXT_SUPPLY_PENDING'),
                                 signal_rows={})
-        self.assertIn('环节状态: 规则：未运行｜Pyxis：数据失败：', rendered['body'])
+        # 2026-11-11 巡检修复：无同截止规则结果时必须显示「待核验」，
+        # 旧文案「未运行」会让人误以为规则已核验且无信号。
+        self.assertIn('环节状态: 规则：待核验', rendered['body'])
+        self.assertIn('｜Pyxis：数据失败：', rendered['body'])
         self.assertIn('｜DeepSeek：未完成', rendered['body'])
 
 

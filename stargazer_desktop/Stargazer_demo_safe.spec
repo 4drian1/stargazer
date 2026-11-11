@@ -58,6 +58,9 @@ _I34_DEMO_FILES = ['i34_infer.py', 'i34_desktop_integration.py', 'i34_vocab.json
                    'i34_receipt_index.json', 'i34_deepseek_input.json',
                    'i34_stock_linkage_v1.py']
 datas += [(os.path.join(_CORVUS, 'i34_demo', _f), 'i34_demo') for _f in _I34_DEMO_FILES]
+datas += [(os.path.join(_CORVUS, 'model_a', 'materiality_v1_build',
+                       'materiality_d2_4_desktop_shadow_records_v0_1.jsonl'),
+           'model_a/materiality_v1_build')]
 
 # frozen research assets actually used at runtime. i24_1 is here because
 # i25/extractor_v3.py dynamically loads ../i24_1_.../extractor_v2.py.

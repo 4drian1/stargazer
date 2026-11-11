@@ -603,6 +603,29 @@ def wl_remove(cfg, code):
     return {"ok": True}
 
 
+def wl_remove_watch(cfg, code):
+    """只移除观察名单条目；持仓、计划与成交账本一律不动。
+
+    ``wl_remove`` 是聊天 /del 命令用的组合删除（同时删 watch 与 positions），
+    不能复用为「删除观察」：同一只票可能同时出现在持仓/正式计划里，删观察
+    绝不能连带抹掉持仓。本接口显式返回 untouched 计数，便于前端与验收核对。
+    """
+    code = str(code or "").strip()
+    if not code:
+        return {"ok": False, "error": "code 必填", "removed": 0}
+    wl = wl_load(cfg)
+    watch = list(wl.get("watch") or [])
+    kept = [w for w in watch if str(w.get("code")) != code]
+    removed = len(watch) - len(kept)
+    if not removed:
+        return {"ok": False, "error": "观察名单中未找到该代码", "removed": 0}
+    wl["watch"] = kept
+    wl_save(cfg, wl)
+    return {"ok": True, "removed": removed, "watch_remaining": len(kept),
+            "positions_untouched": len(wl.get("positions") or []),
+            "code": code}
+
+
 def wl_update_position(cfg, code, **fields):
     """编辑已有持仓的字段（名称/成本/买入日/止损/逻辑），找不到返回错误。"""
     wl = wl_load(cfg)
@@ -776,21 +799,51 @@ def trade_export_csv(cfg, out_path=None, limit=200000):
 
 def position_details(cfg, code, live_price=None):
     """真实合同：从已登记真实成交计算数量、加权成本、可卖（T+1）与盈亏。
-    无成交记录 → 全部 None（显示未知，不用 0 冒充）；行情缺失 → 盈亏 None。"""
+
+    成本口径（部分卖出修复）：卖出按当时移动加权平均成本结转成本，而不是用
+    卖出成交价冲减总成本。否则部分卖出会把剩余持仓的单位成本按卖价压低/抬高，
+    剩余持仓的 pnl 与成本随即失真。卖出价与结转成本之差记入 ``realized_pnl``。
+
+    余额语义：
+      * 无任何成交记录 → quantity=None（未知，不用 0 冒充），state='NO_TRADES'
+      * 有成交但已清空  → quantity=0（真实已清仓），state='CLOSED'
+      * 仍有持仓         → quantity>0，state='OPEN'
+    行情缺失 → 盈亏 None。
+    """
     import datetime as _dt
     conn = _trade_conn(cfg)
     rows = conn.execute(
         "SELECT action, price, shares, trade_date FROM trades WHERE code=? ORDER BY trade_date, id",
         (str(code),)).fetchall()
     conn.close()
+    if not any(int(shares or 0) > 0 for _, _, shares, _ in rows):
+        return dict(quantity=None, cost=None, sellable=None, pnl=None, pnl_pct=None,
+                    position_state='NO_TRADES', realized_pnl=None)
     qty = 0
     cost_sum = 0.0
+    realized = 0.0
+    oversold = 0
     for action, price, shares, _ in rows:
         shares = int(shares or 0)
-        qty += shares if action == "buy" else -shares
-        cost_sum += float(price or 0) * shares * (1 if action == "buy" else -1)
+        if shares <= 0:
+            continue
+        px = float(price or 0)
+        if action == "buy":
+            qty += shares
+            cost_sum += px * shares
+        else:
+            avg = cost_sum / qty if qty > 0 else None
+            sold = min(shares, qty)
+            if avg is not None and sold:
+                # 结转平均成本，不用卖出成交价冲减成本池
+                cost_sum -= avg * sold
+                realized += (px - avg) * sold
+            qty -= sold
+            oversold += shares - sold  # 超卖不伪造负持仓，仅留痕
     if qty <= 0:
-        return dict(quantity=None, cost=None, sellable=None, pnl=None, pnl_pct=None)
+        return dict(quantity=0, cost=None, sellable=0, pnl=None, pnl_pct=None,
+                    position_state='CLOSED', realized_pnl=round(realized, 2),
+                    oversold_shares=oversold)
     cost = cost_sum / qty
     today = _dt.date.today().isoformat()
     sellable = sum((int(s or 0)) for a, _, s, d in rows if a == "buy" and str(d or "") < today)
@@ -802,4 +855,6 @@ def position_details(cfg, code, live_price=None):
             pnl_pct = round((float(live_price) / cost - 1) * 100, 2) if cost > 0 else None
         except (TypeError, ValueError, ZeroDivisionError):
             pnl = pnl_pct = None
-    return dict(quantity=qty, cost=round(cost, 3), sellable=sellable, pnl=pnl, pnl_pct=pnl_pct)
+    return dict(quantity=qty, cost=round(cost, 3), sellable=sellable, pnl=pnl, pnl_pct=pnl_pct,
+                position_state='OPEN', realized_pnl=round(realized, 2),
+                oversold_shares=oversold)

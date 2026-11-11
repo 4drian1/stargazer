@@ -285,6 +285,36 @@ def plan_information_block(codes, sectors, asof):
     return dict(connected=True, entries=entries, summary=summary, note=note, scope=scope)
 
 
+def position_summaries(codes, asof=None):
+    """按股票代码汇总持仓公告卡（/api/state 与巡检共用的唯一口径）。
+
+    ``plan_information_block`` 的正式合同是 ``entries`` + ``codes[]`` + ``summary``；
+    这里按 ``codes[]`` 展开，一只股票只取重要性最高的一条（entries 已排序），
+    并附带总数/连接状态/诚实缺口说明。断连时返回空 dict，不抛异常。
+    """
+    if asof is None:
+        asof = _dt.datetime.now()
+    try:
+        block = plan_information_block([str(c) for c in codes or []], [], asof)
+    except Exception:
+        return {}
+    out = {}
+    summary = block.get('summary') or {}
+    for entry in block.get('entries') or []:
+        top = dict(
+            related_count=summary.get('n'),
+            top_title=entry.get('title'),
+            top_availability=entry.get('availability'),
+            top_importance=entry.get('importance'),
+            top_date=entry.get('authoritative_date'),
+            top_ref=entry.get('ref'),
+            connected=bool(block.get('connected')),
+            note=block.get('note'))
+        for code in entry.get('codes') or []:
+            out.setdefault(str(code), top)
+    return out
+
+
 def stock_facts(code, asof, cutoff):
     """Intraday computed_facts entries for ONE stock, as-of the trade date.
     Keys are legal citation ids (info.N); KNOWN only when truly known at the request moment.

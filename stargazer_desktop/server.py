@@ -358,26 +358,31 @@ def state():
                 "name": q.get("name") or item.get("name", "")}
     enriched = []
     for pos in positions:
-        detail = services.position_details(cfg, pos.get("code"), (_live(pos) or {}).get("live_price"))
-        enriched.append({**pos, **_live(pos), **detail})
+        live = _live(pos)
+        detail = services.position_details(cfg, pos.get("code"), live.get("live_price"))
+        if detail.get('position_state') == 'CLOSED':
+            continue
+        enriched.append({**pos, **live, **detail})
     info_by_code = {}
     try:
         import corvus_info_link_v1
-        codes = [str(p.get("code")) for p in positions if p.get("code")]
+        codes = [str(p.get("code")) for p in enriched if p.get("code")]
         if codes:
-            import datetime as _dt2
-            block = corvus_info_link_v1.plan_information_block(codes, [], _dt2.datetime.now())
-            for item in block.get('items') or []:
-                code = str(item.get('code') or '')
-                info_by_code[code] = dict(
-                    related_count=block.get('counts', {}).get(code),
-                    top_title=item.get('title'),
-                    top_availability=item.get('availability'),
-                    top_importance=item.get('importance'))
+            # 正式合同 = entries[].codes[]；旧代码读 items/counts 与之错配，
+            # 导致持仓公告恒为空。
+            info_by_code = corvus_info_link_v1.position_summaries(codes)
     except Exception:
         info_by_code = {}
     for pos in enriched:
-        pos['corvus'] = info_by_code.get(str(pos.get('code'))) or None
+        code = str(pos.get('code'))
+        pos['corvus'] = info_by_code.get(code) or None
+    if enriched:
+        try:
+            from i34_bridge import local_announcements
+            for pos in enriched:
+                pos['announcements'] = local_announcements(code=pos['code'], name=pos.get('name'), limit=3)
+        except Exception:
+            pass
     return jsonify({
         "positions": enriched,
         "watch": [{**w, **_live(w)} for w in watch],
@@ -703,6 +708,36 @@ def api_board_change_state():
     return jsonify({'ok': True, 'draft': draft})
 
 
+@app.route('/api/assistant/boards/options')
+def api_board_change_options():
+    from plan_board_change_v1 import current_boards, plan_effective
+    from ths_board_identity_v1 import identities, monitor_status
+    context = _board_change_context()
+    try:
+        formal, boards = current_boards(context['formal_plan_path'], context['store_dir'])
+        options = []
+        for item in identities():
+            status = monitor_status(item, context['store_dir'])
+            options.append({key: item[key] for key in ('name', 'type', 'index_code', 'web_id')} |
+                           {key: status[key] for key in ('member_count', 'provenance')})
+        return jsonify({'ok': True, 'options': options, 'selected': [b['name'] for b in boards],
+                        'effective': plan_effective(formal)})
+    except (ValueError, OSError) as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
+@app.route('/api/assistant/boards/preview', methods=['POST'])
+def api_board_change_preview():
+    from plan_board_change_v1 import preview_selection
+    try:
+        body = request.get_json(silent=True) or {}
+        with _brain_lock:
+            return jsonify({'ok': True, **preview_selection(
+                body.get('action'), body.get('board'), **_board_change_context())})
+    except (ValueError, OSError) as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+
 @app.route('/api/assistant/boards/confirm', methods=['POST'])
 def api_board_change_confirm():
     from plan_board_change_v1 import confirm, load_draft
@@ -713,6 +748,10 @@ def api_board_change_confirm():
             draft = load_draft(context['root'], body.get('id'))
             if body.get('confirmed') is not True:
                 raise ValueError('必须人工确认板块变更')
+            if os.environ.get('STARGAZER_ACCEPTANCE_MODE') == '1':
+                result = confirm(body.get('id'), body.get('confirmed'), **context)
+                result['reply'] += '\n试用模式：板块设置已保存到副本，强势池计算待正式运行。'
+                return jsonify(result)
             from ths_board_supply_v1 import ensure
             preparation = {board['name']: value for board in draft.get('boards', [])
                            if (value := ensure(board['name'], context['store_dir'])) is not None}
@@ -741,14 +780,19 @@ def api_board_change_confirm():
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
 
+def _strong_pool_boards():
+    from plan_board_change_v1 import current_boards
+    from sector_watch_v1 import names
+    context = _board_change_context()
+    _, boards = current_boards(context['formal_plan_path'], context['store_dir'])
+    return names({'boards': boards})
+
+
 @app.route('/api/strong-pool/state')
 def api_strong_pool_state():
     """纯读：逐板块准备状态/合格数/成员出处；不采集、不计算、不付费、不发送。"""
     import strong_sector_pool_prep_v1 as pool_prep
-    from sector_watch_v1 import names
-    import trade_plan_v1
-    plan = trade_plan_v1.load_plan() or {}
-    boards = request.args.getlist('board') or names(plan)
+    boards = request.args.getlist('board') or _strong_pool_boards()
     return jsonify(pool_prep.state(boards))
 
 
@@ -757,15 +801,13 @@ def api_strong_pool_board():
     """纯读：单个板块从已核验池读出的真实股票（代码/名称/黄金观察区/准备状态）。
     池按正式计划的完整板块集合绑定；展开不启动计算、不加入正式个股计划、不触发推送。"""
     import strong_sector_pool_prep_v1 as pool_prep
-    from sector_watch_v1 import names
-    import trade_plan_v1
     name = (request.args.get('name') or '').strip()
     if not name:
         return jsonify({'ok': False, 'error': 'name 必填'}), 400
-    plan = trade_plan_v1.load_plan() or {}
-    boards = pool_prep._normalize_boards(names(plan) or [name])
+    boards = pool_prep._normalize_boards(_strong_pool_boards())
     if name not in boards:
-        boards = sorted(set(boards + [name]))
+        return jsonify({'ok': True, 'board': name, 'status': 'NOT_READY',
+                        'reason': 'BOARD_NOT_IN_PREPARATION_SCOPE', 'rows': []})
     found = pool_prep.validated_existing_pool(boards)
     pool = found.get('pool')
     reason = None if pool is not None else (found.get('validation') or 'NO_VALIDATED_POOL')
@@ -811,11 +853,8 @@ def api_assistant_plan_reject():
 def api_strong_pool_prepare():
     """“更新板块强势池”：显式本地准备/有限重试；不启动选股模型、LLM 或推送。"""
     import strong_sector_pool_prep_v1 as pool_prep
-    from sector_watch_v1 import names
-    import trade_plan_v1
     body = request.get_json(silent=True) or {}
-    plan = trade_plan_v1.load_plan() or {}
-    boards = body.get('boards') or names(plan)
+    boards = body.get('boards') or _strong_pool_boards()
     view = pool_prep.submit(boards)
     return jsonify(view)
 
@@ -906,6 +945,14 @@ def api_risk_outlook():
     return jsonify(risk_outlook_v1.queue(get_cfg(),view,cutoff,plan_id=risk_outlook_v1.view_id(view)))
 
 
+@app.route('/api/risk/outlook/latest')
+def api_risk_outlook_latest():
+    import risk_outlook_v1
+    candidates = [risk_outlook_v1.latest(mode) for mode in ('POSTCLOSE', 'INTRADAY')]
+    latest = max(candidates, key=lambda item: str(item.get('asof') or ''))
+    return jsonify({key: latest.get(key) for key in ('asof', 'mode', 'status', 'text', 'reason')})
+
+
 @app.route('/api/plan_boards')
 def api_plan_boards():
     import plan_board_monitor
@@ -947,6 +994,23 @@ def api_chat_session():
         return jsonify({'ok': True, 'session': brain.archive.stem,
                         'messages': [m for m in brain.messages[-20:]
                                      if m.get('role') in ('user', 'assistant') and m.get('content')]})
+
+
+@app.route('/api/chat/notifications', methods=['GET'])
+def api_chat_notifications():
+    """助手页「系统通知」：只读真实钉钉推送回执。
+
+    绝不调用模型/DeepSeek，绝不把整天推送塞进 Brain 会话上下文；
+    新建会话也不清空该列表（来源是独立回执文件，不是会话消息）。
+    """
+    try:
+        limit = max(1, min(200, int(request.args.get('limit') or 50)))
+    except (TypeError, ValueError):
+        limit = 50
+    items, bad_lines, path = notifier.load_push_receipts(limit=limit)
+    return jsonify({'ok': True, 'items': items, 'bad_lines': bad_lines,
+                    'connected': bool(items), 'source_path': path,
+                    'note': '只读推送回执；以系统通知展示，不进入模型上下文，不产生费用'})
 
 
 # ---------- 信息面板（Stargazer 1.0 UI 框架：Corvus 信息模型，缺席=未接入） ----------
@@ -1057,6 +1121,36 @@ def api_plan_check():
                 result['pushed'] = False
                 result['push_msg'] = f'{type(exc).__name__}'
     return jsonify(result)
+
+
+@app.route('/api/index/kline')
+def api_index_kline():
+    """总览指数 K 线：纯读已准备镜像。未准备品种/周期如实 NOT_PREPARED。
+
+    不联网、不启动同步、不重算指标、不写盘、不付费。
+    """
+    try:
+        import index_minutes_v1
+        value = index_minutes_v1.readonly_kline(
+            symbol=request.args.get('symbol') or 'SSE',
+            period=request.args.get('period') or '5m',
+            limit=request.args.get('limit') or 120)
+    except Exception as exc:
+        return jsonify({'ok': False, 'status': 'READ_FAILED', 'bars': [],
+                        'reason': type(exc).__name__ + ':' + str(exc)[:160]}), 500
+    return jsonify(value)
+
+
+@app.route('/api/index/kline/refresh', methods=['POST'])
+def api_index_kline_refresh():
+    import index_minutes_v1
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(index_minutes_v1.fetch_chart_kline(
+            body.get('symbol'), body.get('period'), body.get('limit', 120)))
+    except (ValueError, TypeError, OSError) as exc:
+        return jsonify({'ok': False, 'status': 'SOURCE_UNAVAILABLE',
+                        'bars': [], 'reason': str(exc)[:120]}), 503
 
 
 @app.route('/api/index_freshness')
@@ -1237,6 +1331,14 @@ def api_watch_update():
     return jsonify(r)
 
 
+@app.route("/api/watch/remove", methods=["POST"])
+def api_watch_remove():
+    """只删除观察名单条目。不复用 /del（那条会连带删持仓），也不动计划/成交账本。"""
+    b = request.json or {}
+    r = services.wl_remove_watch(get_cfg(), b.get("code", ""))
+    return jsonify(r)
+
+
 @app.route("/api/positions/add", methods=["POST"])
 def api_positions_add():
     b = request.json or {}
@@ -1279,7 +1381,7 @@ def api_trade_add():
                            plan_ref=_ui2_current_plan_ref())
     # 评审第1点：卖出是账户层事件（trades 体系），决策表不写 action=sell；
     # 仅 best-effort 在影子决策表标记最近一笔未平仓买入的 exit_*，失败不影响成交。
-    if r.get("ok") and str(b.get("action") or "").lower() == "sell":
+    if r.get("ok") and not r.get("duplicate") and str(b.get("action") or "").lower() == "sell":
         try:
             _shadow_log().record_exit(
                 intraday_monitor._db_path(get_cfg()),
