@@ -8,11 +8,11 @@ def prepare_holdings(snapshot,cfg=None):
     import hashlib
     from pathlib import Path
     from minute_history_v1 import schedule
-    from services import wl_load
+    from services import active_positions
     if cfg is None:
         from agent.brain import load_config
         cfg=load_config()
-    positions=wl_load(cfg).get('positions') or []
+    positions=active_positions(cfg)
     if not positions:return
     refs=[r for r in snapshot.get('inputs',[]) if Path(r.get('path','')).name=='calendar.json']
     if len(refs)!=1:raise ValueError('HOLDINGS_CALENDAR_REFERENCE')
@@ -30,6 +30,12 @@ def after_selection(snapshot):
     import assistant_workflow as workflow
     import plan_evidence
     from minute_history_v1 import schedule
+    from overview_index_maps_v1 import request_postclose
+    try:
+        request_postclose(snapshot['data_date'])
+    except (OSError, ValueError, KeyError):
+        import logging
+        logging.getLogger(__name__).exception('Index overview map request could not be saved')
     saved_previous=workflow.latest('plan') or {}
     previous=workflow.plan_preferences(saved_previous)
     # Preserve explicit preferences, not stale tickers or a former confirmation.
@@ -40,8 +46,6 @@ def after_selection(snapshot):
         except (OSError,ValueError):pass
     schedule(snapshot)
     prepare_holdings(snapshot)
-    from strong_sector_pool_prep_v1 import submit as submit_pool
-    submit_pool(boards)  # 与板块确认/手动按钮同一准备链；同版READY复用不重算
     # W2c：准备清单落盘（逐项状态+版本绑定+未完成项单列）。
     try:
         import postclose_prepared_v1 as prepared
@@ -69,8 +73,8 @@ def after_selection(snapshot):
     from assistant_runtime import gate
     gate('plan',draft)
 
-def refreshed(draft):
+def refreshed(draft, evidence=None):
     if draft.get('origin')!='AUTOMATIC_PREPARATION':return draft
     import plan_evidence
-    current=plan_evidence.for_snapshot(draft['snapshot'])
+    current = plan_evidence.for_snapshot(draft['snapshot']) if evidence is None else evidence
     return dict(draft,model_evidence={c:current[c] for c in draft['selected_codes']})

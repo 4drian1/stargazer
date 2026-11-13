@@ -5,12 +5,14 @@ import gzip,hashlib,json,time
 CONTRACT='LIVE_STOCK_OBSERVED_MINUTES_V1'
 MAX_PER_STOCK=240
 
-def snapshot(root,code,P,asof,previous_close,history,budget):
+def snapshot(root,code,P,asof,previous_close,history,budget,*,refresh=False):
     from public_stock_minutes_v1 import fetch,parse
     from minute_history_v1 import cache_lock
     day=asof//1000000
-    if day!=int(datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d')):raise ValueError('LIVE_SOURCE_CURRENT_DAY_ONLY')
-    folder=Path(root)/'minute_context'/'live'/str(day)/code;key=asof//100
+    now=datetime.now(timezone(timedelta(hours=8)))
+    if day!=int(now.strftime('%Y%m%d')):raise ValueError('LIVE_SOURCE_CURRENT_DAY_ONLY')
+    folder=Path(root)/'minute_context'/'live'/str(day)/code
+    key=int(now.strftime('%Y%m%d%H%M')) if refresh else asof//100
     archive=folder/(str(key)+'.json.gz');meta=archive.with_suffix('.meta.json')
     with cache_lock(folder):
         if archive.exists() and meta.exists():

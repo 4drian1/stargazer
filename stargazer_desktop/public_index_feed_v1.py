@@ -1,4 +1,4 @@
-"""Two public index OHLC prefixes; unverified activity never enters model input."""
+"""Public index OHLC prefixes; unverified activity never enters model input."""
 from datetime import datetime
 import gzip
 import hashlib
@@ -9,6 +9,7 @@ import shutil
 import urllib.request
 
 SYMBOLS={'000001.SH':('sh000001','sse'),'399006.SZ':('sz399006','cyb')}
+QUOTE_SYMBOLS={**{symbol: row[0] for symbol, row in SYMBOLS.items()}, '399001.SZ': 'sz399001'}
 CONTRACT='SINA_INDEX_5M_PRICE_ONLY_V1'
 TIME='MIXED_TDX_HISTORY_SINA_5MIN_END_ASSUMED_NOT_CERTIFIED'
 
@@ -32,7 +33,7 @@ def budget(root,size):
 
 
 def parse(raw,symbol,as_of,updater):
-    if symbol not in SYMBOLS:raise ValueError('PUBLIC_INDEX_IDENTITY')
+    if symbol not in QUOTE_SYMBOLS:raise ValueError('PUBLIC_INDEX_IDENTITY')
     values=json.loads(raw)
     if not isinstance(values,list) or len(values)>240:raise ValueError('PUBLIC_INDEX_SCHEMA')
     day=as_of//1000000;rows=[]
@@ -58,7 +59,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def fetch(symbol):
-    code=SYMBOLS[symbol][0]
+    code=QUOTE_SYMBOLS[symbol]
     url=('https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?'
          'symbol='+code+'&scale=5&ma=no&datalen=240')
     opener=urllib.request.build_opener(NoRedirect())
@@ -75,6 +76,32 @@ def watermark(labels,as_of):
     if close or lunch:
         return labels[-1],('POSTCLOSE' if close else 'MIDDAY')+'_SETTLING_ASSUMPTION_NOT_CERTIFIED'
     return max((x for x in labels[:-1] if x<=as_of),default=0),'FOLLOWING_SOURCE_INTERVAL_OBSERVED; LAST_INTERVAL_PROVISIONAL'
+
+
+def shenzhen_completed_prefix(cutoff, updater, *, allow_earlier=False):
+    """Read a validated Shenzhen prefix, including recent closed sessions for overview recovery."""
+    now = int(datetime.now().strftime('%Y%m%d%H%M%S'))
+    day = cutoff // 1000000
+    if cutoff > now or (day != now // 1000000 and
+                       (not allow_earlier or cutoff % 1000000 != 150000)):
+        return [], {}
+    raw, url, observed = fetch('399001.SZ')
+    if observed // 1000000 == day:
+        rows, _ = parse(raw, '399001.SZ', observed, updater)
+        complete, basis = watermark([r['ts'] for r in rows], observed)
+    elif observed > cutoff and allow_earlier:
+        prefix = datetime.strptime(str(day), '%Y%m%d').date().isoformat()
+        historical = [row for row in json.loads(raw) if row['day'].startswith(prefix)]
+        rows, _ = parse(json.dumps(historical), '399001.SZ', cutoff, updater)
+        complete, basis = cutoff, 'HISTORICAL_COMPLETE_SESSION'
+    else:
+        return [], {}
+    if not complete or (complete < cutoff and not allow_earlier):
+        return [], {}
+    return [r for r in rows if r['ts'] <= min(complete, cutoff)], dict(
+        source_verification='TDX_NATIVE_HISTORY_SINA_SZ399001_PREFIX',
+        public_source_url=url, public_sha256=hashlib.sha256(raw).hexdigest(),
+        public_observed_at=observed, completion_basis=basis)
 
 
 def sync_public(updater,mirror,root,as_of,local):

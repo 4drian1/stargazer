@@ -5,8 +5,8 @@ schedule 遇到任何 .failed.json 直接 return；invoke 异常只记内存 HEA
 中断可永久卡住。本模块把"板块名单 → 强势池"变成显式任务。
 
 边界（2026-11-10 复核第二版）：
-- owner 存活三态：存活／确认死亡／未知。未知（查询失败、死亡但未超时、超时但
-  查不出、RUNNING 无 owner 记录）一律不得抢占；只有"确认死亡且已超时"可回收。
+- owner 存活三态：存活／确认死亡／未知。只有已核对任务身份且由系统确认退出的
+  owner 可以回收。进程仍存活、身份缺失或系统查询失败时保留原预约。
 - 跨进程原子性：任务创建、恢复、排队、认领、结果回写、池发布全部在文件锁内
   重新读取并判断；池文件与 READY 提交在同一锁段内完成（先写 .part，锁内替换+记账）。
   被接管/过期 attempt 的结果一律作废，绝不先发布文件再判作废。
@@ -35,6 +35,7 @@ RUNNING_TIMEOUT_SECONDS = 1500
 PERMANENT_STATUSES = frozenset({'DATA_UNAVAILABLE'})
 _LOCK = threading.RLock()
 _RUNNING = set()  # 同进程防重入；跨进程靠文件锁+owner 三态
+_RESOLVING = set()  # 等待写入持久任务的板块集合
 
 
 def _now(now=None):
@@ -70,22 +71,29 @@ def _pid_alive(pid):
         return None
 
 
-def _owner_status(owner, now):
-    """三态：alive / dead / unknown。unknown 一律不得抢占。"""
-    if not owner or not owner.get('pid'):
-        return 'unknown'  # RUNNING 但无 owner 记录：保守按未知处理
-    try:
-        started = float(owner.get('started_epoch', 0))
-    except (TypeError, ValueError):
-        started = 0
-    age = now.timestamp() - started
-    alive = _pid_alive(owner.get('pid'))
-    if alive is True:
-        return 'alive'
-    if alive is False and age > RUNNING_TIMEOUT_SECONDS:
-        return 'dead'  # 确认死亡且已超时
-    # 确认死亡但未超时（PID 复用风险）、查询失败、超时但查不出：都不得抢占
-    return 'unknown'
+def _owner_status(job):
+    """只有当前 attempt 的正 PID 被系统确认已退出，才可回收。"""
+    owner = job.get('owner')
+    if (not isinstance(owner, dict) or not owner.get('nonce')
+            or not job.get('attempt_id') or owner.get('attempt_id') != job['attempt_id']):
+        return 'unknown'
+    pid = str(owner.get('pid', ''))
+    if not pid.isascii() or not pid.isdecimal() or len(pid) > 10 or not 0 < int(pid) < 2**32:
+        return 'unknown'
+    alive = _pid_alive(pid)
+    return 'alive' if alive is True else 'dead' if alive is False else 'unknown'
+
+
+def _mark_interrupted(job, now):
+    """在任务锁内保留旧预约，清除其写回资格。"""
+    owner = job['owner']
+    stamp = _stamp(now)
+    job.setdefault('interrupted_attempts', []).append(dict(owner=owner, detected_at=stamp))
+    attempts = int(job.get('attempts') or 0) + 1
+    job.update(state='INTERRUPTED', owner=None, attempt_id=None, attempts=attempts,
+               finished_at=stamp, updated_at=stamp, retryable=attempts < MAX_ATTEMPTS,
+               last_error='OWNER_EXITED:' + str(owner['pid']))
+    _write(_jobs_dir() / (job['job_id'] + '.json'), job)
 
 
 def _strong_root():
@@ -202,6 +210,77 @@ def _context_from_market(project, as_of_iso):
     return dict(P=context['P'], E=context['E'], key=context['key'])
 
 
+def manual_pool(day):
+    jobs = []
+    for file in _jobs_dir(create=False).glob(f'{day}_*.json'):
+        job = _read(file, {}) or {}
+        if job.get('state') == 'READY' and job.get('manual_refresh') is True:
+            jobs.append(job)
+    if not jobs:
+        return None
+    latest = max(jobs, key=lambda job: (str(job.get('finished_at') or ''), str(job.get('job_id') or '')))
+    return _validated_pool(latest)
+
+
+def manual_runner(request):
+    """Reuse same-version rows, and publish the entire requested scope atomically."""
+    import strong_sector_watch_v1 as ssw
+    context = _context_from_market(_project_path(None), request['as_of'])
+    boards = set(request['boards'])
+    versions = _current_member_versions(boards) or {}
+    prior = manual_pool(context['E'])
+    if prior is None:
+        # Upgrade from a legacy verified pool without rebuilding its boards.
+        candidates = []
+        for file in _jobs_dir(create=False).glob(f"{context['E']}_*.json"):
+            job = _read(file, {}) or {}
+            if job.get('state') == 'READY':
+                pool = _validated_pool(job)
+                if pool and pool.get('source_key') == context['key']:
+                    candidates.append(pool)
+        prior = max(candidates, key=lambda p: (len(boards.intersection(p['boards'])), p['built_at']), default=None)
+    compatible = (prior and prior['data_date'] == context['P'] and prior['observation_date'] == context['E']
+                  and prior['source_key'] == context['key'] and prior['contract'] == ssw.CONTRACT)
+    keep = {b for b in boards.intersection(prior['boards'])
+            if versions.get(b) == prior['constituent_versions'].get(b) and versions.get(b) != 'PENDING'} if compatible else set()
+    changed = boards - keep
+    if not boards:
+        result = dict(contract=ssw.CONTRACT, status='READY', data_date=context['P'],
+                      observation_date=context['E'], source_key=context['key'], rows=[])
+    else:
+        result = default_runner(dict(request, boards=sorted(changed))) if changed else dict(prior)
+    if result.get('status') != 'READY':
+        return result
+    rows = {}
+    if keep:
+        for row in prior['rows']:
+            selected = keep.intersection(row['boards'])
+            if selected:
+                rows[row['code']] = dict(row, boards=sorted(selected))
+    for row in result['rows'] if changed else []:
+        previous = rows.get(row['code'])
+        if previous:
+            previous['boards'] = sorted(set(previous['boards']) | set(row['boards']))
+        else:
+            rows[row['code']] = row
+    if len(rows) > 512:
+        raise ValueError('STRONG_POOL_OVER_512_NO_SILENT_TRUNCATION')
+    values = [rows[code] for code in sorted(rows)]
+    enabled = _stamp()
+    if keep:
+        result['warnings'] = [w for w in prior.get('warnings', []) if w.get('board_requested') in keep] + (
+            result.get('warnings', []) if changed else [])
+    prior_activation = (prior or {}).get('code_enabled_at', {})
+    kept_codes = {r['code'] for r in (prior or {}).get('rows', []) if keep.intersection(r['boards'])}
+    activation = {r['code']: prior_activation.get(r['code']) if r['code'] in kept_codes else enabled for r in values}
+    return dict(result, boards=sorted(boards), rows=values, rows_sha256=digest(values),
+                code_enabled_at={k: v for k, v in activation.items() if v},
+                constituent_versions=_current_member_versions(boards), manual_refresh=True,
+                built_at=enabled, enabled_at=enabled,
+                parent_pool_ids=([prior['rows_sha256'], *prior.get('parent_pool_ids', [])]
+                                 if compatible else []))
+
+
 def default_runner(request):
     import strong_sector_watch_v1 as ssw
     return ssw.invoke(request)
@@ -226,7 +305,8 @@ def pool_matches_job(pool, job):
     if str(pool.get('source_key', '')) != str(job.get('source_key', '')):
         return False
     # 盘前时序：built_at 必须早于观察日 09:30（不删时间门，不伪造盘前已知）
-    if str(pool.get('built_at', '9' * 14)) >= str(job.get('observation_date')) + '093000':
+    if (str(pool.get('built_at', '9' * 14)) >= str(job.get('observation_date')) + '093000'
+            and not (pool.get('manual_refresh') is True and pool.get('enabled_at') == pool.get('built_at'))):
         return False
     # 成员版本三态一致：任务版本＝当前版本＝池内版本（任务缺绑定=None 时不得宣称有效；
     # 池内版本缺失/null/非 dict 一律拒绝复用和发布）
@@ -263,7 +343,10 @@ def _validated_pool(job):
 # ---------------- job 存取（创建/恢复/排队全部锁内重读） ----------------
 
 def _job_name(boards, context):
-    return '%d_%s' % (context['E'], digest([boards, context['key'], 'TURNOVER_REFERENCE_V1'])[:16])
+    identity = [boards, context['key'], 'TURNOVER_REFERENCE_V1']
+    if context.get('mode'):
+        identity += [context['mode'], context.get('base_revision'), _current_member_versions(boards)]
+    return '%d_%s' % (context['E'], digest(identity)[:16])
 
 
 def _load_or_create_job(boards, context, now):
@@ -280,6 +363,7 @@ def _load_or_create_job(boards, context, now):
                             note='任务文件损坏，原件保留作证据；请人工核对后删除该文件再重试')
             return job
         job = dict(contract=CONTRACT, job_id=name, boards=boards,
+                   manual_refresh=context.get('mode') == 'MANUAL_REFRESH',
                    data_date=context['P'], observation_date=context['E'], source_key=context['key'],
                    rule_version=None, member_versions=_current_member_versions(boards),
                    state='QUEUED', attempts=0,
@@ -308,15 +392,12 @@ def _claim(job_id, now):
     """锁内认领：复核状态与 owner 三态，写入 RUNNING+attempt_id。"""
     with _file_lock(job_id):
         job = get_job(job_id)
-        if job is None or job.get('corrupt'):
-            return None
-        if job.get('state') == 'RUNNING' and \
-                _owner_status(job.get('owner'), now) in ('alive', 'unknown'):
+        if job is None or job.get('corrupt') or job.get('state') != 'QUEUED':
             return None
         attempt = dict(pid=str(_own_pid()), nonce=secrets.token_hex(8),
                        started_epoch=time.time(), attempt_id=secrets.token_hex(8))
         job.update(state='RUNNING', owner=attempt, attempt_id=attempt['attempt_id'],
-                   started_at=_stamp(now), last_error=None)
+                   started_at=_stamp(now), updated_at=_stamp(now), finished_at=None, last_error=None)
         _write(_jobs_dir() / (job_id + '.json'), job)
         return job, attempt
 
@@ -348,18 +429,27 @@ def _set_job(job_id, **updates):
 # ---------------- 提交 ----------------
 
 def submit(boards, now=None, *, context=None, project=None, runner=None,
-           background=True, force=False):
+           background=True, force=False, retry_members=False):
     """提交/恢复一个准备任务。返回任务视图，不抛业务异常。
     background=True 且未给 context 时，行情上下文解析在后台线程完成，立即返回。"""
     now = _now(now)
     boards = _normalize_boards(boards)
-    if not boards:
+    if not boards and runner is not manual_runner:
         return {'status': 'FAILED', 'reason': 'BOARDS_EMPTY', 'retryable': False}
     if context is None and background:
-        thread = threading.Thread(target=_submit_background,
-                                  args=(boards, project, runner or default_runner, now, force),
-                                  daemon=True, name='strong-pool-prep')
-        thread.start()
+        scope = tuple(boards)
+        with _LOCK:
+            if runner is manual_runner and (_RESOLVING or _RUNNING):
+                return {'status': 'RUNNING', 'reason': '已有强势池任务在运行，结束后再更新'}
+            if scope not in _RESOLVING:
+                _RESOLVING.add(scope)
+                try:
+                    threading.Thread(target=_submit_background, args=(
+                        boards, project, runner or default_runner, now, force, retry_members),
+                        daemon=True, name='strong-pool-prep').start()
+                except RuntimeError:
+                    _RESOLVING.discard(scope)
+                    raise
         return {'status': 'QUEUED', 'boards': boards, 'context_resolving': True}
     if context is None:
         try:
@@ -371,14 +461,21 @@ def submit(boards, now=None, *, context=None, project=None, runner=None,
                                 background=background, force=force)
 
 
-def _submit_background(boards, project, runner, now, force):
+def _submit_background(boards, project, runner, now, force, retry_members):
     try:
         project = _project_path(project)
         context = _context_from_market(project, now.astimezone(ZONE).isoformat())
+        if retry_members:
+            from ths_board_supply_v1 import ensure
+            for name, version in (_current_member_versions(boards) or {}).items():
+                if version == 'PENDING':
+                    ensure(name, _strong_root().parent / 'board_identities', now=now)
+        _submit_with_context(boards, context, now, runner, background=runner is not manual_runner, force=force)
     except Exception as exc:
         _context_failure(boards, now, exc)
-        return
-    _submit_with_context(boards, context, now, runner, background=True, force=force)
+    finally:
+        with _LOCK:
+            _RESOLVING.discard(tuple(boards))
 
 
 # ---------------- 提交边界：project 统一为 Path；错误按真实原因分类 ----------------
@@ -405,8 +502,10 @@ def _project_path(project):
 
 
 def _classify_context_error(exc):
-    detail = type(exc).__name__ + ':' + str(exc)[:160]
     message = str(exc)
+    detail = type(exc).__name__ + ':' + message[:160]
+    if isinstance(exc, ValueError) and 'TDX_NAMES_SNAPSHOT_STALE' in message:
+        return 'WAIT_NAMES', '本地通达信证券名称与 ST 快照未更新到所需数据日，请同步后再运行盘后选股。'
     if isinstance(exc, ValueError) and any(tag in message for tag in _DATA_WAIT_SIGNALS):
         return 'WAIT_DAILY', detail
     return 'PREP_ERROR', detail
@@ -414,8 +513,8 @@ def _classify_context_error(exc):
 
 def _context_failure(boards, now, exc):
     kind, detail = _classify_context_error(exc)
-    if kind == 'WAIT_DAILY':
-        return _wait_daily(boards, now, reason=detail)
+    if kind in ('WAIT_DAILY', 'WAIT_NAMES'):
+        return _wait_daily(boards, now, reason=detail, status=kind)
     return _prep_error(boards, now, detail)
 
 
@@ -435,15 +534,15 @@ def _prep_error(boards, now, reason):
                 boards=boards, retryable=False)
 
 
-def _wait_daily(boards, now, reason):
+def _wait_daily(boards, now, reason, status='WAIT_DAILY'):
     folder = _jobs_dir()
     name = 'wait_daily_' + digest(boards)[:12] + '.json'
-    record = dict(contract=CONTRACT, boards=boards, state='WAIT_DAILY', status='WAIT_DAILY',
+    record = dict(contract=CONTRACT, boards=boards, state=status, status=status,
                   reason=reason, saved_at=_stamp(now), updated_at=_stamp(now),
                   attempts=0, owner=None, pool_file=None, per_board={}, job_id=name[:-5],
                   note='本地日线/日历未就绪；保留偏好与真实缺失原因，不冒充已准备')
     _write(folder / name, record)
-    return dict(status='WAIT_DAILY', reason=reason, boards=boards, retryable=True)
+    return dict(status=status, reason=reason, boards=boards, retryable=True)
 
 
 def _submit_with_context(boards, context, now, runner, *, background, force):
@@ -454,7 +553,7 @@ def _submit_with_context(boards, context, now, runner, *, background, force):
         existing = ssw.frozen(boards, context['E'])
     except Exception:
         existing = None
-    if existing is not None:
+    if existing is not None and runner is not manual_runner:
         binding = dict(boards=boards, data_date=context['P'], observation_date=context['E'],
                        source_key=context['key'],
                        member_versions=_current_member_versions(boards))
@@ -468,6 +567,12 @@ def _submit_with_context(boards, context, now, runner, *, background, force):
                         observation_date=existing.get('observation_date'),
                         data_date=existing.get('data_date'))
         existing = None  # 绑定失配：走任务链重建，不复用
+    if runner is manual_runner:
+        context['mode'] = 'MANUAL_REFRESH'
+        last = manual_pool(context['E'])
+        context['base_revision'] = (last or {}).get('enabled_at') if last and last.get('boards') != boards else None
+        if last and last.get('boards') == boards and last.get('source_key') == context['key']:
+            return dict(status='REUSED', boards=boards, pool=last, qualified_count=len(last['rows']))
     job = _load_or_create_job(boards, context, now)
     if job.get('corrupt'):
         return {'status': 'FAILED', 'job_id': job['job_id'], 'boards': boards,
@@ -496,27 +601,6 @@ def _decide(job, now, force=False):
                         qualified_count=job.get('qualified_count'), per_board=job.get('per_board'),
                         observation_date=job.get('observation_date'),
                         data_date=job.get('data_date'), pool=pool)
-    if state == 'RUNNING':
-        redecide = None
-        with _file_lock(job_id):
-            fresh = get_job(job_id)
-            if fresh is None:
-                return {'status': 'FAILED', 'job_id': job_id, 'reason': 'JOB_MISSING', 'retryable': False}
-            if fresh.get('state') != 'RUNNING':
-                redecide = fresh  # 状态已变：退出锁后再判，禁止持锁递归
-            else:
-                status = _owner_status(fresh.get('owner'), now)
-                if status in ('alive', 'unknown'):
-                    return dict(status='RUNNING', job_id=job_id, boards=fresh['boards'],
-                                owner_pid=(fresh.get('owner') or {}).get('pid'), owner_state=status)
-                fresh['attempts'] = int(fresh.get('attempts') or 0) + 1
-                fresh['last_error'] = 'OWNER_EXITED:' + str((fresh.get('owner') or {}).get('pid'))
-                fresh['owner'] = None
-                fresh.update(state='FAILED', finished_at=_stamp(now))
-                _write(_jobs_dir() / (job_id + '.json'), fresh)
-        if redecide is not None:
-            return _decide(redecide, now, force=force)  # 锁外递归：FileLock 非重入，持锁会死锁
-        return _retry_or_stop(job_id, now)
     if state == 'FAILED':
         if job.get('permanent_reason') and not force and \
                 job['permanent_reason'] != 'POOL_READBACK_MISMATCH':
@@ -544,11 +628,14 @@ def _retry_or_stop(job_id, now):
         job = get_job(job_id)
         if job is None:
             return {'status': 'FAILED', 'job_id': job_id, 'reason': 'JOB_MISSING', 'retryable': False}
-        # 锁内按最新状态决定：有人正在计算且不可抢占时，绝不写回 QUEUED 覆盖
-        if job.get('state') == 'RUNNING' and \
-                _owner_status(job.get('owner'), now) in ('alive', 'unknown'):
-            return dict(status='RUNNING', job_id=job_id, boards=job.get('boards'),
-                        owner_pid=(job.get('owner') or {}).get('pid'), reason='OCCUPIED')
+        if job.get('state') == 'READY' and _validated_pool(job) is not None:
+            return dict(status='REUSED', job_id=job_id, boards=job['boards'])
+        if job.get('state') == 'RUNNING':
+            owner_state = _owner_status(job)
+            if owner_state != 'dead':
+                return dict(status='RUNNING', job_id=job_id, boards=job.get('boards'),
+                            owner_state=owner_state, reason='OCCUPIED')
+            _mark_interrupted(job, now)
         attempts = int(job.get('attempts') or 0)
         if attempts >= MAX_ATTEMPTS:
             job.update(state='FAILED', permanent_reason=job.get('permanent_reason') or 'MAX_ATTEMPTS',
@@ -558,7 +645,7 @@ def _retry_or_stop(job_id, now):
                         reason=job['permanent_reason'] or 'MAX_ATTEMPTS', retryable=False,
                         attempts=attempts)
         last = job.get('finished_at') or job.get('updated_at')
-        if last and attempts > 0:
+        if last and attempts > 0 and job.get('state') not in ('INTERRUPTED', 'QUEUED'):
             try:
                 elapsed = now.timestamp() - datetime.strptime(str(last), '%Y%m%d%H%M%S').replace(tzinfo=ZONE).timestamp()
             except (TypeError, ValueError):
@@ -647,6 +734,8 @@ def _commit_ready(job_id, attempt_id, job, pool):
     identity = digest([sorted(set(pool.get('boards') or [])), pool.get('source_key'),
                        'TURNOVER_REFERENCE_V1', ssw.CONTRACT,
                        {'ths_members': ssw.constituent_versions(pool.get('boards') or [])}])
+    if pool.get('manual_refresh'):
+        identity = digest([identity, job_id, pool['enabled_at'], pool['rows_sha256']])
     target = ssw.root() / 'pools' / (str(pool['observation_date']) + '_' + identity + '.json')
     # 每次尝试独立的临时文件：只允许清理/替换自己的 .part
     part = Path(str(target) + '.part.' + attempt_id)
@@ -686,6 +775,9 @@ def _commit_ready(job_id, attempt_id, job, pool):
         current['updated_at'] = datetime.now(ZONE).strftime('%Y%m%d%H%M%S')
         _write(_jobs_dir() / (job_id + '.json'), current)
     try:
+        if pool.get('manual_refresh'):
+            from minute_history_v1 import schedule
+            schedule(pool)
         ssw.HEALTH.update(status='FROZEN', count=qualified,
                           observation_date=pool.get('observation_date'))
     except Exception:
@@ -709,7 +801,13 @@ def _find_job_for_boards(boards):
         if not job or not isinstance(job, dict) or job.get('contract') != CONTRACT:
             continue
         if job.get('boards') == boards and not job.get('corrupt'):
-            if best is None or str(job.get('updated_at', '')) >= str(best.get('updated_at', '')):
+            if best and job.get('observation_date') == best.get('observation_date'):
+                key = (job.get('manual_refresh') is True, str(job.get('updated_at') or ''))
+                prior = (best.get('manual_refresh') is True, str(best.get('updated_at') or ''))
+            else:
+                key = str(job.get('updated_at') or '')
+                prior = str(best.get('updated_at') or '') if best else None
+            if prior is None or key >= prior:
                 best = job
     return best
 
@@ -743,7 +841,8 @@ def _pool_display_status(pool, now):
     today = _today(now)
     if obs < today:
         return 'READY_STALE'
-    if str(pool.get('built_at', '9' * 14)) >= str(obs) + '093000':
+    if (str(pool.get('built_at', '9' * 14)) >= str(obs) + '093000'
+            and pool.get('manual_refresh') is not True):
         return 'READY_STALE'
     return 'READY'
 
@@ -809,8 +908,8 @@ def poll_policy():
 
 _IDENTITY_LABELS = {
     'IDENTITY_CONFIRMED': '身份已确认',
-    'MONITOR_ENABLED': '身份已确认 · 监控已启用',
-    'CONSTITUENTS_PENDING': '成分待准备',
+    'MONITOR_ENABLED': '身份已确认',
+    'CONSTITUENTS_PENDING': '身份已确认',
     'IDENTITY_UNKNOWN': '身份未解析',
     'LEGACY_CATALOG': '旧目录（无新身份）',
     'SOURCE_PENDING': '板块身份待接入',
@@ -851,8 +950,14 @@ def state(boards=None, now=None):
     """
     now = _now(now)
     boards = _normalize_boards(boards)
-    job = _find_job_for_boards(boards) if boards else None
-    found = validated_existing_pool(boards, now) if boards else dict(
+    with _LOCK:
+        resolving = tuple(boards) in _RESOLVING
+    job = _find_job_for_boards(boards)
+    if job and job.get('state') == 'RUNNING' and _owner_status(job) == 'dead':
+        attempts = int(job.get('attempts') or 0) + 1
+        job = dict(job, state='INTERRUPTED', attempts=attempts, retryable=attempts < MAX_ATTEMPTS,
+                   last_error='OWNER_EXITED:' + str(job['owner']['pid']))
+    found = validated_existing_pool(boards, now) if boards or job else dict(
         available=False, pool=None, job=None, validation='NO_BOARDS', detail='未指定板块')
     pool = found.get('pool')
     result_state = found.get('display_status')
@@ -863,6 +968,16 @@ def state(boards=None, now=None):
             job_state = result_state
     elif result_state is not None:
         job_state = result_state
+    retained = manual_pool(_today(now))
+    if retained is None and pool is None:
+        candidates = []
+        for file in _jobs_dir(create=False).glob(f'{_today(now)}_*.json'):
+            candidate = _read(file, {}) or {}
+            if candidate.get('state') == 'READY':
+                value = _validated_pool(candidate)
+                if value:
+                    candidates.append(value)
+        retained = max(candidates, key=lambda p: (len(set(boards) & set(p['boards'])), p['built_at']), default=None)
     counts = {}
     if pool is not None:
         counts = {n: dict(qualified_count=sum(1 for r in pool.get('rows') or []
@@ -873,6 +988,10 @@ def state(boards=None, now=None):
     request_state = (job or {}).get('state')
     request_reason = ((job or {}).get('permanent_reason') or (job or {}).get('last_error')
                       or (job or {}).get('reason'))
+    old_names_error = request_state == 'FAILED' and 'TDX_NAMES_SNAPSHOT_' in (request_reason or '')
+    if old_names_error:
+        job_state = request_state = 'WAIT_NAMES'
+        _, request_reason = _classify_context_error(ValueError('TDX_NAMES_SNAPSHOT_STALE'))
     last_error = (job or {}).get('last_error')
     if request_reason == 'MAX_ATTEMPTS' and last_error and last_error != request_reason:
         request_reason += ' · ' + last_error
@@ -884,9 +1003,24 @@ def state(boards=None, now=None):
         finished_at=(job or {}).get('finished_at'),
         updated_at=(job or {}).get('updated_at'),
         reason=request_reason,
-        error_class=(job or {}).get('error_class'),
-        retryable=(job or {}).get('retryable'),
+        error_class=None if old_names_error else (job or {}).get('error_class'),
+        retryable=True if old_names_error else (job or {}).get('retryable'),
         note=(job or {}).get('note'))
+    from plan_board_change_v1 import pending_preferences
+    preference = pending_preferences(_strong_root().parent / 'board_identities') or {}
+    waiting_selection = (not resolving and result_state != 'READY' and
+                         (not job or (preference.get('refresh_after_selection') and
+                          _normalize_boards(preference.get('boards')) == boards and
+                          str(job.get('created_at') or job.get('saved_at') or '') <
+                          str(preference.get('saved_at') or ''))))
+    if boards and waiting_selection:
+        job_state = request_state = 'WAIT_MANUAL_REFRESH'
+        request_reason = '等待更新板块强势池'
+        current_request = dict(state=request_state, reason=request_reason)
+    if resolving and request_state not in ('QUEUED', 'RUNNING'):
+        job_state = request_state = 'QUEUED'
+        request_reason = '正在核对准备任务的数据版本'
+        current_request = dict(state=request_state, reason=request_reason)
     existing_result = dict(
         available=bool(found.get('available')),
         status=result_state if found.get('available') else None,
@@ -940,7 +1074,16 @@ def state(boards=None, now=None):
                        identity_index_code=legacy.get('identity_index_code'))
         row.update(current_request_state=request_state,
                    result_origin='EXISTING_VALIDATED_RESULT' if pool is not None else 'CURRENT_REQUEST')
-        if result_state == 'READY':
+        if pool is None and retained and name in retained['boards'] and (
+                retained['constituent_versions'].get(name) != 'PENDING'):
+            qualified = sum(name in item['boards'] for item in retained['rows'])
+            row.update(pool_status='READY', qualified_count=qualified, note='继续监控已核验结果')
+        elif request_state == 'WAIT_MANUAL_REFRESH':
+            row.update(pool_status=request_state, qualified_count=None, note=request_reason)
+        elif row.get('identity_status') == 'CONSTITUENTS_PENDING':
+            row.update(pool_status='CONSTITUENTS_PENDING', qualified_count=None, note='成分待准备',
+                       reason=request_reason)
+        elif result_state == 'READY':
             qualified = counts.get(name, {}).get('qualified_count', 0)
             row.update(pool_status='READY', qualified_count=qualified,
                        note='筛选完成，0只' if qualified == 0 else None)
@@ -950,13 +1093,15 @@ def state(boards=None, now=None):
                        note='过期结果，仅历史参考，不作当前就绪')
         elif request_state in ('QUEUED', 'RUNNING', 'WAIT_SOURCE', 'PREPARING'):
             row.update(pool_status='PREPARING', qualified_count=None)
+        elif request_state == 'INTERRUPTED':
+            row.update(pool_status='INTERRUPTED', qualified_count=None, retryable=job.get('retryable'))
         elif request_state == 'FAILED':
             row.update(pool_status='FAILED', qualified_count=None,
                        reason=request_reason,
                        retryable=(job or {}).get('retryable',
                                                 not bool((job or {}).get('permanent_reason'))))
-        elif request_state == 'WAIT_DAILY':
-            row.update(pool_status='WAIT_DAILY', qualified_count=None,
+        elif request_state in ('WAIT_DAILY', 'WAIT_NAMES'):
+            row.update(pool_status=request_state, qualified_count=None,
                        reason=request_reason)
         else:
             row.update(pool_status='NOT_PREPARED', qualified_count=None)
@@ -975,20 +1120,22 @@ def state(boards=None, now=None):
                 poll_policy=poll_policy())
 
 
-def recover_interrupted(now=None):
-    """重启恢复：仅"确认死亡"的 RUNNING 可回收（计一次失败，不删旧证据）；
-    unknown 一律不动。纯读目录列表+受锁迁移。"""
+def recover_interrupted(now=None, *, boards=None):
+    """重启时登记中断，保留既有结果，等待显式重试。"""
     now = _now(now)
+    names = _normalize_boards(boards) if boards is not None else None
     handled = []
-    folder = _jobs_dir(create=False)
-    if not folder.is_dir():
-        return handled
-    for file in folder.glob('*.json'):
-        job = _read(file, None)
-        if not job or job.get('state') != 'RUNNING':
+    for file in _jobs_dir(create=False).glob('*.json'):
+        job = get_job(file.stem)
+        if (not job or job.get('state') != 'RUNNING' or job.get('corrupt')
+                or (names is not None and job.get('boards') != names)
+                or _owner_status(job) != 'dead'):
             continue
-        if _owner_status(job.get('owner'), now) != 'dead':
-            continue
-        _decide(job, now)
-        handled.append(job.get('job_id'))
+        with _file_lock(file.stem):
+            fresh = get_job(file.stem)
+            if (fresh and fresh.get('state') == 'RUNNING' and not fresh.get('corrupt')
+                    and fresh.get('attempt_id') == job['attempt_id']
+                    and _owner_status(fresh) == 'dead'):
+                _mark_interrupted(fresh, now)
+                handled.append(file.stem)
     return handled

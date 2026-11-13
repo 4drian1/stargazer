@@ -12,7 +12,6 @@ from pentacles_monitor import PriceMonitor
 _lock = threading.Lock()
 _running = False
 _error = None
-MAX_BYTES = 1024 * 1024
 monitor = PriceMonitor(lambda: snapshot_path().parent)
 
 
@@ -68,8 +67,6 @@ def state():
         file = snapshot_path()
         if file.exists():
             try:
-                if file.stat().st_size > MAX_BYTES:
-                    raise ValueError('Demo 快照超过 1MiB')
                 payload = json.loads(file.read_text(encoding='utf-8'))
                 if payload.get('schema') != 'PAGE_OF_PENTACLES_DEMO_V1' or not isinstance(payload.get('rows'), list):
                     raise ValueError('Demo 快照版本或结构不兼容')
@@ -112,12 +109,17 @@ def run(cfg):
                                    '--daily-dir', str(daily),'--golden-flow-v3'], capture_output=True, timeout=900,
                                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             if proc.returncode:
-                raise RuntimeError(proc.stderr.decode('utf-8', errors='replace')[-700:])
+                error = proc.stderr.decode('utf-8', errors='replace')
+                if 'TDX_NAMES_SNAPSHOT_STALE' in error:
+                    raise ValueError('本地通达信证券名称与 ST 快照未更新到选股所需日期，请同步通达信日线和证券资料后重试。')
+                raise RuntimeError(error[-700:])
             payload = json.loads(proc.stdout.decode('utf-8'))
             encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode('utf-8')
-            if len(encoded) > MAX_BYTES:
-                raise ValueError('Demo 快照超过 1MiB，停止写入')
+            if payload.get('schema') != 'PAGE_OF_PENTACLES_DEMO_V1' or not isinstance(payload.get('rows'), list):
+                raise ValueError('选股快照结构不兼容')
             target = snapshot_path()
+            from persistent_records_v1 import reserve_space
+            reserve_space(target.parent, len(encoded))
             target.parent.mkdir(parents=True, exist_ok=True)
             temp = target.with_suffix('.tmp')
             temp.write_bytes(encoded)

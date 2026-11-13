@@ -1,7 +1,7 @@
 """Causal price evidence; experimental classifier output is kept in its own field."""
 import numpy as np
 import pandas as pd
-from golden_ladder_v3 import _rsi, index_map
+from golden_ladder_v3 import _rsi, index_map, wave_levels
 
 VERSION = 'MARKET_PRICE_REPAIR_V1'
 
@@ -25,7 +25,9 @@ def critical_position(frame,cutoff):
     broken=bool((two<node).all())
     repaired=bool((two>=node).all() and ((today.low<node).any() or stable) and momentum['rsi_above'] is True)
     return dict(state='BROKEN' if broken else 'REPAIRED' if repaired else 'PENDING',
-                lower=node,upper=node,reference_asof=p,asof=cutoff,last_two_closes=two.tolist())
+                lower=node,upper=node,reference_asof=p,asof=cutoff,last_two_closes=two.tolist(),
+                next_lower=max((v for v in below if v < node),default=None),
+                reference_close=reference)
 
 
 def _momentum(frame):
@@ -93,7 +95,45 @@ def rebound_map(frame, cutoff):
         interpretation='窗口价格地图；观察天数不等于双底确认，价格反弹不证明资金流入；不改变执行闸门')
 
 
-def observe(frame, cutoff):
+def short_wave_levels(frame, cutoff):
+    """Recent 30-minute swings, confirmed by two completed bars on each side."""
+    recent = frame.loc[frame.date <= cutoff].copy()
+    recent['day'] = recent.date // 1000000
+    recent = recent[recent.day.isin(recent.day.unique()[-10:])]
+    clocks = recent.date // 100 % 10000
+    minutes = clocks // 100 * 60 + clocks % 100
+    recent = recent.assign(bucket=(minutes - 1) // 30, minute=minutes)
+    bars = []
+    for (_, bucket), rows in recent.groupby(['day', 'bucket']):
+        if rows.minute.tolist() == list(range(bucket * 30 + 5, bucket * 30 + 31, 5)):
+            bars.append((float(rows.low.min()), float(rows.high.max())))
+
+    pivots = []
+    for i in range(2, len(bars) - 2):
+        low, high = bars[i]
+        window = bars[i - 2:i + 3]
+        is_low = low == min(row[0] for row in window)
+        is_high = high == max(row[1] for row in window)
+        if is_low == is_high:
+            continue
+        kind, price = ('low', low) if is_low else ('high', high)
+        if pivots and pivots[-1][0] == kind:
+            prior = pivots[-1][1]
+            if (price < prior if is_low else price > prior):
+                pivots[-1] = (kind, price)
+        else:
+            pivots.append((kind, price))
+
+    levels = set()
+    anchors = pivots[-7:]
+    for (_, start), (_, end) in zip(anchors, anchors[1:]):
+        low, high = sorted((start, end))
+        if 0 < low < high:
+            levels.update(round(node['price'], 2) for node in wave_levels(low, high))
+    return sorted(levels)
+
+
+def observe(frame, cutoff, *, include_short_wave=False):
     f = frame.loc[frame.date <= cutoff, ['date','open','high','low','close']].copy()
     unknown = dict(version=VERSION, asof=cutoff, status='UNKNOWN', volume_verified=False)
     if f.empty or f.date.duplicated().any() or not f.date.is_monotonic_increasing:
@@ -150,8 +190,11 @@ def observe(frame, cutoff):
     return dict(version=VERSION,asof=cutoff,evidence_time=int(today.date.iloc[-1]),status='PRICE_FACTS_ONLY',
         primary='5m',confirmation='15m',last_close=float(today.close.iloc[-1]),
         session_low=float(today.low.min()),last_two_times=two.date.astype(int).tolist(),
+        recent_five_bars=[dict(time=int(row.date), close=float(row.close))
+                          for row in today.tail(3).itertuples(index=False)],
         last_two_closes=two.close.astype(float).tolist(),price_stable_shape=bool(stable),
         five=five,fifteen=confirmation,levels=levels,
+        **(dict(short_wave_levels=short_wave_levels(f,cutoff)) if include_short_wave else {}),
         map={k:v for k,v in mapping.items() if k!='levels'},summary=summary,critical_position=critical_position(f,cutoff),
         outlook=rebound_map(f,cutoff),
         divergence=divergence_evidence(f,cutoff),
@@ -239,29 +282,79 @@ if __name__=='__main__':
     RISK_DIR=Path(__file__).resolve().parent.parent/'risk_r0_v1'
     if str(RISK_DIR) not in sys.path:sys.path.insert(0,str(RISK_DIR))
     from joint_shadow_service_v1 import verify_fingerprints
-    cutoff=int(json.load(sys.stdin)['cutoff'])
+    request=json.load(sys.stdin)
+    cutoff=int(request['cutoff'])
     root=RISK_DIR/'index_minutes_v1'
-    expected=json.loads(gzip.decompress((RISK_DIR/'live_monitor_fingerprints_20261111_v213_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((RISK_DIR/'live_monitor_fingerprints_20261113_v227_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:
         raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch[:5])+(' 等%d项'%len(mismatch) if len(mismatch)>5 else ''))
     evidence={}
     frames={}
+    overview = request.get('overview') is True
     for name in ['sse','cyb']:
         path=root/(name+'_5min.parquet')
-        meta=json.loads(path.with_suffix('.meta.json').read_bytes())
-        if path.stat().st_size>4*1024**2:raise ValueError('INDEX_SIZE_CAP')
-        raw=path.read_bytes()
-        if hashlib.sha256(raw).hexdigest()!=meta['sha256']:raise ValueError('INDEX_HASH_MISMATCH')
-        frames[name]=pd.read_parquet(io.BytesIO(raw)).rename(columns={'ts':'date'})
-        evidence[name]=observe(frames[name],cutoff)
-    # 两个指数的试验模型并行挂载(各自守护线程+预算)：worker 总退出时间
-    # 不受慢模型叠加拖累，价格事实先行返回。
-    attach_trials(evidence,frames,cutoff)
-    for name in ['sse','cyb']:
-        frame=frames[name]
-        prefix=frame.loc[frame.date<=cutoff,['date','open','high','low','close']]
+        try:
+            meta=json.loads(path.with_suffix('.meta.json').read_bytes())
+            if path.stat().st_size>4*1024**2:raise ValueError('INDEX_SIZE_CAP')
+            raw=path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=meta['sha256']:raise ValueError('INDEX_HASH_MISMATCH')
+            frames[name]=pd.read_parquet(io.BytesIO(raw)).rename(columns={'ts':'date'})
+            completed = int(meta.get('last_complete_ts') or 0)
+        except (OSError, ValueError, TypeError, KeyError):
+            if not overview:
+                raise
+            frames.pop(name, None)
+            evidence[name] = dict(asof=cutoff, status='UNKNOWN', reason='INDEX_MIRROR_UNAVAILABLE')
+            continue
+        if overview and completed < cutoff and completed // 1000000 != cutoff // 1000000:
+            evidence[name] = dict(asof=cutoff, status='UNKNOWN', reason='CURRENT_PREFIX_GAP_OR_CUTOFF_MISMATCH')
+        else:
+            actual = min(cutoff, completed) if overview else cutoff
+            evidence[name]=observe(frames[name],actual,include_short_wave=overview)
+    if not overview:
+        attach_trials(evidence,frames,cutoff)
+    for name, frame in frames.items():
+        prefix=frame.loc[frame.date<=evidence[name]['asof'],['date','open','high','low','close']]
         evidence[name]['prefix_sha256']=hashlib.sha256(prefix.to_json(orient='records',double_precision=15).encode()).hexdigest()
         evidence[name]['source_verification']='MIRROR_SHA256_SIDECAR_MATCH'
         evidence[name]['availability_basis']='DERIVED_FROM_ARCHIVE_ON_READ_NOT_HISTORICAL_ARRIVAL'
+    native_paths = request.get('native_paths') or {}
+    if request.get('szse_path'):
+        native_paths['szse'] = request['szse_path']
+    for name, expected_stem in (('szse','sz399001.lc5'), ('star50','sh000688.lc5')):
+        if name not in native_paths:
+            continue
+        import importlib.util
+        try:
+            spec=importlib.util.spec_from_file_location('szse_tdx_parser',root/'index_minutes_updater_v1.py')
+            parser=importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(parser)
+            native=Path(native_paths[name])
+            if native.name.lower()!=expected_stem or native.stat().st_size>4*1024**2:
+                raise ValueError('NATIVE_INDEX_SOURCE_INVALID')
+            raw=native.read_bytes()
+            frame=pd.DataFrame(parser.parse_lc5(raw), columns=['ts','open','high','low','close']).rename(columns={'ts':'date'})
+            value=observe(frame,cutoff,include_short_wave=overview)
+            value.update(source_verification='TDX_NATIVE_'+expected_stem.upper().replace('.', '_'),
+                         source_sha256=hashlib.sha256(raw).hexdigest(),
+                         availability_basis='LOCAL_FILE_READ_NOT_HISTORICAL_ARRIVAL')
+            if overview and name == 'szse' and value.get('reason') == 'CURRENT_PREFIX_GAP_OR_CUTOFF_MISMATCH':
+                sys.path.insert(0, str(RISK_DIR.parents[2] / 'stargazer_desktop'))
+                from public_index_feed_v1 import shenzhen_completed_prefix
+                try:
+                    prefix, source = shenzhen_completed_prefix(cutoff, parser, allow_earlier=True)
+                except (OSError, ValueError, TypeError, KeyError):
+                    prefix = []
+                if prefix:
+                    current = pd.DataFrame(prefix).rename(columns={'ts':'date'})
+                    mixed = pd.concat([frame[frame.date // 1000000 < cutoff // 1000000], current],
+                                      ignore_index=True)
+                    value = observe(mixed, prefix[-1]['ts'], include_short_wave=True)
+                    value.update(source, source_sha256=hashlib.sha256(raw).hexdigest(),
+                                 availability_basis='PUBLIC_RESPONSE_OBSERVED_PLUS_LOCAL_HISTORY')
+        except (OSError, ValueError, KeyError) as exc:
+            value=dict(version=VERSION,asof=cutoff,status='UNKNOWN',
+                       reason='NATIVE_INDEX_UNAVAILABLE:'+type(exc).__name__)
+        evidence[name]=value
     print(json.dumps(dict(cutoff=cutoff,evidence=evidence),ensure_ascii=False,allow_nan=False))

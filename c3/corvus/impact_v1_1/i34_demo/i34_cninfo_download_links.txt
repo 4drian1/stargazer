@@ -1,0 +1,36 @@
+# I34 官方 PDF 手动下载清单（CNINFO）
+# 共 30 篇。请逐篇从 CNINFO 下载官方 PDF，按"目标文件名"保存到：
+#   i34_demo/incoming_cninfo_pdfs_multiday_v2/
+# 打开详情页后点"下载 / 查看PDF"保存；文件名务必严格等于"目标文件名"。
+#
+# 目标文件名, 证券代码, 披露日期, 备注, CNINFO 公告详情页
+000100_20261020.pdf, 000100, 2026-10-20, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830722950
+300949_20261020.pdf, 300949, 2026-10-20, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830716269
+301127_20261020.pdf, 301127, 2026-10-20, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830724464
+920186_20261020.pdf, 920186, 2026-10-20, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830723797
+001381_20261021.pdf, 001381, 2026-10-21, ⚠ 日期差异: AN编号日=2026-10-20 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830725851
+920285_20261021.pdf, 920285, 2026-10-21, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610211830765914
+603129_20261021.pdf, 603129, 2026-10-21, ⚠ 日期差异: AN编号日=2026-10-20 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610201830721918
+300535_20261021.pdf, 300535, 2026-10-21, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610211830766301
+601609_20261022.pdf, 601609, 2026-10-22, ⚠ 日期差异: AN编号日=2026-10-21 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610211830758453
+920075_20261022.pdf, 920075, 2026-10-22, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610221830805861
+920036_20261022.pdf, 920036, 2026-10-22, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610221830804891
+920992_20261022.pdf, 920992, 2026-10-22, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610221830803661
+301382_20261023.pdf, 301382, 2026-10-23, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610231830843938
+000790_20261023.pdf, 000790, 2026-10-23, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610231830850284
+300469_20261023.pdf, 300469, 2026-10-23, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610231830849252
+300677_20261023.pdf, 300677, 2026-10-23, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610231830847177
+300964_20261024.pdf, 300964, 2026-10-24, ⚠ 日期差异: AN编号日=2026-11-01 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202611011831295108
+002213_20261024.pdf, 002213, 2026-10-24, ⚠ 日期差异: AN编号日=2026-10-27 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610271831035700
+002080_20261024.pdf, 002080, 2026-10-24, ⚠ 日期差异: AN编号日=2026-10-26 与披露日不符，下载后须用PDF原文复核, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610261830913752
+301631_20261024.pdf, 301631, 2026-10-24, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610241830879369
+301139_20261026.pdf, 301139, 2026-10-26, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610261830946302
+301280_20261026.pdf, 301280, 2026-10-26, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610261830926928
+920873_20261026.pdf, 920873, 2026-10-26, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610261830927372
+920220_20261026.pdf, 920220, 2026-10-26, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610261830926577
+920580_20261027.pdf, 920580, 2026-10-27, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610271831040419
+920086_20261027.pdf, 920086, 2026-10-27, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610271831025920
+920116_20261027.pdf, 920116, 2026-10-27, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610271831040379
+301176_20261027.pdf, 301176, 2026-10-27, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610271831039366
+920011_20261028.pdf, 920011, 2026-10-28, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610281831115435
+920436_20261028.pdf, 920436, 2026-10-28, 正常, https://www.cninfo.com.cn/new/disclosure/detail?announcementId=AN202610281831117494

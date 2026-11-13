@@ -333,13 +333,13 @@ def compose_stop_watch(cfg):
     import services
     from tools import market
     wl = services.wl_load(cfg)
-    pos, watch = wl.get("positions", []), wl.get("watch", [])
+    pos, watch = services.active_positions(cfg, wl.get("positions", [])), wl.get("watch", [])
     codes = [p["code"] for p in pos] + [w["code"] for w in watch]
     if not codes:
         return []
     qs = market.quotes(codes)
     alerts = []
-    for p in pos:
+    for p in services.active_positions(cfg):
         q = qs.get(p["code"])
         if not q:
             continue

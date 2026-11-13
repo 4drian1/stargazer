@@ -21,8 +21,8 @@ def _get(url, tries=3, timeout=10, encoding=None, on_attempt=None):
     return None
 
 
-def _get_json(url, tries=3):
-    raw = _get(url, tries=tries)
+def _get_json(url, tries=3, timeout=10):
+    raw = _get(url, tries=tries, timeout=timeout)
     if raw is None:
         return None
     try:
@@ -175,10 +175,10 @@ INDEX_WATCH = [
 ]
 
 
-def index_quotes(tries=3):
+def index_quotes(tries=3, *, timeout=10):
     """主要指数 [{code,name,price,pct,amount_yi}]。"""
     q = ",".join(c for c, _ in INDEX_WATCH)
-    txt = _get(f"https://qt.gtimg.cn/q={q}", tries=tries, encoding="gbk")
+    txt = _get(f"https://qt.gtimg.cn/q={q}", tries=tries, timeout=timeout, encoding="gbk")
     out = []
     for line in (txt or "").strip().split(";"):
         if "=" not in line:
@@ -189,6 +189,7 @@ def index_quotes(tries=3):
         try:
             out.append({"code": f[2], "name": f[1], "price": float(f[3]),
                         "pct": float(f[32]), "time": f[30],
+                        "day_low": float(f[34]) if f[34] not in ('', '-') else None,
                         "amount_yi": round(float(f[37]) / 1e4, 1)})
         except (ValueError, IndexError):
             continue
@@ -326,12 +327,12 @@ def board_constituents(bk: str, exclude_st=True, exclude_bj=True):
     return out
 
 
-def board_fund_flow(top=15):
+def board_fund_flow(top=15, *, tries=3, timeout=10):
     """板块主力资金流：返回 (流入榜, 流出榜)，元素 (名称, 涨跌幅%, 主力净流入亿, 净占比%)"""
     def _fetch(po):
         d = _get_json("https://push2delay.eastmoney.com/api/qt/clist/get?"
                       f"pn=1&pz={top}&po={po}&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2,m:90+t:3"
-                      "&fields=f12,f14,f3,f62,f184")
+                      "&fields=f12,f14,f3,f62,f184", tries=tries, timeout=timeout)
         if not d or not d.get("data") or not d["data"].get("diff"):
             return []
         return [(it["f14"], it["f3"] if it["f3"] != "-" else 0,

@@ -61,10 +61,15 @@ def _root(root):
 
 
 def store(root, value):
+    from cross_process_lock_v1 import FileLock
     identifier = digest(value)
-    file = _root(root) / ('plan_%s.json' % identifier)
-    if not file.exists():
-        file.write_bytes(_encoded(value))
+    folder = _root(root)
+    file = folder / ('plan_%s.json' % identifier)
+    pointer = folder / 'latest_board_draft.json'
+    with FileLock(pointer):
+        if not file.exists():
+            ths._write_json(file, value)
+        ths._write_json(pointer, {'id': identifier})
     return {'id': identifier, **value}
 
 
@@ -78,6 +83,10 @@ def load_draft(root, identifier):
 
 
 def latest(root):
+    pointer = Path(root) / 'latest_board_draft.json'
+    if pointer.is_file():
+        identifier = json.loads(pointer.read_bytes())['id']
+        return {'id': identifier, **load_draft(root, identifier)}
     files = sorted(Path(root).glob('plan_*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
     if not files:
         return None
@@ -180,12 +189,12 @@ def is_sector_only(message):
     return parse(message) is not None
 
 
-def _board_key(board):
+def _board_key(board, store_dir=None):
     """板块去重键：能解析身份的按身份 key，否则按名称。"""
     if isinstance(board, dict) and board.get('identity'):
         return board['identity']
     if isinstance(board, dict) and board.get('name'):
-        item = ths.resolve(board['name'])
+        item = ths.resolve(board['name'], store_dir)
         return item['key'] if item else 'name:' + board['name'].strip()
     return None
 
@@ -251,12 +260,12 @@ def preview(message, prior_boards, root, store_dir, *, formal=None, assistant_pl
 
 def _preview(parsed, message, prior_boards, root, store_dir, *, formal, assistant_plan_path):
     prior = _normalize_boards(prior_boards)
-    prior_keys = {_board_key(b) for b in prior}
+    prior_keys = {_board_key(b, store_dir) for b in prior}
     additions = [t for t in parsed['add'] if t['key'] not in prior_keys]
     already = [t for t in parsed['add'] if t['key'] in prior_keys]
     remove_keys = {t['key'] for t in parsed['remove']}
-    removed = [b for b in prior if _board_key(b) in remove_keys]
-    new_boards = [b for b in prior if _board_key(b) not in remove_keys]
+    removed = [b for b in prior if _board_key(b, store_dir) in remove_keys]
+    new_boards = [b for b in prior if _board_key(b, store_dir) not in remove_keys]
     for item in additions:
         new_boards.append(dict(name=item['name'], note='',
             identity=item['key'], source=item['source'], type=item['type'],
@@ -270,6 +279,7 @@ def _preview(parsed, message, prior_boards, root, store_dir, *, formal, assistan
     if additions:
         lines.append('追加：' + '；'.join(
             ths.describe(item) + '——' + _STATUS_TEXT[statuses[item['key']]] for item in additions))
+        lines.extend('同花顺出处：' + item['source_url'] for item in additions if item.get('source_url'))
     if removed:
         lines.append('移除：' + '、'.join(b['name'] for b in removed))
     if already:
@@ -291,6 +301,7 @@ def _preview(parsed, message, prior_boards, root, store_dir, *, formal, assistan
                           'boards_removed': [b['name'] for b in removed],
                           'boards_kept': [b['name'] for b in prior if b not in removed]},
                  identity_status={k: _STATUS_TEXT[v] for k, v in statuses.items()},
+                 new_identities=[item for item in additions if item.get('source_url')],
                  plan_baseline=plan_baseline(formal),
                  assistant_plan_baseline=assistant_baseline,
                  confirmable=bool(additions or removed),
@@ -315,35 +326,60 @@ def current_boards(formal_plan_path, store_dir):
     return formal, preparation_boards(formal, store_dir)
 
 
-def preparation_boards(formal, store_dir, now=None):
-    """Use saved preferences for preparation once the formal plan has expired."""
+def preparation_boards(formal, store_dir, now=None, *, include_deferred=True):
+    """Read the selection scope without activating deferred preferences for live monitoring."""
     prior = (formal or {}).get('boards')
-    if not plan_effective(formal, now):
-        preference = pending_preferences(store_dir)
-        if preference:
-            prior = preference['boards']
+    preference = pending_preferences(store_dir)
+    if (preference and not preference_superseded(preference, formal) and
+            (include_deferred if preference.get('refresh_after_selection')
+             else not plan_effective(formal, now))):
+        prior = preference['boards']
     return _normalize_boards(prior)
 
 
-def preview_selection(action, token, *, root, store_dir, formal_plan_path, assistant_plan_path=None):
+def preview_selection(action, token, *, root, store_dir, formal_plan_path, assistant_plan_path=None, match=None):
     """Build the same confirmation draft from an exact UI selection."""
     formal, prior = current_boards(formal_plan_path, store_dir)
     token = token.strip() if isinstance(token, str) else ''
     if action == 'add':
-        item = ths.resolve(token)
-        if not item:
-            raise ValueError('此板块身份尚未核验，请从已核验的同花顺板块中选择。')
+        from ths_board_catalog_v1 import search
+        items, notes = search(token, {item['key']: item for item in ths.identities(store_dir)})
+        def identity_match(item):
+            return ':'.join((item['key'], item['type'], item['web_id']))
+        candidates = [dict(item, match=identity_match(item)) for item in items]
+        exact = [item for item in items if token.casefold() in {
+            v.casefold() for v in (item['key'], *ths._aliases(item))}]
+        if match:
+            chosen = [item for item in items if identity_match(item) == match]
+        else:
+            chosen = exact if len(exact) == 1 else []
+        if len(chosen) != 1:
+            return dict(draft=None, candidates=candidates, notes=notes or
+                        ['请选择核验过的板块' if candidates else '板块身份待核验，请检查代码或名称'])
+        item = chosen[0]
+        if any(b['name'].casefold() == item['name'].casefold() and b.get('identity')
+               and b['identity'] != item['key'] for b in prior):
+            raise ValueError('当前列表已有同名但身份不同的板块，请先删除冲突项')
+        for board in prior:
+            if not board.get('identity') and board['name'].casefold() in {
+                    item['name'].casefold(), 'pcb' if item['name'] == 'PCB概念' else ''}:
+                board['identity'] = item['key']
     elif action == 'remove':
         board = next((b for b in prior if b['name'] == token), None)
         if not board:
             raise ValueError('当前板块列表中找不到该名称，请刷新后重试。')
-        item = dict(key=_board_key(board), name=board['name'])
+        item = dict(key=_board_key(board, store_dir), name=board['name'])
     else:
         raise ValueError('无效的板块操作')
     parsed = {'add': [], 'remove': []}
     parsed[action].append(item)
     return _preview(parsed, token, prior, root, store_dir, formal=formal,
                     assistant_plan_path=assistant_plan_path)
+
+
+def preference_superseded(preference, formal):
+    change_at = str(((formal or {}).get('board_change') or {}).get('changed_at') or '')
+    return str(preference.get('saved_at') or '') < change_at
 
 
 def pending_preferences(store_dir):
@@ -393,9 +429,16 @@ def stock_alert_identity(plan, store_dir=None):
 
 
 def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
-            assistant_plan_path=None, now=None):
+            assistant_plan_path=None, now=None, defer=False):
     """核对基线后事务化写入：正式计划 → 助手计划 → 监控登记 → 回执（提交标记）。
     任一步失败回滚全部，不留部分成功。过期/无计划：仅保存后续板块偏好。"""
+    from cross_process_lock_v1 import FileLock
+    with FileLock(Path(store_dir) / 'board_change'):
+        return _confirm(identifier, confirmed, root, store_dir, formal_plan_path,
+                        assistant_plan_path, now, defer)
+
+
+def _confirm(identifier, confirmed, root, store_dir, formal_plan_path, assistant_plan_path, now, defer):
     if confirmed is not True:
         raise ValueError('必须人工确认板块变更')
     draft = load_draft(root, identifier)
@@ -424,7 +467,12 @@ def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
                 digest(json.loads(Path(assistant_plan_path).read_bytes())) != draft['assistant_plan_baseline']:
             raise ValueError('助手计划已更新，与预览时的基线不一致；请重新预览后再确认')
 
-    effective = plan_effective(formal, stamp)
+    if defer:
+        preference = pending_preferences(store_dir)
+        if preference and preference.get('draft_id') == identifier:
+            return {'ok': True, 'duplicate': True, 'effective': False,
+                    'boards': [b['name'] for b in boards], 'reply': '板块偏好已保存，等待更新板块强势池。'}
+    effective = not defer and plan_effective(formal, stamp)
     if effective and _normalize_boards(formal.get('boards')) == boards:
         return {'ok': True, 'duplicate': True, 'effective': True,
                 'boards': [b['name'] for b in boards], 'monitor_date': formal.get('monitor_date')}
@@ -437,6 +485,8 @@ def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
                      Path(store_dir) / 'board_changes' / (identifier + '.json')):
             backups.append((path, path.read_bytes() if path.is_file() else None))
         try:
+            for item in draft.get('new_identities', []):
+                ths.register(item, store_dir)
             new_formal = copy.deepcopy(formal)
             new_formal['boards'] = copy.deepcopy(boards)
             new_formal['board_change'] = dict(draft_id=identifier, changed_at=stamp,
@@ -446,7 +496,7 @@ def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
             if assistant_plan_path:
                 _update_boards_only(assistant_plan_path, boards)
             for board in boards:
-                item = ths.resolve(board.get('name') or '') if isinstance(board, dict) else None
+                item = ths.resolve(board.get('identity') or board['name'], store_dir)
                 if item:
                     ths.set_monitor_enabled(item, store_dir, True, plan_ref=identifier)
             # 回执最后写入，作为事务提交标记；缺回执即未生效
@@ -474,7 +524,7 @@ def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
                     path.write_bytes(raw)
             raise ValueError('板块变更写入失败，已回滚全部修改：%s' % type(exc).__name__) from None
         missing = [b['name'] for b in boards
-                   if ths.resolve(b.get('name') or '') and
+                   if ths.resolve(b.get('identity') or b['name'], store_dir) and
                    ths.monitor_status(b['name'], store_dir)['status'] == 'CONSTITUENTS_PENDING']
         reply = ('板块变更已生效：' + '、'.join(b['name'] for b in boards) +
                  '。个股计划与已发送提醒记录未改变。' +
@@ -485,12 +535,25 @@ def confirm(identifier, confirmed, *, root, store_dir, formal_plan_path,
                 'constituents_pending': missing, 'reply': reply}
     # 过期或无有效计划：只保存后续板块偏好，不延长旧计划、不恢复旧个股提醒
     preference = dict(contract=CONTRACT, boards=boards, saved_at=stamp,
-                      draft_id=identifier, effective=False,
+                      draft_id=identifier, effective=False, refresh_after_selection=defer,
                       note='计划已过期或不存在：仅保存后续板块偏好，尚未生效；'
                            '不延长旧计划、不恢复旧个股提醒；新计划制定时沿用本偏好。')
     pref_file = Path(store_dir) / 'pending_board_preference.json'
-    pref_file.parent.mkdir(parents=True, exist_ok=True)
-    pref_file.write_bytes(json.dumps(preference, ensure_ascii=False, sort_keys=True).encode('utf-8'))
+    registry_path = Path(store_dir) / 'identities.json'
+    old_registry = registry_path.read_bytes() if registry_path.is_file() else None
+    try:
+        for item in draft.get('new_identities', []):
+            ths.register(item, store_dir)
+        ths._write_json(pref_file, preference)
+    except (ValueError, OSError):
+        if old_registry is None:
+            registry_path.unlink(missing_ok=True)
+        else:
+            ths._write_json(registry_path, json.loads(old_registry))
+        raise
+    if defer:
+        return {'ok': True, 'effective': False, 'preference_saved': True,
+                'boards': [b['name'] for b in boards], 'reply': '板块偏好已保存，等待更新板块强势池。'}
     return {'ok': True, 'effective': False, 'preference_saved': True,
             'boards': [b['name'] for b in boards],
             'reply': ('当前没有生效中的计划（已过期或不存在）。板块偏好已保存：' +

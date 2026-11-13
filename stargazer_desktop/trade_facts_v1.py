@@ -72,6 +72,10 @@ def fact_table(cutoff,risk,signal=None,selection=None):
             evidence_time=fifteen['evidence_time'])
         add(f'index.{name}.repair',evidence['summary'])
         add(f'index.{name}.volume','指数成交量口径未核销；缩量与强弱修复资格未知',status='UNKNOWN')
+        if evidence.get('recent_five_bars') and evidence.get('evidence_time') == cutoff:
+            add(f'index.{name}.recent_five_bars', '近期已完成五分钟K线',
+                dict(bars=evidence['recent_five_bars'], volume_verified=evidence.get('volume_verified') is True),
+                evidence_time=cutoff)
         comparison = evidence.get('divergence') or {}
         if comparison.get('asof') == cutoff:
             descriptions = []

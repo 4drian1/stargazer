@@ -29,7 +29,7 @@ CONDITIONS={
     'TWO_5M_RECLAIM':'刺破后连续两根完整五分钟收回同一档位／整带上沿，观察修复',
     'STABLE_RSI_UP':'未破位置附近低点不降、收盘抬高且RSI6在RSI15上方，观察企稳',
     'CONFIRM_15M':'十五分钟辅助同向确认；五分钟信号优先，不必等拉升后才观察'}
-PROMPT=('你是Stargazer风险研判助手。只用computed_facts，沪指为主、创业板辅助，板块与龙头分开。'
+PROMPT=('你是Stargazer风险研判助手。只用computed_facts，沪指为主、深证成指、科创50与创业板辅助，板块与龙头分开。'
     'POSTCLOSE给次日条件情景，INTRADAY给当前风险巡检；不能将当前修复等同未来一定上涨。'
     '输出JSON：asof原整数；bias只能REPAIR_BIAS/DOWNSIDE_BIAS/MIXED/UNKNOWN；'
     'sections为market/boards/leaders/holdings/plan五项简短中文字符串；'
@@ -125,7 +125,7 @@ def live_index_facts(cutoff,now=None):
     now=requested_now or datetime.now()
     observed=int(now.strftime('%Y%m%d%H%M%S'));facts={}
     for row in rows:
-        name={'000001':('sse','沪指'),'399006':('cyb','创业板')}.get(row.get('code'))
+        name={'000001':('sse','沪指'),'399001':('szse','深证成指'),'000688':('star50','科创50'),'399006':('cyb','创业板')}.get(row.get('code'))
         if not name:continue
         try:
             stamp=datetime.strptime(str(row['time']),'%Y%m%d%H%M%S')
@@ -138,6 +138,8 @@ def live_index_facts(cutoff,now=None):
         facts['market.'+key]=dict(asof=int(row['time']),evidence_time=int(row['time']),
             observed_at=observed,bar_cutoff=cutoff,evidence_kind='QUOTE_SNAPSHOT',
             source='TENCENT_PUBLIC_INDEX_QUOTE',status='KNOWN',value=pct/100,price=price,
+            day_low=row.get('day_low') if type(row.get('day_low')) in (int,float)
+                and math.isfinite(row['day_low']) and 0 < row['day_low'] <= price else None,
             text=f'{label}实时报价 {price:.4f}，相对昨收 {pct:+.2f}%；报价时间 {row["time"]}；快照不代表完整五分钟确认')
         amount = row.get('amount_yi')
         if (type(amount) in (int, float) and math.isfinite(amount) and amount >= 0):
@@ -243,9 +245,44 @@ def collect(view,cutoff,positions=None,signals=None,overlay=True):
         facts['market.'+name+'.price']=dict(asof=cutoff,status='KNOWN',value=evidence['last_close'],text=name+'完整五分钟收盘价 '+str(evidence['last_close']))
         from index_outlook_v1 import facts_for
         facts.update(facts_for(name,evidence,cutoff))
+        from index_map_layers_v1 import build_layers
+        layers = build_layers(name, evidence, cutoff) or {}
+        lower_watch = layers.get('next_support') if layers.get('band_is_current') else layers.get('band')
+        if lower_watch:
+            lower, upper = lower_watch['lower'], lower_watch['upper']
+            facts['index.'+name+'.band.lower_watch'] = dict(
+                asof=cutoff, status='KNOWN', value=lower_watch,
+                text=f'{name}下方黄金观察带 {lower:.2f}—{upper:.2f}')
+    facts.update(_board_quote_facts(cutoff))
+    return facts
+
+
+def _board_quote_snapshot():
+    from strong_sector_watch_v1 import root as strong_root
+    return json.loads((strong_root() / 'summary.json').read_bytes())
+
+
+def overview_boards(now):
     try:
-        from strong_sector_watch_v1 import root as strong_root
-        packet=json.loads((strong_root()/'summary.json').read_bytes())
+        packet = _board_quote_snapshot()
+        stamp = datetime.strptime(str(packet['asof']), '%Y%m%d%H%M%S')
+        if stamp.date() == now.date() and stamp <= now:
+            rows = []
+            for item in packet['boards']:
+                if item.get('valid_count', 0) > 0 and isinstance(item.get('mean_return'), (int, float)):
+                    leader = item.get('leader') or {}
+                    rows.append(dict(name=item['name'], leader=leader.get('name') or leader.get('code'),
+                                     change=item['mean_return'], valid_count=item['valid_count']))
+            return packet['asof'], rows
+    except (OSError, ValueError, TypeError, KeyError):
+        pass
+    return None, []
+
+
+def _board_quote_facts(cutoff):
+    facts = {}
+    try:
+        packet=_board_quote_snapshot()
         age=(datetime.strptime(str(cutoff),'%Y%m%d%H%M%S')-datetime.strptime(str(packet['asof']),'%Y%m%d%H%M%S')).total_seconds()
         if -120<=age<=360:
             for board in packet.get('boards',[]):
@@ -253,6 +290,21 @@ def collect(view,cutoff,positions=None,signals=None,overlay=True):
                     status='KNOWN',value=board,text=board['name']+'冻结强势池报价观察：'+json.dumps(board,ensure_ascii=False)+'；并非全板块龙头认定')
     except (OSError,ValueError,KeyError):pass
     return facts
+
+
+def board_flow_snapshot(*, tries=3, timeout=10):
+    from tools.market import board_fund_flow
+    try:
+        inflow, outflow = board_fund_flow(3, tries=tries, timeout=timeout)
+        inflow = [item for item in inflow if item[2] > 0]
+        outflow = [item for item in outflow if item[2] < 0]
+        if inflow or outflow:
+            return dict(inflow=inflow, outflow=outflow,
+                        observed_at=datetime.now().isoformat(timespec='seconds'),
+                        source='东方财富板块主力净流向')
+    except (OSError, ValueError, TypeError, KeyError):
+        pass
+    return None
 
 
 def qualify_references(value,facts):
@@ -286,7 +338,7 @@ def qualify_references(value,facts):
 
 def focus_allowed_ids(facts):
     return [k for k,f in facts.items() if f['status']=='KNOWN' and
-        ('.band.' in k or '.plan.' in k or re.fullmatch(r'index\.(sse|cyb)\.(\d+|rebound\.\d+)',k) or
+        ('.band.' in k or '.plan.' in k or re.fullmatch(r'index\.(sse|szse|star50|cyb)\.(\d+|rebound\.\d+)',k) or
          (k.endswith('.reclaim') and isinstance(f.get('value'),list) and f['value']))]
 
 
@@ -299,7 +351,7 @@ def qualify_focus(value,facts):
     allowed=set(focus_allowed_ids(facts));removed=[]
     for k in focus:
         if k in allowed:continue
-        if (k not in ('market.sse','market.cyb') or facts[k]['status']!='KNOWN' or
+        if (k not in ('market.sse','market.szse','market.star50','market.cyb') or facts[k]['status']!='KNOWN' or
                 facts[k].get('evidence_kind')!='QUOTE_SNAPSHOT'):
             raise ValueError('OUTLOOK_POSITION_REFERENCE')
         removed.append(dict(fact_id=k,reason='QUOTE_IS_NOT_GOLDEN_POSITION'))
@@ -387,7 +439,8 @@ def with_local_failure(result):
     from index_outlook_v1 import render as render_map
     if render_map(facts):lines.append(render_map(facts))
     shown=set()
-    for name,label in [('sse','沪指'),('cyb','创业板')]:
+    from index_outlook_v1 import NAMES
+    for name,label in (*NAMES.items(), ('star50', '科创50')):
         quote=facts.get('market.'+name,{})
         lines.append(quote['text'] if quote.get('status')=='KNOWN' else label+'当前涨跌：未知')
         shown.add('market.'+name)
@@ -439,12 +492,26 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
         if prior.exists():
             cached=_cached_result(prior)
             if cached is not None:return cached
-    facts=collect(view,cutoff,positions,signals,overlay)
-    if mode=='INTRADAY' and view.get('observe_live'):
+    live_facts = {}
+    if mode == 'INTRADAY' and view.get('observe_live'):
         try:
-            for key,fact in live_index_facts(cutoff).items():
-                if facts.get(key,{}).get('status')!='KNOWN':facts[key]=fact
-        except (OSError,ValueError):pass  # Failed quotes remain unknown; no retry.
+            live_facts = live_index_facts(cutoff)
+        except (OSError, ValueError):
+            pass
+        if live_facts:
+            marker = prior.with_name(slot_key + '.local.json')
+            save(marker, dict(status='LOCAL_FACTS', key=slot_key, asof=cutoff, mode=mode,
+                              plan_id=plan_id, plan_hash=view.get('plan_hash'), computed_facts=live_facts))
+    facts=collect(view,cutoff,positions,signals,overlay)
+    board_flow = None
+    if mode == 'INTRADAY' and fresh(cutoff, datetime.now()):
+        board_flow = board_flow_snapshot()
+        if board_flow:
+            facts['sector.fund_flow'] = dict(asof=cutoff, status='KNOWN', value=board_flow,
+                text='板块主力净流入与净流出榜，按报价源口径独立采样')
+    if mode=='INTRADAY' and view.get('observe_live'):
+        for key,fact in live_facts.items():
+            if facts.get(key,{}).get('status')!='KNOWN':facts[key]=fact
         quote=facts.get('market.sse') or {}
         if quote.get('status')=='KNOWN' and quote.get('evidence_kind')=='QUOTE_SNAPSHOT':
             from strong_sector_watch_v1 import invoke
@@ -475,7 +542,7 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
         if cached is not None:return cached
     result=dict(status='AI_ATTEMPT_RESERVED',key=key,asof=cutoff,mode=mode,plan_id=plan_id,
         plan_hash=view.get('plan_hash'),computed_facts=facts,automatic_trading=False,prompt_contract=CONTRACT,
-        owner_pid=os.getpid(),started_epoch=time.time())
+        owner_pid=os.getpid(),started_epoch=time.time(),board_flow=board_flow)
     if isinstance(json.loads(path.read_bytes()) if path.exists() else None,dict):
         # 收回续算：保留被收回占位的身份证据，可审计（不删除原证据）。
         prior=json.loads(path.read_bytes())
@@ -528,6 +595,88 @@ def generate(cfg,view,cutoff,mode='POSTCLOSE',positions=None,signals=None,overla
 def latest(mode='POSTCLOSE'):
     try:return with_local_failure(json.loads((runtime.directory()/'risk_outlook'/('latest_'+mode.lower()+'.json')).read_bytes()))
     except (OSError,ValueError):return dict(status='NOT_GENERATED')
+
+
+def patrol_bulletin(plan, now):
+    from joint_risk_bridge import completed_cutoff
+    from tarot_monitor_v2 import fresh, outlook_slot
+
+    cutoff = completed_cutoff(now)
+    if not cutoff or not half_hour(cutoff) or not fresh(cutoff, now):
+        return {}
+    plan_id, plan_hash = plan.get('assistant_plan_id'), digest(plan)
+    key, slot = outlook_slot(cutoff, plan_id, plan_hash)
+    records = []
+    for path in (slot, slot.with_name(key + '.local.json'), slot.with_name(key + '.waiting.json'),
+                 slot.with_name('latest_intraday.json')):
+        try:
+            record = json.loads(path.read_bytes())
+        except (OSError, ValueError):
+            continue
+        if (isinstance(record, dict) and record.get('key') == key
+                and record.get('asof') == cutoff and record.get('plan_hash') == plan_hash):
+            records.append(record)
+    for record in records:
+        if record.get('status') in ('READY', 'AI_FAILED', 'DATA_WAIT'):
+            return record
+    end = datetime.strptime(str(cutoff), '%Y%m%d%H%M%S')
+    if (now - end).total_seconds() < 60:
+        return {}
+    if records:
+        return records[0]
+    return dict(status='DATA_WAIT', key=key, asof=cutoff, mode='INTRADAY',
+                plan_id=plan_id, plan_hash=plan_hash, computed_facts={},
+                reason='同截止巡检证据尚未到达')
+
+
+def with_patrol_quotes(bulletin, now):
+    """Use available local evidence independently of the risk/AI result."""
+    facts = dict(bulletin.get('computed_facts') or {})
+    cutoff = bulletin['asof']
+    facts.update(_board_quote_facts(cutoff))
+    if not all((facts.get(f'index.{name}.recent_five_bars') or {}).get('status') == 'KNOWN'
+               for name in ('sse', 'szse', 'star50', 'cyb')):
+        from plan_evidence import prepared_price_overlay
+        from trade_facts_v1 import fact_table
+        try:
+            prices = prepared_price_overlay(cutoff)
+            if prices:
+                local = fact_table(cutoff, dict(context=dict(market_price_evidence=prices)))
+                for key, fact in local.items():
+                    if key.startswith(('index.', 'market.')) and fact.get('status') == 'KNOWN':
+                        if (facts.get(key) or {}).get('status') != 'KNOWN':
+                            facts[key] = fact
+                from index_outlook_v1 import facts_for
+                for name, evidence in prices.items():
+                    if evidence.get('status') == 'PRICE_FACTS_ONLY' and evidence.get('asof') == cutoff:
+                        facts.update(facts_for(name, evidence, cutoff))
+                        facts.setdefault(f'index.{name}.map_input',
+                                         dict(asof=cutoff, status='KNOWN', value=evidence))
+        except (OSError, ValueError):
+            pass
+    missing = set()
+    for name in ('sse', 'szse', 'star50', 'cyb'):
+        market = facts.get('market.' + name) or {}
+        mapping = facts.get(f'index.{name}.rebound_map') or {}
+        if mapping.get('status') == 'KNOWN' and mapping.get('asof') == cutoff:
+            continue
+        if market.get('status') == 'KNOWN':
+            if market.get('evidence_kind') != 'QUOTE_SNAPSHOT' and market.get('asof') == cutoff:
+                continue
+            if market.get('bar_cutoff') == cutoff:
+                try:
+                    stamp = datetime.strptime(str(market['asof']), '%Y%m%d%H%M%S')
+                    if 0 <= (now - stamp).total_seconds() <= 120:
+                        continue
+                except (ValueError, KeyError):
+                    pass
+        missing.update(('market.' + name, 'market.' + name + '.amount_yi'))
+    if missing:
+        try:
+            facts.update({key: fact for key, fact in live_index_facts(cutoff).items() if key in missing})
+        except (OSError, ValueError):
+            pass
+    return dict(bulletin, computed_facts=facts)
 
 
 def queue(cfg,view,cutoff,**kwargs):

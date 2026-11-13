@@ -9,7 +9,16 @@ a node inside a band is the band's inner node, not an extra support. The
 big-picture retracement map is background only. No invented integer levels.
 """
 
-NAMES = {'sse': '沪指', 'cyb': '创业板'}
+import math
+
+from index_outlook_v1 import NAMES
+
+
+def next_lower_band(bands, boundary):
+    candidates = [b for b in bands if all(type(b.get(k)) in (int, float) and math.isfinite(b[k])
+                                           for k in ('lower', 'upper'))
+                  and 0 < b['lower'] <= b['upper'] < boundary]
+    return max(candidates, key=lambda b: (b['upper'], b['lower']), default=None)
 
 
 def _near_band(evidence, close):
@@ -48,7 +57,9 @@ def build_layers(name, evidence, cutoff):
     above_bands = [float(b['upper']) for b in bands if float(b['lower']) > close]
     near_above = sorted(set(above_levels + above_bands))
     remote = [v for v in (rebound.get('levels') or [])] if rebound.get('status') == 'PRICE_MAP_ONLY' else []
+    next_support = next_lower_band(bands, min(close, float(band['lower'])) if band else close)
     return dict(label=label, close=close, band=band, band_is_current=band_is_current,
+                next_support=next_support,
                 node=node, node_in_band=node_in_band, node_below=node_below,
                 session_low=session_low, prior_low=prior_low, prior_low_day=prior_low_day,
                 above_near=near_above, remote=remote)
@@ -78,6 +89,9 @@ def render_layers(layers_by_name):
             lines.append(f"下方观察：节点{f(L['node'])}；共振带未检出，不拼造。")
         else:
             lines.append("下方观察：本截止无真实执行地图节点，不补造整数位。")
+        lower = L.get('next_support')
+        if lower:
+            lines.append(f"下一黄金观察带：{f(lower['lower'])}—{f(lower['upper'])}。")
         if L['prior_low']:
             day = f"（{L['prior_low_day']}）" if L['prior_low_day'] else ''
             lines.append(f"更下方：前低{f(L['prior_low'])}{day}（价格事实，非黄金位）。")

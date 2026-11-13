@@ -4,7 +4,6 @@ import copy
 import gzip
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import threading
@@ -16,7 +15,6 @@ import learning_review
 
 LOCK = threading.RLock()
 JOB = {'running': False, 'error': None, 'draft': None}
-LIMIT = 10 * 1024 * 1024
 PLAN_ZONE = timezone(timedelta(hours=8))
 
 
@@ -58,14 +56,9 @@ def digest(value):
 
 def write(file, value):
     raw = encoded(value)
+    from persistent_records_v1 import reserve_space
+    reserve_space(file.parent, len(raw))
     file.parent.mkdir(parents=True, exist_ok=True)
-    reclaim_records()
-    total = sum(p.stat().st_size for p in root().rglob('*') if p.is_file())
-    from persistent_records_v1 import is_record, reserve_space
-    persistent = is_record(root())
-    if persistent:reserve_space(root(),len(raw))
-    if not persistent and total + len(raw) > LIMIT:
-        raise ValueError('助手记录达到10MiB预算，停止写入；报价提醒不受影响')
     with file.open('xb') as stream:
         stream.write(raw)
 
@@ -77,47 +70,15 @@ def _read_record(file):
     return json.loads(raw)
 
 
-def reclaim_records(keep=4):
-    """Compress superseded plan/review drafts in place when records near budget.
-
-    Content and digest are unchanged, so old drafts stay readable evidence;
-    confirmed_* files are left untouched for direct readers.
-    """
-    from persistent_records_v1 import is_record
-    if is_record(root()):return 0
-    files = [p for p in root().rglob('*') if p.is_file()] if root().exists() else []
-    total = sum(p.stat().st_size for p in files)
-    if total <= LIMIT * 0.7:
-        return 0
-    keeper = set()
-    for kind in ('plan', 'review'):
-        drafts = sorted(root().glob(f'{kind}_*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
-        keeper |= {p.name for p in drafts[:keep]}
-    freed = 0
-    for file in files:
-        if file.suffix != '.json' or file.name in keeper:
-            continue
-        if not file.name.startswith(('plan_', 'review_')):
-            continue
-        raw = file.read_bytes()
-        if raw[:2] == b'\x1f\x8b':
-            continue
-        packed = gzip.compress(raw, 9)
-        if len(packed) >= len(raw):
-            continue
-        stat = file.stat()
-        temp = file.parent / (file.name + '.tmp')
-        temp.write_bytes(packed)
-        temp.replace(file)
-        os.utime(file, (stat.st_atime, stat.st_mtime))
-        freed += len(raw) - len(packed)
-    return freed
-
-
 def load_draft(kind, identifier):
     if kind not in ('plan', 'review') or not re.fullmatch('[0-9a-f]{64}', identifier or ''):
         raise ValueError('草案编号无效')
-    value = _read_record(root() / f'{kind}_{identifier}.json')
+    path = root() / f'{kind}_{identifier}.json'
+    if not path.is_file():
+        path = path.parent / 'history' / path.name
+        if not path.resolve().is_relative_to(root().resolve()):
+            raise ValueError('草案路径超出本地记录目录')
+    value = _read_record(path)
     if digest(value) != identifier:
         raise ValueError('草案哈希不符，不允许确认')
     return value
@@ -358,12 +319,18 @@ def execution_rows(value, draft):
 def plan_preferences(previous):
     """A new stock draft cannot supersede an unconsumed, confirmed board preference."""
     preferences = copy.deepcopy(previous or {})
-    from plan_board_change_v1 import pending_preferences
+    from plan_board_change_v1 import pending_preferences, preference_superseded
     import postclose_risk_runtime
     preference = pending_preferences(postclose_risk_runtime.directory() / 'board_identities')
-    if preference and preferences.get('board_preference_id') != preference.get('draft_id'):
-        preferences['boards'] = copy.deepcopy(preference['boards'])
-        preferences['board_preference_id'] = preference['draft_id']
+    if preference:
+        import trade_plan_v1
+        formal = trade_plan_v1.load_plan()
+        if preference_superseded(preference, formal):
+            preferences['boards'] = copy.deepcopy(formal.get('boards') or [])
+            preferences['board_preference_id'] = formal['board_change']['draft_id']
+        elif preferences.get('board_preference_id') != preference.get('draft_id'):
+            preferences['boards'] = copy.deepcopy(preference['boards'])
+            preferences['board_preference_id'] = preference['draft_id']
     return preferences
 
 
@@ -596,7 +563,7 @@ def plan_chat(cfg, message, identifier=None):
                             % '、'.join(c+' '+names.get(c,'') for c in carried_manual))
     turns.append({'role': 'assistant', 'content': answer['reply']})
     with LOCK:
-        if digest(evidence) != digest(plan_evidence.for_snapshot(value)):
+        if not plan_evidence.same_plan_evidence(evidence, plan_evidence.for_snapshot(value)):
             raise ValueError('本次讨论期间模型证据已更新，回复未保存；请按最新证据重新制定，旧记录保留')
         result = store('plan', {'snapshot_hash': digest(value), 'snapshot': value,
                                'dialogue': turns, 'reply': answer['reply'],
@@ -679,7 +646,8 @@ def plan_readiness(draft, current, evidence=None):
     codes = draft.get('selected_codes', [])
     now = {c: evidence[c] for c in codes}
     available = sum(item['risk']['status'] == 'AVAILABLE' for item in now.values())
-    matches = draft.get('origin')=='AUTOMATIC_PREPARATION' or draft.get('model_evidence') == now
+    from plan_evidence import same_plan_evidence
+    matches = draft.get('origin')=='AUTOMATIC_PREPARATION' or same_plan_evidence(draft.get('model_evidence'), now)
     return {'current': matches, 'reason': '' if matches else '选股或风险证据已更新；旧草案未重算，不能直接确认',
             'risk_available': available, 'candidate_count': len(codes)}
 
@@ -703,11 +671,13 @@ def confirm_plan(identifier, confirmed):
         require_next_day_zones(current)
         if digest(current) != draft['snapshot_hash'] or plan_expired(current):
             raise ValueError('快照变化或计划过期，请重新讨论')
-        readiness = plan_readiness(draft, current)
+        import plan_evidence
+        evidence = plan_evidence.for_snapshot(current)
+        readiness = plan_readiness(draft, current, evidence)
         if not readiness['current']:
             raise ValueError(readiness['reason'])
         from postclose_prepare_v1 import refreshed
-        draft=refreshed(draft)
+        draft=refreshed(draft, evidence)
         codes = draft['selected_codes']
         chosen_rows = execution_rows(current,draft)
         manual = draft.get('manual_observations', [])
@@ -902,26 +872,42 @@ def confirm_review(identifier, confirmed):
 
 def state():
     import plan_evidence
-    with LOCK:
-        plan = latest('plan')
-        if plan and (root() / ('rejected_%s.json' % plan['id'])).exists():
-            plan = {**plan, 'rejected': True, 'confirmable': False}
+    for _ in range(2):
+        with LOCK:
+            stored = latest('plan')
+        plan = stored
         try:
-            current = plan['snapshot'] if plan and plan.get('origin')=='GOLDEN_ANALYSIS' else snapshot()
-            readiness = plan_readiness(plan, current) if plan else {'current': False, 'reason': '尚无草案'}
+            if not plan:
+                readiness = {'current': False, 'reason': '尚无草案'}
+            elif plan.get('origin') == 'GOLDEN_ANALYSIS':
+                readiness = plan_readiness(plan, plan['snapshot'])
+            else:
+                current = snapshot()
+                same = plan['snapshot_hash'] == digest(current)
+                evidence = (plan_evidence.for_snapshot(current)
+                            if plan.get('origin') == 'AUTOMATIC_PREPARATION' and same else None)
+                readiness = plan_readiness(plan, current, evidence)
+                from postclose_prepare_v1 import refreshed
+                plan = refreshed(plan, evidence) if same else plan
+                plan = {**plan, 'presentation': plan_evidence.presentation(plan)}
         except (OSError, ValueError, KeyError):
             readiness = {'current': False, 'reason': '当前快照或模型证据暂不可核验，不能直接确认'}
-        if plan:
-            if plan.get('origin')!='GOLDEN_ANALYSIS':
-                from postclose_prepare_v1 import refreshed
-                plan=refreshed(plan)
-                plan = {**plan, 'presentation': plan_evidence.presentation(plan)}
-        _ui2_conf, _ui2_conf_status = _ui2_plan_confirmation(plan)
-        if plan is not None:
-            plan = {**plan, 'confirmed': _ui2_conf, 'confirmed_status': _ui2_conf_status}
-        return {'ok': True, 'review': copy.deepcopy(JOB), 'plan': plan, 'plan_current': readiness['current'],
-                'plan_readiness': readiness,
-                'last_review': latest('review'), 'learning_path': str(learning_path())}
+        with LOCK:
+            newest = latest('plan')
+            if newest != stored:
+                continue
+            if plan and (root() / ('rejected_%s.json' % plan['id'])).exists():
+                plan = {**plan, 'rejected': True, 'confirmable': False}
+            _ui2_conf, _ui2_conf_status = _ui2_plan_confirmation(plan)
+            if plan is not None:
+                plan = {**plan, 'confirmed': _ui2_conf, 'confirmed_status': _ui2_conf_status}
+            return {'ok': True, 'review': copy.deepcopy(JOB), 'plan': plan, 'plan_current': readiness['current'],
+                    'plan_readiness': readiness,
+                    'last_review': latest('review'), 'learning_path': str(learning_path())}
+    readiness = {'current': False, 'reason': '草案正在更新，请刷新'}
+    with LOCK:
+        return {'ok': True, 'review': copy.deepcopy(JOB), 'plan': newest, 'plan_current': False,
+                'plan_readiness': readiness, 'last_review': latest('review'), 'learning_path': str(learning_path())}
 
 
 def _ui2_confirmation_evidence(ident):

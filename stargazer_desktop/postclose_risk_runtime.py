@@ -3,6 +3,7 @@ from dataclasses import fields
 from datetime import datetime
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import threading
@@ -13,6 +14,7 @@ import postclose_index_source
 
 _thread = None
 _cache = {}
+_cache_lock = threading.Lock()
 
 
 def directory():
@@ -135,33 +137,51 @@ def state():
 
 
 def find_pack(code,snapshot):
+    return _find_packs([code], snapshot)[code]
+
+
+def find_packs(snapshot):
+    return _find_packs([row['code'] for row in snapshot.get('rows', [])], snapshot)
+
+
+def _find_packs(codes, snapshot):
+    if not codes:
+        return {}
     activity=state()
     try:
         value=accepted_for(snapshot,activity)
     except (OSError,ValueError,KeyError,TypeError) as exc:
-        return None,'风险证据绑定失败：'+str(exc)
-    if value is None:
-        # A changed display/list must not discard already accepted, identical
-        # per-stock risk inputs. Other stocks may still be awaiting computation.
-        for path in sorted(directory().glob('run_*/independent_acceptance*.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True):
-            if path.stat().st_size>2*1024**2:continue
-            record=json.loads(path.read_bytes())
-            if (record.get('status')=='COMPLETE' and record.get('acceptance_status')=='PASS'
-                    and str(record.get('data_date'))==str(snapshot.get('data_date'))
-                    and Path(record['run_dir']).resolve()==path.resolve().parent):
-                pack,reason=_pack_from_accepted(code,snapshot,record)
+        return dict.fromkeys(codes, (None, '风险证据绑定失败：'+str(exc)))
+    if value is not None:
+        return {code: _pack_from_accepted(code, snapshot, value, snapshot_checked=True) for code in codes}
+    # Keep verified per-stock packs available while another input is preparing.
+    pending = dict.fromkeys(codes)
+    result = {}
+    for path in sorted(directory().glob('run_*/independent_acceptance*.json'),
+                       key=lambda p: p.stat().st_mtime_ns, reverse=True):
+        if not pending:
+            break
+        if path.stat().st_size > 2*1024**2:
+            continue
+        record = json.loads(path.read_bytes())
+        if (record.get('status')=='COMPLETE' and record.get('acceptance_status')=='PASS'
+                and str(record.get('data_date'))==str(snapshot.get('data_date'))
+                and Path(record['run_dir']).resolve()==path.resolve().parent):
+            for code in tuple(pending):
+                pack, reason = _pack_from_accepted(code, snapshot, record)
                 if pack is not None:
-                    return pack,None
-        value=activity
+                    result[code] = (pack, reason)
+                    del pending[code]
+    if str(activity.get('data_date')) != str(snapshot.get('data_date')):
+        result.update(dict.fromkeys(pending, (None, None)))
+    elif activity.get('status') != 'COMPLETE':
+        reason = '风险证据后台任务：'+str(activity.get('stage') or activity.get('reason') or activity['status'])
+        result.update(dict.fromkeys(pending, (None, reason)))
+    elif activity.get('acceptance_status') != 'PASS':
+        result.update(dict.fromkeys(pending, (None, '风险评分已生成，等待独立读回验收')))
     else:
-        return _pack_from_accepted(code,snapshot,value)
-    if str(value.get('data_date')) != str(snapshot.get('data_date')):
-        return None,None
-    if value.get('status') != 'COMPLETE':
-        return None,'风险证据后台任务：'+str(value.get('stage') or value.get('reason') or value['status'])
-    if value.get('acceptance_status')!='PASS':
-        return None,'风险评分已生成，等待独立读回验收'
-    return _pack_from_accepted(code,snapshot,value)
+        result.update({code: _pack_from_accepted(code, snapshot, activity) for code in pending})
+    return result
 
 
 def _accepted_run_for_day(day, root=None):
@@ -236,18 +256,20 @@ def find_pack_for_plan(code, plan_snapshot, root=None):
     return item.get('pack'), item.get('reason')
 
 
-def _pack_from_accepted(code,snapshot,value):
+def _pack_from_accepted(code,snapshot,value,*,snapshot_checked=False):
     from oracles_v1 import EvidencePack
     try:
-        row=next((r for r in snapshot.get('rows',[]) if r.get('code')==code),None)
-        same_stock=bool(row) and snapshot_bound(value,{**snapshot,'rows':[row]})
-        if not snapshot_bound(value, snapshot) and not same_stock:
-            raise ValueError('CANDIDATE_SNAPSHOT_CHANGED')
+        if not snapshot_checked and not snapshot_bound(value, snapshot):
+            row=next((r for r in snapshot.get('rows',[]) if r.get('code')==code),None)
+            if not row or not snapshot_bound(value, {**snapshot, 'rows': [row]}):
+                raise ValueError('CANDIDATE_SNAPSHOT_CHANGED')
         path=Path(value['packs_path'])
-        if path.resolve().parent != Path(value['run_dir']).resolve() or path.stat().st_size>2*1024**2:
+        stat = path.stat()
+        if path.resolve().parent != Path(value['run_dir']).resolve() or stat.st_size>2*1024**2:
             raise ValueError('PACK_PATH_OR_SIZE')
-        key=(str(path),path.stat().st_mtime_ns,value['packs_sha256'])
-        if key not in _cache:
+        key=(str(path),stat.st_mtime_ns,stat.st_size,value['packs_sha256'],str(snapshot['data_date']))
+        index = _cache.get(key)
+        if index is None:
             body=path.read_bytes()
             if hashlib.sha256(body).hexdigest()!=value['packs_sha256']:
                 raise ValueError('PACK_HASH_MISMATCH')
@@ -260,10 +282,12 @@ def _pack_from_accepted(code,snapshot,value):
                     raise ValueError('PACK_CUTOFF_MISMATCH')
                 for candidate in pack.candidates:
                     index[candidate['code']]=pack
-            _cache.clear()
-            _cache[key]=index
-        if code in _cache[key]:
-            return _cache[key][code],None
+            with _cache_lock:
+                if len(_cache) >= 2:
+                    _cache.clear()
+                _cache[key]=index
+        if code in index:
+            return index[code],None
         row=next((r for r in value.get('rows',[]) if r.get('code')==code),{})
         return None,' / '.join(row.get('reasons') or ['当前股票风险证据未通过'])
     except (OSError,ValueError,KeyError,TypeError) as exc:
@@ -467,7 +491,7 @@ def wait_reason(snapshot):
     return '本地指数收盘数据已就绪；当前名单风险评分尚未生成并验收，不代表没有风险'
 
 
-def _launch_status(snapshot, now, status, reason=''):
+def _launch_status(snapshot, now, status, reason='', **details):
     root = directory()
     root.mkdir(parents=True, exist_ok=True)
     previous = json.loads((root/'launch_status.json').read_bytes()) if (root/'launch_status.json').exists() else {}
@@ -475,6 +499,10 @@ def _launch_status(snapshot, now, status, reason=''):
     value = dict(status=status, reason=reason, snapshot_digest=identity,
                  attempted=status == 'STARTING' or (previous.get('snapshot_digest') == identity and previous.get('attempted', False)),
                  data_date=snapshot['data_date'], observed_at=now.isoformat())
+    if previous.get('snapshot_digest') == identity:
+        value.update({k: previous[k] for k in ('source_identity', 'launch_attempts', 'launch_at',
+                                               'launch_state_hash', 'launch_pid') if k in previous})
+    value.update(details)
     temp = root/'launch_status.tmp'
     temp.write_text(json.dumps(value, ensure_ascii=False), encoding='utf8')
     temp.replace(root/'launch_status.json')
@@ -627,9 +655,22 @@ def _decide_and_launch(snapshot, now, snapshot_file=None, *, _state=None,
             return 'wait_storage'
         attempt_file = root/'launch_status.json'
         previous = json.loads(attempt_file.read_bytes()) if attempt_file.exists() else {}
-        if (not recovering and previous.get('snapshot_digest') == snapshot_digest(snapshot) and previous.get('attempted')
-                and previous.get('source_identity')==(native_choice or {}).get('identity')):
-            return 'no_action'  # Includes a subprocess that failed before writing worker state.
+        source_id = (native_choice or {}).get('identity')
+        same_launch = (previous.get('snapshot_digest') == snapshot_digest(snapshot)
+                       and previous.get('source_identity') == source_id)
+        attempts = previous.get('launch_attempts', 1 if previous.get('attempted') else 0) if same_launch else 0
+        state_hash = snapshot_digest(current)
+        if not recovering and attempts:
+            from risk_source_recovery import COOLDOWN_SECONDS, MAX_RESUMES
+            prior_at = previous.get('launch_at')
+            if (previous.get('launch_state_hash') != state_hash or not prior_at
+                    or attempts > MAX_RESUMES or worker_active()
+                    or (now - datetime.fromisoformat(prior_at)).total_seconds() < COOLDOWN_SECONDS):
+                return 'no_action'
+            from cross_process_lock_v1 import pid_alive
+            owner = previous.get('launch_pid')
+            if previous.get('status') == 'STARTING' and owner and owner != os.getpid() and pid_alive(owner):
+                return 'no_action'
         stamp = int(now.strftime('%Y%m%d%H%M%S'))
         if recovering:
             allowed, reason = allowance(root, snapshot['data_date'], stamp)
@@ -650,12 +691,9 @@ def _decide_and_launch(snapshot, now, snapshot_file=None, *, _state=None,
             extra = ['--index-source', str(source), '--index-source-sha', source_sha]
         if recovering and not reserve(root, snapshot['data_date'], stamp, snapshot_digest(snapshot), current.get('run_dir')):
             return 'no_action'
-        _launch_status(snapshot, now, 'STARTING', '当前名单风险任务已启动，等待计算及独立验收')
-        if native_choice:
-            value=json.loads((root/'launch_status.json').read_bytes())
-            value['source_identity']=native_choice['identity']
-            from pentacles_monitor import atomic_json
-            atomic_json(root/'launch_status.json',value)
+        _launch_status(snapshot, now, 'STARTING', '当前名单风险任务已启动，等待计算及独立验收',
+                       source_identity=source_id, launch_attempts=attempts+1, launch_at=now.isoformat(),
+                       launch_state_hash=state_hash, launch_pid=os.getpid())
         with (root / 'worker_output.log').open('ab') as log:
             result = run_fn([str(python), '-B', '-X', 'utf8', str(worker),
                     '--snapshot', str(snap), '--runtime', str(root)] + extra,
@@ -665,7 +703,7 @@ def _decide_and_launch(snapshot, now, snapshot_file=None, *, _state=None,
                 if retry_candidate(state_fn()):
                     _launch_status(snapshot, now, 'WAIT_SOURCE', '本地数据服务中断；已采数据保留，服务恢复后自动续算（同日最多3次）')
                     return 'wait_source'
-                _launch_status(snapshot, now, 'ERROR', '盘后风险任务退出失败，详见worker_output.log；未自动重试')
+                _launch_status(snapshot, now, 'ERROR', '盘后风险任务退出失败，详见worker_output.log')
                 return 'worker_failed'
             finished = state_fn()
             if finished.get('status') == 'COMPLETE' and str(finished.get('data_date')) == str(snapshot['data_date']):
@@ -695,6 +733,11 @@ def start():
         import pentacles_demo
         import index_minutes_v1
         from joint_risk_bridge import _worker_paths
+        try:
+            from postclose_prepared_v1 import reconcile_targets
+            reconcile_targets()
+        except (OSError, ValueError, TimeoutError):
+            pass
         while True:
             try:
                 now=datetime.now()

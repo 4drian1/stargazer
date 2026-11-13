@@ -171,7 +171,7 @@ class IntradayMonitor(threading.Thread):
                       + (payload.get("g0_shadow") or [])
                       + (payload.get("t5_shadow") or []))
         wl = services.wl_load(cfg)
-        positions = {str(p.get("code"))[-6:]: p for p in wl.get("positions", [])}
+        positions = {str(p.get("code"))[-6:]: p for p in services.active_positions(cfg, wl.get("positions", []))}
         watches = {str(w.get("code"))[-6:]: w for w in wl.get("watch", [])
                    if w.get("target_buy") or w.get("stop_loss")}
         # 合并需要盯盘的代码：模型候选 + 持仓 + 带目标价的观察名单

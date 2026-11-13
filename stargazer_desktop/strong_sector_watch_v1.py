@@ -78,6 +78,29 @@ def frozen(names,day):
     return max(matches,key=lambda v:v['built_at']) if matches else None
 
 
+def monitoring_pool(boards, day):
+    # Explicit publication is independent of the formal model plan.
+    from strong_sector_pool_prep_v1 import manual_pool
+    return manual_pool(day) or (frozen(boards, day) if boards else None)
+
+
+def event_pool(boards, event):
+    # A same-day incremental publication must leave in-flight events usable.
+    day = int(event['day'])
+    current = monitoring_pool(boards, day)
+    if current and current.get('rows_sha256') == event.get('pool_id'):
+        return current
+    if not current or event.get('pool_id') not in current.get('parent_pool_ids', []):
+        return None
+    if not any(r.get('code') == event.get('code') for r in current.get('rows', [])):
+        return None
+    for file in (root()/'pools').glob(str(day)+'_*.json'):
+        pool = json.loads(file.read_bytes())
+        if pool.get('rows_sha256') == event['pool_id'] and digest(pool.get('rows')) == event['pool_id']:
+            return pool
+    return None
+
+
 def pool_status(names,now):
     value=frozen(names,int(now.strftime('%Y%m%d')))
     return dict(status='FROZEN' if value else 'WAIT_POSTCLOSE_POOL',count=len(value['rows']) if value else 0,
@@ -216,13 +239,20 @@ _ACTIVE_ATTEMPTS = set()
 _ATTEMPT_TTL = 900.0
 
 
+def retryable_indicator_result(result):
+    return (result.get('status') == 'SOURCE_RETRY'
+            or result.get('status') == 'DATA_INSUFFICIENT' and result.get('reason') in (
+                'LIVE_CURRENT_MINUTES_NOT_ARRIVED', 'LIVE_CURRENT_MINUTES_STALE',
+                'LIVE_ATTEMPT_ALREADY_RECORDED_THIS_MINUTE', 'HISTORY_PREPARING',
+                'PUBLIC_STOCK_COMPLETE_PREFIX_MISSING'))
+
+
 def fetch_indicators(request):
     """Reservation-aware entry for indicator context computation.
 
     The exact-cutoff attempt is reserved BEFORE any compute.  A pre-existing
     file is interpreted by status, never blindly returned:
-      * real result (success or recorded DATA_INSUFFICIENT) -> returned as
-        evidence, never recomputed and never mistaken for "already done";
+      * terminal evidence is reused, and temporary source gaps can be refreshed;
       * ATTEMPT_RESERVED owned by another LIVE pid within TTL -> returned
         as-is (another worker is computing; never double-start);
       * ATTEMPT_RESERVED whose owner pid is confirmed dead, older than TTL
@@ -239,7 +269,10 @@ def fetch_indicators(request):
         if target.exists():
             try:existing = json.loads(target.read_bytes())
             except (OSError, ValueError):existing = None
-            if isinstance(existing, dict) and existing.get('status') != 'ATTEMPT_RESERVED':
+            if isinstance(existing, dict) and retryable_indicator_result(existing):
+                request = dict(request, refresh_live=True)
+                existing = None
+            elif isinstance(existing, dict) and existing.get('status') != 'ATTEMPT_RESERVED':
                 return existing  # evidence preserved: success or recorded failure
             try:owner = int((existing or {}).get('owner_pid') or 0)
             except (TypeError, ValueError):owner = 0
@@ -270,33 +303,22 @@ def fetch_indicators(request):
                           reclaimed_from=prior, reclaimed_at=time.time()))
             except OSError:
                 pass
-        value = _fetch_indicators_impl(request)
-        try:
-            if isinstance(value, dict) and value.get('asof') == cutoff:
-                stored = json.loads(target.read_bytes())
-                if isinstance(stored, dict) and stored.get('status') == value.get('status'):
-                    stored.setdefault('attempt_id', attempt_id)
-                    save(target, stored)
-        except (OSError, ValueError):
-            pass
-        return value
-    finally:
+        value = dict(_fetch_indicators_impl(request), attempt_id=attempt_id)
+    except BaseException:
         _ACTIVE_ATTEMPTS.discard((code, cutoff))
+        raise
+    with cpl.FileLock(target):
+        try:
+            save(target, value)
+        finally:
+            _ACTIVE_ATTEMPTS.discard((code, cutoff))
+    return value
 
 
 def _fetch_indicators_impl(request):
-    import base64
-    import urllib.request,urllib.parse
-    import msgpack
-    from gcp_golden_intraday_v1 import pairs,NoRedirect
-    from public_stock_minutes_v1 import current_minutes
-    from strong_low_indicators_v1 import compare
-    from runtime_disk_limit_v1 import disk_limit
+    import urllib.error
     import postclose_risk_runtime
-    row=request['row'];code=row['code'];cutoff=request['cutoff'];day=cutoff//1000000
-    folder=root()/'minutes'/str(day);folder.mkdir(parents=True,exist_ok=True)
-    target=folder/(code+'_'+str(cutoff)+'_context_v2.json')
-    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
+    row=request['row'];code=row['code'];cutoff=request['cutoff']
     minutes=[];receipts=[]
     try:
         from minute_history_v1 import DiskBudget,load_days
@@ -307,13 +329,14 @@ def _fetch_indicators_impl(request):
         from live_five_preview_v1 import comparisons
         if 93000<=cutoff%1000000<93100:
             value=opening_preview(minutes,code,row['history_days'][-1],cutoff,request.get('quote'))
-            value['source_receipts']=receipts;save(target,value);return value
+            value['source_receipts']=receipts;return value
         try:
-            minutes,provider,live_refs=snapshot(postclose_risk_runtime.directory(),code,row['history_days'][-1],cutoff,row['reference_close'],minutes,budget)
+            minutes,provider,live_refs=snapshot(postclose_risk_runtime.directory(),code,row['history_days'][-1],cutoff,row['reference_close'],minutes,budget,
+                refresh=request.get('refresh_live', False))
         except ValueError as error:
             if str(error)!='LIVE_CURRENT_MINUTES_NOT_ARRIVED' or not 93000<=cutoff%1000000<93500:raise
             value=opening_preview(minutes,code,row['history_days'][-1],cutoff,request.get('quote'))
-            value['source_receipts']=receipts;save(target,value);return value
+            value['source_receipts']=receipts;return value
         receipts.extend(live_refs)
         value=comparisons(minutes,code,row['history_days'][-1],cutoff,request.get('quote'))
         value.update(provider=provider,source_receipts=receipts)
@@ -323,8 +346,11 @@ def _fetch_indicators_impl(request):
         try:value['volume_ratio']=volume_context(code,minutes,cutoff)
         except (OSError,ValueError,KeyError,TypeError) as exc:
             value['volume_ratio']=dict(status='UNKNOWN',reason=str(exc)[:120])
-    except (OSError,ValueError,KeyError,TypeError) as exc:value=dict(status='DATA_INSUFFICIENT',asof=cutoff,periods={},reason=str(exc)[:160])
-    save(target,value);return value
+    except (OSError,ValueError,KeyError,TypeError) as exc:
+        value=dict(status='DATA_INSUFFICIENT',asof=cutoff,periods={},reason=str(exc)[:160])
+        if isinstance(exc, (TimeoutError, ConnectionError, urllib.error.URLError)) or retryable_indicator_result(value):
+            value.update(status='SOURCE_RETRY')
+    return value
 
 
 def invoke(request):
@@ -391,8 +417,9 @@ def candidate_events(row,quote,day,cutoff,indicator=None):
 
 def observe(plan,cfg,now,quotes,broadcast,send,active):
     from sector_watch_v1 import names
-    board_names=names(plan);day=int(now.strftime('%Y%m%d'));pool=frozen(board_names,day)
+    day=int(now.strftime('%Y%m%d'));pool=monitoring_pool(names(plan),day)
     if not pool:return
+    board_names = pool['boards']
     minute=now.hour*60+now.minute
     if not (570<=minute<=690 or 780<=minute<=906):return
     from strong_pullback_positions_v1 import load as load_positions, observe as observe_positions
@@ -455,8 +482,9 @@ def schedule(plan,cfg,now,quotes,broadcast,send,active=lambda:True,*,prepare_onl
         from plan_board_change_v1 import preparation_boards
         from zoneinfo import ZoneInfo
         observed=now.replace(tzinfo=ZoneInfo('Asia/Shanghai')) if now.tzinfo is None else now.astimezone(ZoneInfo('Asia/Shanghai'))
-        boards=names({'boards':preparation_boards(plan,root().parent/'board_identities',observed)})
-    if not boards:return
+        boards=names({'boards':preparation_boards(plan,root().parent/'board_identities',
+                                                  observed, include_deferred=False)})
+    if not boards and not monitoring_pool([], int(now.strftime('%Y%m%d'))):return
     with LOCK:
         # Archive historical sessions independently; slow review IO never blocks live quotes.
         today=now.strftime('%Y%m%d')
@@ -480,26 +508,6 @@ def schedule(plan,cfg,now,quotes,broadcast,send,active=lambda:True,*,prepare_onl
                 if outside:
                     if not prepare_only and now.hour==15 and now.minute<=6 and names(plan or {}):
                         observe(plan,cfg,now,quotes,broadcast,send,active)
-                    from ths_board_supply_v1 import ensure as prepare_constituents
-                    for name in boards:
-                        prepared=prepare_constituents(name,root().parent/'board_identities')
-                        if prepared and prepared.get('reason'):
-                            HEALTH.update(constituent_refresh_reason=prepared['reason'])
-                    from sector_rule_scan import source_context,project_root
-                    context=source_context(project_root(),observed.isoformat())
-                    parts=[sorted(set(boards)),context['key'],'TURNOVER_REFERENCE_V1',CONTRACT]
-                    versions=constituent_versions(boards)
-                    if versions:parts.append({'ths_members':versions})
-                    import strong_sector_pool_prep_v1 as pool_prep
-                    pool_view=pool_prep.submit(boards, now=observed, context=dict(P=context['P'],E=context['E'],key=context['key']))
-                    if pool_view.get('status') in ('READY','REUSED') and pool_view.get('pool'):
-                        from minute_history_v1 import schedule as prepare_minutes
-                        prepare_minutes(pool_view['pool'])
-                        HEALTH.update(status='FROZEN',count=len(pool_view['pool']['rows']),
-                                      observation_date=pool_view['pool'].get('observation_date'))
-                    elif pool_view.get('status') in ('FAILED','WAIT_DAILY','RETRY_WAIT'):
-                        HEALTH.update(status='POOL_'+pool_view['status'],
-                                      reason=str(pool_view.get('reason'))[:160])
                 else:observe(plan,cfg,now,quotes,broadcast,send,active)
             except Exception as exc:
                 HEALTH.update(status='FAILED',reason=type(exc).__name__+':'+str(exc)[:160])
@@ -566,6 +574,14 @@ def _same_band(left, right):
             left.get('landmark_ratio') == right.get('landmark_ratio'))
 
 
+def _delivery_plan(get_plan):
+    try:
+        plan = get_plan()
+    except (OSError, ValueError):
+        return None
+    return plan if isinstance(plan, dict) and plan else None
+
+
 def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
                         quote_fn, broadcast, send, active):
     """Send a first-observed price event; indicators never gate the touch notice.
@@ -596,15 +612,21 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
                           delivery_retry_after_epoch=now.timestamp()+lane.POLL_INTERVAL_SECONDS,
                           reverify_error='PUSH_DISABLED_NO_ATTEMPT')
         return
-    current_plan = get_plan() or {}
+    current_plan = _delivery_plan(get_plan)
+    if current_plan is None and active():
+        lane.update_event(state_file, event_id, delivery_status='WAIT_REVERIFY',
+                          delivery_retry_after_epoch=now.timestamp() + lane.POLL_INTERVAL_SECONDS,
+                          reverify_error='PLAN_UNREADABLE')
+        return
     from golden_rules import digest as plan_digest
-    if plan_digest(current_plan) != plan_digest(plan_ref) or not active():
+    expected_plan = event.get('plan_sha256') or plan_digest(plan_ref)
+    if not active() or (not (current_plan or {}).get('manual_strong_pool') and plan_digest(current_plan) != expected_plan):
         lane.update_event(state_file, event_id, delivery_status='CANCELLED_PLAN_CHANGED',
                           delivery_finished_at=now.isoformat(timespec='seconds'),
                           send_finished_at=now.isoformat(timespec='seconds'))
         return
     from sector_watch_v1 import names
-    pool = frozen(names(current_plan), int(now.strftime('%Y%m%d')))
+    pool = event_pool(names(current_plan), event)
     if not pool or pool.get('rows_sha256') != event.get('pool_id'):
         lane.update_event(state_file, event_id, delivery_status='CANCELLED_POOL_CHANGED',
                           delivery_finished_at=now.isoformat(timespec='seconds'),
@@ -625,19 +647,31 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
 
     # ---- reverify_quote_at 时间戳 ----
     reverify_started_at = datetime.now().isoformat(timespec='seconds')
-    quote = (quote_fn([event['code']]) or {}).get(event['code']) or {}
-    reverify_quote_at = datetime.now().isoformat(timespec='seconds')
+    kind = event.get('kind') or 'STRONG_STOCK'
+    first_quote = event.get('initial_quote') or {}
+    observed = event.get('first_observed_touch_at')
+    recorded_touch = (kind == 'STRONG_STOCK' and isinstance(observed, str)
+                      and lane.quote_quality(first_quote, int(event['day']), datetime.fromisoformat(observed)) is None)
+    quote = first_quote if recorded_touch else (quote_fn([event['code']]) or {}).get(event['code']) or {}
+    reverify_quote_at = None if recorded_touch else datetime.now().isoformat(timespec='seconds')
     now = datetime.now()
     from strong_pullback_policy_v1 import fresh
-    if not fresh(quote, now):
+    if not recorded_touch and not fresh(quote, now):
         lane.update_event(state_file, event_id, delivery_status='WAIT_REVERIFY',
             delivery_retry_after_epoch=now.timestamp() + lane.POLL_INTERVAL_SECONDS,
             reverify_error='QUOTE_STALE_OR_INVALID',
             reverify_started_at=reverify_started_at,
             reverify_quote_at=reverify_quote_at)
         return
-    latest_plan = get_plan() or {}
-    if plan_digest(latest_plan) != plan_digest(plan_ref) or not active():
+    latest_plan = _delivery_plan(get_plan)
+    if latest_plan is None and active():
+        lane.update_event(state_file, event_id, delivery_status='WAIT_REVERIFY',
+                          delivery_retry_after_epoch=now.timestamp() + lane.POLL_INTERVAL_SECONDS,
+                          reverify_error='PLAN_UNREADABLE',
+                          reverify_started_at=reverify_started_at,
+                          reverify_quote_at=reverify_quote_at)
+        return
+    if not active() or (not (latest_plan or {}).get('manual_strong_pool') and plan_digest(latest_plan) != expected_plan):
         lane.update_event(state_file, event_id, delivery_status='CANCELLED_PLAN_CHANGED',
                           delivery_finished_at=datetime.now().isoformat(timespec='seconds'),
                           send_finished_at=datetime.now().isoformat(timespec='seconds'),
@@ -645,49 +679,37 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
                           reverify_quote_at=reverify_quote_at)
         return
 
-    from push_layout_v1 import notice
     price = float(quote['price'])
     lower, upper = float(band['lower']), float(band['upper'])
     location = lane.band_location(price, band)
-    if row['pool'] != 'LANDMARK' and location != 'STILL_IN_ORIGINAL_BAND':
+    if not recorded_touch and row['pool'] != 'LANDMARK' and location != 'STILL_IN_ORIGINAL_BAND':
         lane.update_event(state_file,event_id,delivery_status='WAIT_REVERIFY',
                           delivery_retry_after_epoch=now.timestamp()+lane.POLL_INTERVAL_SECONDS,
                           reverify_error='OUT_OF_BAND_WAIT_REENTRY',
                           reverify_quote=dict(time=quote.get('time'),price=price))
         return
-    containing = [b for b in row.get('positions', [])
-                  if float(b['lower']) <= price <= float(b['upper'])]
+    from index_map_layers_v1 import next_lower_band
+    from push_compact_v1 import strong_touch
+    latest_event = lane.get_event(state_file, event_id) or event
+    indicator = latest_event.get('indicator_result') or {}
+    periods = ((indicator.get('periods') or {})
+               if kind == 'STRONG_STOCK' and indicator.get('status') == 'AVAILABLE' else {})
     packet = dict(asof=int(quote['time']), indicator_asof=event['indicator_cutoff'],
+        touch_quote_at=event.get('first_observed_quote_at') or event['indicator_cutoff'],
         code=row['code'], name=row['name'], board='、'.join(row.get('boards') or []),
-        price=price, return_value=price / float(quote['prev']) - 1,
-        level_lower=lower, level_upper=upper,
-        level_label='共振带' if band.get('source_waves', 0) >= 2 else '黄金位',
+        price=price, recorded_touch=recorded_touch, return_value=price / float(quote['prev']) - 1,
+        level_lower=lower, level_upper=upper, level_label='黄金位',
         priority_label='P1' if band.get('primary') else 'P2',
-        wave_low=row.get('low'), wave_high=row.get('high'), wave_return=row.get('wave_return'),
-        indicator_basis='价格触位先行；5/15分钟指标后台计算中', period_pairs={}, indicators_pending=True,
-        relative_turnover=dict(status='UNKNOWN', reason='指标后台计算中；不影响价格触位事实'),
-        morning_mark='首次观察到触位；发送前已重新核验报价和冻结观察带',
-        trigger_text=('价格到达路标；完整K线收盘确认待核验' if row['pool'] == 'LANDMARK' else None))
+        next_lower_band=next_lower_band(row.get('positions') or [], min(lower, price)),
+        period_pairs=periods, indicators_pending=not periods)
     packet['distance'] = (price - max(lower, min(upper, price))) / price
-    formatted = notice(event.get('kind') or 'STRONG_STOCK', packet)
-    direction_labels = {
-        'DOWNWARD_ENTRY_OBSERVED': '观察到从上方向下进入',
-        'FIRST_QUOTE_IN_BAND_DIRECTION_UNKNOWN': '首次有效报价已在带内，方向未知',
-        'REBOUND_FROM_BELOW_OBSERVED': '观察到从下方反弹进入',
-        'DIRECTION_UNKNOWN': '方向证据不足',
-        'IN_BAND_DIRECTION_NOT_OBSERVED': '报价在带内，未观察到新进入方向',
-        'DIRECTION_NOT_CLASSIFIED': '方向未分类'}
-    location_labels = {
-        'STILL_IN_ORIGINAL_BAND': '仍在原观察带内',
-        'BELOW_ORIGINAL_BAND': '已在原观察带下方',
-        'ABOVE_ORIGINAL_BAND': '已回到原观察带上方'}
-    evidence = (f"\n\n触位方向：{direction_labels.get(event.get('direction_class'), '方向未知')}。"
-        f"\n首次观察到触位：{event.get('first_observed_touch_at')}；报价时间：{event.get('first_observed_quote_at')}。"
-        "（程序首次观察时间不等于市场实际首次触位时间。）"
-        f"\n发送前复核：现价 {price:.2f}；{location_labels.get(location, location)}；"
-        f"当前落入观察带数量 {len(containing)}。"
-        "\n指标状态：后台计算中；价格触位不代表止跌、支撑成立或允许买入。")
-    body = formatted['body'] + evidence
+    if kind == 'STRONG_STOCK':
+        formatted = strong_touch(packet)
+    else:
+        from push_layout_v1 import notice
+        packet['trigger_text'] = '价格到达路标；完整K线收盘确认待核验'
+        formatted = notice(kind, packet)
+    body = formatted['body']
     title = f"强势池 · {row['code']} {formatted['title']}"
     key = digest([int(event['day']), row['code'], row['pool'], band['lower'], band['upper']])
     alerts_file = root() / 'alerts.json'
@@ -703,7 +725,8 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
         send_started_at=send_started_at,
         reverify_quote=dict(time=quote.get('time'), price=price),
         reverify_quote_at=reverify_quote_at,
-        reverify_band_status=location, indicator_status='PENDING', attempts=[])
+        reverify_band_status=location, indicator_status='PENDING', attempts=[],
+        quote_basis='FIRST_OBSERVED' if recorded_touch else 'SEND_REVERIFIED')
 
     with _alerts_lock():
         alerts = json.loads(alerts_file.read_bytes()) if alerts_file.exists() else {}
@@ -849,6 +872,27 @@ def deliver_touch_event(event_id, state_file, plan_ref, *, get_plan, get_cfg,
         reverify_quote_at=reverify_quote_at)
 
 
+def indicator_deadline(event):
+    touch = event.get('first_observed_touch_at')
+    return (datetime.fromisoformat(touch) if touch else datetime.strptime(
+        str(event['indicator_cutoff']), '%Y%m%d%H%M%S')).timestamp() + 360
+
+
+def supplement_deadline(event):
+    deadline = indicator_deadline(event)
+    if event.get('indicator_status') == 'AVAILABLE':
+        try:
+            computed = datetime.fromisoformat(event['indicator_finished_at']).timestamp()
+            delivered = datetime.fromisoformat(event['sent_at']).timestamp()
+        except (KeyError, TypeError, ValueError):
+            return deadline
+        # A late first receipt must not discard indicators computed on time.
+        # Allow a short send window, with a hard cap from original observation.
+        if computed <= deadline < delivered:
+            return max(deadline, min(delivered + 120, deadline + 360))
+    return deadline
+
+
 def compute_touch_indicators(event_id, state_file, plan_ref):
     """Run slow indicator context in its own worker; it cannot delay quote polling.
 
@@ -861,9 +905,19 @@ def compute_touch_indicators(event_id, state_file, plan_ref):
     if not lane.is_state_owner(state_file):
         # Non-owner must not compute or write indicator context.
         return
-    indicator_started_at = datetime.now().isoformat(timespec='seconds')
+    now = datetime.now()
+    from notifier import market_open
+    deadline = indicator_deadline(event)
+    if str(event['day']) != now.strftime('%Y%m%d') or now.timestamp() >= deadline:
+        lane.update_event(state_file, event_id, indicator_status='EXPIRED', indicator_queued=False,
+                          indicator_finished_at=now.isoformat(timespec='seconds'))
+        return
+    if not market_open(now):
+        lane.update_event(state_file, event_id, indicator_status='WAIT_RETRY', indicator_queued=False)
+        return
+    indicator_started_at = event.get('indicator_started_at') or now.isoformat(timespec='seconds')
     from sector_watch_v1 import names
-    pool = frozen(names(plan_ref or {}), int(event['day']))
+    pool = event_pool(names(plan_ref or {}), event)
     if not pool or pool.get('rows_sha256') != event.get('pool_id'):
         lane.update_event(state_file, event_id, indicator_status='CANCELLED_POOL_CHANGED',
                           indicator_finished_at=datetime.now().isoformat(timespec='seconds'),
@@ -879,68 +933,54 @@ def compute_touch_indicators(event_id, state_file, plan_ref):
         result = invoke(dict(mode='INDICATORS', row=row, cutoff=event['indicator_cutoff'],
                              quote=event.get('initial_quote') or {}))
     except Exception as exc:
-        # 计算失败必须留痕（不吞掉本地事实，也绝不冒充成功）；补充阶段如实报告原因。
-        finished = datetime.now().isoformat(timespec='seconds')
-        lane.update_event(state_file, event_id, indicator_status='FAILED',
-                          indicator_finished_at=finished, indicator_started_at=indicator_started_at,
-                          indicator_supplement_status='PENDING',
-                          indicator_result=dict(status='FAILED', reason=type(exc).__name__ + ':' + str(exc)[:160]))
-        return
+        retry = isinstance(exc, (OSError, subprocess.TimeoutExpired)) or str(exc).startswith('STRONG_WORKER_TIMEOUT')
+        result = dict(status='SOURCE_RETRY' if retry else 'FAILED',
+                      reason=type(exc).__name__ + ':' + str(exc)[:160])
     finished = datetime.now().isoformat(timespec='seconds')
     summary = {k: result.get(k) for k in
                ('status', 'reason', 'asof', 'last_time', 'periods', 'relative_turnover', 'volume_ratio')
                if k in result}
-    lane.update_event(state_file, event_id, indicator_status=result.get('status', 'UNKNOWN'),
+    reserved = result.get('status') == 'ATTEMPT_RESERVED'
+    if reserved or retryable_indicator_result(result):
+        now = datetime.now()
+        attempts = int(event.get('indicator_source_attempts') or 0) + int(not reserved)
+        next_check = now.timestamp() + (lane.POLL_INTERVAL_SECONDS if reserved else 60)
+        if attempts < 3 and next_check < deadline:
+            lane.update_event(state_file, event_id, indicator_status='WAIT_RETRY',
+                              indicator_started_at=indicator_started_at, indicator_finished_at=None,
+                              indicator_queued=False, indicator_supplement_status=None,
+                              indicator_retry_after_epoch=next_check, indicator_source_attempts=attempts,
+                              indicator_result=summary)
+            return
+        summary.update(status='DATA_INSUFFICIENT', reason=result.get('reason') or 'INDICATOR_RESERVATION_EXPIRED')
+    lane.update_event(state_file, event_id, indicator_status=summary.get('status', 'UNKNOWN'),
                       indicator_finished_at=finished, indicator_started_at=indicator_started_at,
-                      indicator_supplement_status='PENDING',
+                      indicator_supplement_status=None if reserved else 'PENDING',
                       indicator_result=summary)
 
 
 # ---- 指标补充（闭环2） -------------------------------------------------------
 SUPPLEMENT_TERMINAL = frozenset({
-    'SENT', 'UNKNOWN', 'SUPPRESSED_DUPLICATE',
+    'SENT', 'UNKNOWN', 'SUPPRESSED_DUPLICATE', 'INCLUDED_IN_FIRST',
     'SKIPPED_PLAN_CHANGED', 'SKIPPED_POOL_CHANGED', 'SKIPPED_BAND_CHANGED',
-    'SKIPPED_SYMBOL_REMOVED', 'SKIPPED_QUOTE_STALE', 'SKIPPED_FIRST_NOT_SENT',
+    'SKIPPED_SYMBOL_REMOVED', 'SKIPPED_QUOTE_STALE', 'SKIPPED_FIRST_NOT_SENT', 'SKIPPED_EXPIRED',
     'SKIPPED_PUSH_DISABLED'})
 
 
 def _supplement_message(event, row, quote):
-    """补充消息：只陈述事实——首次触价时间 / 指标截止 / 当前报价时间 / 指标摘要或失败原因。
-
-    绝无操作建议；未核实的口径明确写未知，不把成交额说成成交量。
-    """
+    from push_compact_v1 import indicator_lines
     code = str(event.get('code'))
     lines = ['【触价补充 · ' + code + '】',
-             '首次触价时间: ' + str(event.get('first_observed_touch_at') or '未知'),
-             '指标截止: ' + str(event.get('indicator_cutoff') or '未知'),
-             '当前报价时间: ' + str(quote.get('time') or '未知')]
+             '首次触价时间: ' + str(event.get('first_observed_touch_at') or '未知')]
     indicator = event.get('indicator_result') or {}
-    status = str(indicator.get('status') or event.get('indicator_status') or 'UNKNOWN')
-    if status == 'AVAILABLE':
-        from push_compact_v1 import indicator_lines
-        periods = indicator.get('periods') or {}
-        if periods:
-            lines.extend(indicator_lines(dict(period_pairs=periods), include_times=True))
-        else:
-            lines.append('5/15分钟低点指标：未提供')
-        rel = indicator.get('relative_turnover')
-        if isinstance(rel, dict):
-            ratio = rel.get('ratio')
-            if isinstance(ratio, (int, float)) and math.isfinite(ratio):
-                lines.append('同刻量比: %.2f' % float(ratio))
-            else:
-                lines.append('同刻量比: 未知（%s）' % str(rel.get('reason') or '未核实'))
-        vr = indicator.get('volume_ratio')
-        if isinstance(vr, dict):
-            ratio = vr.get('ratio')
-            if isinstance(ratio, (int, float)) and math.isfinite(ratio):
-                lines.append('量能比率: %.2f' % float(ratio))
-            else:
-                lines.append('量能比率: 未知（%s）' % str(vr.get('reason') or '未核实'))
+    periods = indicator.get('periods') or {}
+    if indicator.get('status') == 'AVAILABLE' and periods:
+        lines.extend(indicator_lines(dict(period_pairs=periods)))
+        ratio = (indicator.get('volume_ratio') or {}).get('ratio')
+        lines.append('量能比率: %.2f' % ratio if type(ratio) in (int, float) and math.isfinite(ratio)
+                     else '量能比率: 待核')
     else:
-        lines.append('指标状态: ' + status +
-                     (('（' + str(indicator.get('reason') or '') + '）') if indicator.get('reason') else ''))
-    lines.append('仅价格、指标与规则事实，请人工判断；未生成买卖建议。')
+        lines.append('指标暂未核验')
     return '触价补充 · ' + code, '\n'.join(lines)
 
 
@@ -960,10 +1000,10 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
     event = lane.get_event(state_file, event_id)
     if not event or not lane.is_state_owner(state_file) or not active():
         return
-    if event.get('indicator_status') in (None, 'PENDING', 'PROCESSING'):
+    if event.get('indicator_status') in (None, 'PENDING', 'PROCESSING', 'WAIT_RETRY', 'ATTEMPT_RESERVED'):
         return  # 指标尚未完成
     current = str(event.get('indicator_supplement_status') or '')
-    if current in SUPPLEMENT_TERMINAL:
+    if current not in ('PENDING', 'WAIT_RETRY', 'SENDING'):
         return  # 终态：重启不重复
     primary = event.get('delivery_status')
     if primary in ('PENDING', 'WAIT_REVERIFY', 'PROCESSING', 'SENDING'):
@@ -973,6 +1013,12 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
     with _alerts_lock():
         saved = json.loads(alerts_file.read_bytes()) if alerts_file.exists() else {}
         first = saved.get(event_id) or {}
+        if first.get('delivery') == 'SENT' and (first.get('packet') or {}).get('period_pairs'):
+            lane.update_event(state_file, event_id, delivery_status='SENT',
+                              sent_at=first.get('sent_at'),
+                              indicator_supplement_status='INCLUDED_IN_FIRST',
+                              supplement_finished_at=now.isoformat(timespec='seconds'))
+            return
         previous = first.get('supplement') or {}
         prior_status = previous.get('status')
         if prior_status in ('SENT', 'UNKNOWN', 'SENDING') or current == 'SENDING':
@@ -990,7 +1036,12 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
                           supplement_finished_at=now.isoformat(timespec='seconds'))
         return
     from notifier import market_open
-    if str(event.get('day')) != now.strftime('%Y%m%d') or not market_open(now):
+    deadline = supplement_deadline(event)
+    if str(event.get('day')) != now.strftime('%Y%m%d') or now.timestamp() >= deadline:
+        lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_EXPIRED',
+                          supplement_finished_at=now.isoformat(timespec='seconds'))
+        return
+    if not market_open(now):
         return
     try:
         cfg = get_cfg() or {}
@@ -1002,14 +1053,19 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
         lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_PUSH_DISABLED',
                           supplement_finished_at=now.isoformat(timespec='seconds'))
         return
-    current_plan = get_plan() or {}
+    current_plan = _delivery_plan(get_plan)
+    if current_plan is None:
+        lane.update_event(state_file, event_id, indicator_supplement_status='WAIT_RETRY',
+                          supplement_retry_after_epoch=now.timestamp() + lane.POLL_INTERVAL_SECONDS,
+                          supplement_error='PLAN_UNREADABLE')
+        return
     from golden_rules import digest as plan_digest
-    if plan_digest(current_plan) != plan_digest(plan_ref):
+    if not current_plan.get('manual_strong_pool') and plan_digest(current_plan) != (event.get('plan_sha256') or plan_digest(plan_ref)):
         lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_PLAN_CHANGED',
                           supplement_finished_at=now.isoformat(timespec='seconds'))
         return
     from sector_watch_v1 import names
-    pool = frozen(names(current_plan), int(event['day']))
+    pool = event_pool(names(current_plan), event)
     if not pool or pool.get('rows_sha256') != event.get('pool_id'):
         lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_POOL_CHANGED',
                           supplement_finished_at=now.isoformat(timespec='seconds'))
@@ -1029,9 +1085,19 @@ def deliver_indicator_supplement(event_id, state_file, plan_ref, *, get_plan, ge
     reverify_quote_at = datetime.now().isoformat(timespec='seconds')
     from strong_pullback_policy_v1 import fresh
     if not fresh(quote, datetime.now()) or str(quote.get('time', ''))[:8] != str(event['day']):
-        lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_QUOTE_STALE',
-                          supplement_finished_at=datetime.now().isoformat(timespec='seconds'),
+        checks = int(event.get('supplement_quote_checks') or 0) + 1
+        retry_at = now.timestamp() + lane.POLL_INTERVAL_SECONDS
+        retry = checks < 3 and retry_at < deadline
+        lane.update_event(state_file, event_id,
+                          indicator_supplement_status='WAIT_RETRY' if retry else 'SKIPPED_QUOTE_STALE',
+                          supplement_finished_at=None if retry else reverify_quote_at,
+                          supplement_retry_after_epoch=retry_at if retry else None,
+                          supplement_quote_checks=checks, supplement_error='QUOTE_STALE_OR_MISSING',
                           supplement_reverify_quote_at=reverify_quote_at)
+        return
+    if datetime.now().timestamp() >= deadline:
+        lane.update_event(state_file, event_id, indicator_supplement_status='SKIPPED_EXPIRED',
+                          supplement_finished_at=reverify_quote_at)
         return
 
     key = digest([int(event['day']), row['code'], row['pool'], band['lower'], band['upper']])

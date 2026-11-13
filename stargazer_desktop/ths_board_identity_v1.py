@@ -76,25 +76,30 @@ def _sha(value):
     return hashlib.sha256(value).hexdigest()
 
 
-def identities():
-    return [dict(item, legacy_codes=list(item['legacy_codes'])) for item in _IDENTITIES]
+def identities(store_dir=None):
+    items = {item['key']: item for item in _IDENTITIES}
+    if store_dir is not None:
+        for key, entry in _registry(store_dir).items():
+            item = entry.get('identity')
+            if item and item.get('key') == key:
+                items.setdefault(key, item)
+    return [dict(item, legacy_codes=list(item['legacy_codes'])) for item in items.values()]
 
 
 def _aliases(item):
     return {item['name'], item['index_code'], item['web_id'], *item['legacy_codes']}
 
 
-def resolve(token):
+def resolve(token, store_dir=None):
     """精确解析名称/指数代码/网页编号/旧目录身份 → 同一身份；无模糊匹配。"""
     if not isinstance(token, str):
         return None
-    token = token.strip()
+    token = token.strip().casefold()
     if not token:
         return None
-    for item in _IDENTITIES:
-        if token in _aliases(item):
-            return dict(item, legacy_codes=list(item['legacy_codes']))
-    return None
+    hits = [item for item in identities(store_dir)
+            if token == item['key'] or token in {alias.casefold() for alias in _aliases(item)}]
+    return hits[0] if len(hits) == 1 else None
 
 
 def describe(item):
@@ -126,6 +131,19 @@ def _registry(store_dir):
     return _read_json(Path(store_dir) / 'identities.json', {})
 
 
+def register(item, store_dir):
+    registry = _registry(store_dir)
+    existing = resolve(item['key'], store_dir)
+    if existing and any(existing[k] != item[k] for k in ('key', 'name', 'type', 'web_id')):
+        raise ValueError('同一指数代码对应的板块身份有冲突，请重新核验')
+    if any(row['key'] != item['key'] and row['name'].casefold() == item['name'].casefold()
+           for row in identities(store_dir)):
+        raise ValueError('目录已有同名但指数代码不同的板块，请先移除冲突')
+    if not existing:
+        registry.setdefault(item['key'], {})['identity'] = item
+        _write_json(Path(store_dir) / 'identities.json', registry)
+
+
 # ---------------- 成分（版本化 + 原始回执 + 出处） ----------------
 
 def _verify_version(doc, pointer=None):
@@ -147,7 +165,7 @@ def _verify_version(doc, pointer=None):
 def constituent_record(item, store_dir, frozen_lookup=None):
     """返回 (members, provenance)；provenance 注明成分出处与快照日期。缺失返回 (None, None)。"""
     if not isinstance(item, dict):
-        item = resolve(item) or {}
+        item = resolve(item, store_dir) or {}
     key = item.get('key')
     pointer = _read_json(Path(store_dir) / 'constituents' / (_file_key(key) + '_current.json'), None)
     if pointer and pointer.get('key') == key:
@@ -173,6 +191,13 @@ def constituent_record(item, store_dir, frozen_lookup=None):
                           members_sha256=_sha(sorted(codes)),
                           note=f'历史成员快照{snapshot}（未认证当日完整成员），不作为当日完整成分')
         return [str(c).zfill(6) for c in codes], provenance
+    if item.get('source_url'):
+        from ths_board_catalog_v1 import archived_members, ARCHIVE_DAY
+        codes = archived_members(item)
+        if codes:
+            return codes, dict(kind='FROZEN_ARCHIVE', snapshot_date=ARCHIVE_DAY,
+                               source='stockdb_boards_snapshot.parquet', members_sha256=_sha(codes),
+                               source_url=item['source_url'])
     return None, None
 
 
@@ -200,13 +225,15 @@ def fetch_constituents(item, transport, store_dir, day, now=None):
         raw_pages.append(response)
         if total is None:
             total = response.get('total')
-            if type(total) is not int or total < 0:
+            if type(total) is not int or total <= 0:
                 raise ValueError('CONSTITUENT_TOTAL_MISSING')
+        elif response.get('total', total) != total:
+            raise ValueError('CONSTITUENT_TOTAL_CHANGED')
         members = []
         for code in response['members']:
             code = str(code).zfill(6)
-            if code in seen:
-                continue
+            if len(code) != 6 or not code.isascii() or not code.isdigit() or code in seen:
+                raise ValueError('CONSTITUENT_CODE_INVALID_OR_REPEATED')
             seen.add(code)
             members.append(code)
         pages.append(dict(page=page, returned=len(response['members']), unique=len(members)))
@@ -259,7 +286,7 @@ def set_monitor_enabled(item, store_dir, enabled, plan_ref=None):
 
 def monitor_status(token_or_item, store_dir, frozen_lookup=None):
     """三级状态：身份已确认 / 成分待准备 / 监控已启用。保存名称 ≠ 生效。"""
-    item = token_or_item if isinstance(token_or_item, dict) else resolve(token_or_item)
+    item = token_or_item if isinstance(token_or_item, dict) else resolve(token_or_item, store_dir)
     if not item:
         return dict(status='IDENTITY_UNKNOWN', item=None)
     enabled = bool((_registry(store_dir).get(item['key']) or {}).get('enabled'))
@@ -276,7 +303,7 @@ def monitor_status(token_or_item, store_dir, frozen_lookup=None):
 def resolve_for_pool(token, store_dir, frozen_lookup=None):
     """监控消费者（强势池构建等）入口：解析身份 + 成分及出处。
     返回 dict(identity, members, provenance, status)；无法解析返回 None。"""
-    item = resolve(token)
+    item = resolve(token, store_dir)
     if not item:
         return None
     members, provenance = constituent_record(item, store_dir, frozen_lookup)
@@ -306,7 +333,7 @@ def quote_summary(item, quotes, *, index_quote=None, members=None, pool_codes=No
     strong_pool    冻结强势池子集（非全板块；pool_codes 为空则不存在该口径）
     """
     if not isinstance(item, dict):
-        item = resolve(item) or {}
+        item = resolve(item, store_dir) or {}
     quotes = quotes or {}
     now = now or datetime.now(ZONE)
 

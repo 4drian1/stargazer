@@ -92,6 +92,11 @@ def schedule(plan):
                     if proc.returncode:raise ValueError('MINUTE_PREPARE_WORKER_FAILED')
                 except (OSError,ValueError,subprocess.TimeoutExpired) as exc:
                     _write(target,dict(status='WAIT_SOURCE',data_date=P,monitor_date=E,reason=str(exc)[:160]))
+                try:
+                    from postclose_prepared_v1 import reconcile_targets
+                    reconcile_targets(target)
+                except (OSError, ValueError, TimeoutError):
+                    pass  # The published target will be reconciled again on startup.
         _thread=threading.Thread(target=work,daemon=True,name='fixed-minute-preparation');_thread.start()
     return target
 

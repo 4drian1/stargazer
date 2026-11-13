@@ -1,6 +1,8 @@
 """服务层：把数据层+策略层粘成 agent 可调用的函数。所有函数返回可JSON序列化的dict。"""
+from contextlib import closing
 import json
 import os
+from pathlib import Path
 import time
 
 import pandas as pd
@@ -261,7 +263,7 @@ def confirmed_plan():
 
 def portfolio_positions(cfg):
     """Local recorded holdings; market prices require a separate live check."""
-    return {'positions': wl_load(cfg).get('positions', []), 'price_status': 'NOT_QUERIED'}
+    return {'positions': active_positions(cfg), 'price_status': 'NOT_QUERIED'}
 
 
 def stock_check(code):
@@ -296,7 +298,7 @@ def stock_check(code):
 def check_portfolio(cfg):
     wl = wl_load(cfg)
     report = {"positions": [], "watch_alerts": []}
-    for p in wl["positions"]:
+    for p in active_positions(cfg, wl["positions"]):
         df = market.kline(p["code"])
         if df is None:
             continue
@@ -797,6 +799,26 @@ def trade_export_csv(cfg, out_path=None, limit=200000):
     return out_path
 
 
+def active_positions(cfg, positions=None):
+    """Keep legacy manually registered positions until actual trades prove closure."""
+    positions = list(wl_load(cfg).get('positions', []) if positions is None else positions)
+    codes = sorted({str(row['code']) for row in positions})
+    if not codes:
+        return positions
+    path = Path(trade_db_path(cfg)).resolve()
+    if not path.is_file():
+        return positions
+    query = ('SELECT code, action, price, shares, trade_date FROM trades WHERE code IN ('
+             + ','.join('?' for _ in codes) + ') ORDER BY trade_date,id')
+    with closing(_sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as db:
+        trades = db.execute(query, codes).fetchall()
+    by_code = {code: [] for code in codes}
+    for code, *row in trades:
+        by_code[code].append(row)
+    return [row for row in positions
+            if _position_from_trades(by_code[str(row['code'])])['position_state'] != 'CLOSED']
+
+
 def position_details(cfg, code, live_price=None):
     """真实合同：从已登记真实成交计算数量、加权成本、可卖（T+1）与盈亏。
 
@@ -810,12 +832,16 @@ def position_details(cfg, code, live_price=None):
       * 仍有持仓         → quantity>0，state='OPEN'
     行情缺失 → 盈亏 None。
     """
-    import datetime as _dt
     conn = _trade_conn(cfg)
     rows = conn.execute(
         "SELECT action, price, shares, trade_date FROM trades WHERE code=? ORDER BY trade_date, id",
         (str(code),)).fetchall()
     conn.close()
+    return _position_from_trades(rows, live_price)
+
+
+def _position_from_trades(rows, live_price=None):
+    import datetime as _dt
     if not any(int(shares or 0) > 0 for _, _, shares, _ in rows):
         return dict(quantity=None, cost=None, sellable=None, pnl=None, pnl_pct=None,
                     position_state='NO_TRADES', realized_pnl=None)

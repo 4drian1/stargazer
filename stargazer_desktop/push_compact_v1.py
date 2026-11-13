@@ -21,6 +21,22 @@ def indicator_lines(p, *, include_times=False):
             lines.append('低点对照时间：'+str(a.get('time') or '待核')+' → '+str(b.get('time') or '待核'))
     return lines
 
+def strong_touch(p):
+    title = '异动·' + p['priority_label']
+    lower, upper, price = p['level_lower'], p['level_upper'], p['price']
+    location = '带内' if lower <= price <= upper else '带下' if price < lower else '带上'
+    next_band = p.get('next_lower_band')
+    below = ('%.2f—%.2f' % (next_band['lower'], next_band['upper'])
+             if next_band else '未检出')
+    lines = [f"【{title}】{identity(p)} ｜ {p['board'] or '板块待核'} ｜ {clock(p['touch_quote_at'])}触发",
+             '━━━━━━━━━━━━━━━━━━━',
+             f"状态：黄金位{lower:.2f}—{upper:.2f} ｜ {'触位价' if p.get('recorded_touch') else '现价'}{price:.2f}，{location}",
+             '下一黄金位' + below, '━━━━━━━━━━━━━━━━━━━']
+    if p.get('period_pairs'):
+        lines.extend(indicator_lines(p))
+    return dict(title=title, body='\n'.join(lines))
+
+
 def strong(p):
     priority=flat(p.get('priority_label'));title='异动'+('·'+priority if priority else '')
     lower,upper=p.get('level_lower'),p.get('level_upper');price=p.get('price');low=((p.get('period_pairs') or {}).get('5') or {}).get('current') or {}

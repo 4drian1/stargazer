@@ -22,9 +22,8 @@ def append(file, messages, exclusive=False):
         return
     with workflow.LOCK:
         raw = b''.join(workflow.encoded(m) + b'\n' for m in messages)
-        total = sum(p.stat().st_size for p in workflow.root().rglob('*') if p.is_file())
-        if total + len(raw) > workflow.LIMIT:
-            raise ValueError('助手原始对话达到10MiB，停止写入；风控提醒不受影响')
+        from persistent_records_v1 import reserve_space
+        reserve_space(file.parent, len(raw))
         file.parent.mkdir(parents=True, exist_ok=True)
         with file.open('xb' if exclusive else 'ab') as stream:
             stream.write(raw)

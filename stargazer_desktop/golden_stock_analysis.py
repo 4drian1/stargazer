@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-FINGERPRINT='live_monitor_fingerprints_20261111_v213_flow.json.gz'
+FINGERPRINT='live_monitor_fingerprints_20261113_v227_flow.json.gz'
 
 
 def check_code(code):

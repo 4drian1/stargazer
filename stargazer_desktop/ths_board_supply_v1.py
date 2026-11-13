@@ -7,10 +7,10 @@ import html
 import json
 from pathlib import Path
 import re
-import urllib.request
 
 import cross_process_lock_v1 as cpl
 import ths_board_identity_v1 as identity
+from ths_board_catalog_v1 import decode, detail_url, heading, read_public
 
 URL = 'https://q.10jqka.com.cn/thshy/detail/code/881274/'
 SEED = Path(__file__).with_name('ths_industry_source_seed_v1.json.gz')
@@ -22,12 +22,13 @@ def _text(value):
     return html.unescape(re.sub('<[^>]+>', '', value)).strip()
 
 
-def parse_page(raw):
+def parse_page(raw, item=None):
     """No guessed totals: require identity, a complete non-paged table and row audit."""
     if len(raw) > MAX_RESPONSE:
         raise ValueError('THS_RESPONSE_TOO_LARGE')
-    text = raw.decode('gb18030')
-    if not re.search(r'<h3>\s*影视院线\s*<span>\s*881274\s*</span>', text):
+    item = item or identity.resolve(SUPPORTED)
+    text = decode(raw)
+    if heading(text) != (item['name'], item['index_code']):
         raise ValueError('THS_BOARD_IDENTITY_MISMATCH')
     inputs = re.findall(r'<input\b[^>]*>', text, re.I)
     request = next((v for v in inputs if re.search(r'\bid=[\'"]request[\'"]', v)), '')
@@ -53,27 +54,18 @@ def parse_page(raw):
     counts = re.findall(r'<span\b[^>]*>\s*(\d+)\s*</span>', breadth[1]) if breadth else []
     if len(counts) != 2 or sum(map(int, counts)) > len(members):
         raise ValueError('THS_CONSTITUENT_COVERAGE_MISMATCH')
-    return dict(members=members, total=len(members), source_url=URL,
-                source_key=SUPPORTED, complete=True,
+    return dict(members=members, total=len(members),
+                source_url=detail_url(item['type'], item['web_id']), source_key=item['key'], complete=True,
                 completeness='OFFICIAL_NO_PAGINATION_AND_CONTIGUOUS_UNIQUE_ROWS',
                 raw_sha256=hashlib.sha256(raw).hexdigest(),
                 raw_gzip_b64=base64.b64encode(gzip.compress(raw, mtime=0)).decode('ascii'))
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *args, **kwargs):
-        return None
-
-
 class Transport:
     def fetch_page(self, item, page):
-        if item.get('key') != SUPPORTED or page != 0:
+        if page != 0:
             raise ValueError('THS_SOURCE_NOT_SUPPORTED')
-        request = urllib.request.Request(URL, headers={
-            'User-Agent': 'Mozilla/5.0', 'Referer': 'https://q.10jqka.com.cn/'})
-        with urllib.request.build_opener(_NoRedirect()).open(request, timeout=6) as response:
-            raw = response.read(MAX_RESPONSE + 1)
-        return parse_page(raw)
+        return parse_page(read_public(detail_url(item['type'], item['web_id'])), item)
 
 
 class _SeedTransport:
@@ -81,7 +73,7 @@ class _SeedTransport:
         self.response = response
 
     def fetch_page(self, item, page):
-        if item.get('key') != SUPPORTED or page != 0:
+        if self.response.get('source_key', item['key']) != item['key'] or page != 0:
             raise ValueError('THS_SOURCE_NOT_SUPPORTED')
         return self.response
 
@@ -106,17 +98,19 @@ def _result(item, store_dir, reason=None):
 
 
 def ensure(token, store_dir, now=None, transport=None):
-    """Prepare only the exact industry. Quote loops and GET routes never call this."""
-    item = identity.resolve(token)
-    if not item or item['key'] != SUPPORTED:
+    """Prepare registered identities with an official source. Runs in pool work."""
+    item = identity.resolve(token, store_dir)
+    if not item or (item['key'] != SUPPORTED and not item.get('source_url')):
         return None
     now = now or datetime.now(identity.ZONE)
     folder = Path(store_dir)
     try:
-        with cpl.FileLock(folder / 'industry_refresh', timeout=10):
-            pointer = folder / 'constituents/ths_881274_current.json'
+        key = identity._file_key(item['key'])
+        legacy = item['key'] == SUPPORTED
+        with cpl.FileLock(folder / ('industry_refresh' if legacy else key + '_refresh'), timeout=10):
+            pointer = folder / 'constituents' / (key + '_current.json')
             # Verified source bytes ship as a dated cache, not hand-written members.
-            if not pointer.exists() and SEED.is_file():
+            if legacy and not pointer.exists() and SEED.is_file():
                 seed = json.loads(gzip.decompress(SEED.read_bytes()))
                 stamp = datetime.fromisoformat(seed['fetched_at'])
                 raw = gzip.decompress(base64.b64decode(seed['raw_gzip_b64']))
@@ -127,7 +121,7 @@ def ensure(token, store_dir, now=None, transport=None):
             current = _result(item, folder)
             if (current['provenance'] or {}).get('day') == now.strftime('%Y%m%d'):
                 return current
-            attempts = folder / ('industry_attempts_' + now.strftime('%Y%m%d') + '.json')
+            attempts = folder / (('industry' if legacy else key) + '_attempts_' + now.strftime('%Y%m%d') + '.json')
             state = json.loads(attempts.read_bytes()) if attempts.exists() else {'attempts': 0}
             if state['attempts'] >= 3:
                 return _result(item, folder, 'THS_DAILY_ATTEMPTS_EXHAUSTED')

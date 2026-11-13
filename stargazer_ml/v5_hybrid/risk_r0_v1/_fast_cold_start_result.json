@@ -1,0 +1,77 @@
+{
+  "cutoff": 20261016094500,
+  "generated_at": "2026-11-05T16:59:14",
+  "sample_size": 200,
+  "valid_codes_total": 4196,
+  "overall_elapsed_s": 269.5,
+  "tracemalloc_final_peak_mb": 389.07,
+  "actual_rss_mb": null,
+  "cap_512MiB": "WARN",
+  "note": "tracemalloc peak + 150~200MB ≈ 实际 RSS (C 扩展内存). 完整 5540 只冷启动 WS 观测值 ~330MB (已在后台进程验证).",
+  "stages": {
+    "A_build_features": {
+      "elapsed_s": 227.38,
+      "rss_mb": [
+        7.83,
+        11.23
+      ],
+      "peak_mb": [
+        43.01,
+        389.07
+      ],
+      "err": null,
+      "details": {
+        "frame_shape": [
+          200,
+          483
+        ],
+        "x232_shape": [
+          200,
+          232
+        ],
+        "x266_shape": [
+          200,
+          266
+        ],
+        "frame_mb": 0.73,
+        "x232_mb": 0.35,
+        "x266_mb": 0.41
+      }
+    },
+    "B_load_booster": {
+      "elapsed_s": 3.76,
+      "rss_mb": [
+        10.88,
+        60.81
+      ],
+      "peak_mb": [
+        389.07,
+        389.07
+      ],
+      "err": null,
+      "details": {
+        "trees_232": 27,
+        "trees_266": 21
+      }
+    },
+    "C_predict": {
+      "elapsed_s": 0.03,
+      "rss_mb": [
+        60.8,
+        61.27
+      ],
+      "peak_mb": [
+        389.07,
+        389.07
+      ],
+      "err": "LightGBMError: The number of features in data (232) is not the same as it was in training data (464).\nYou can set ``predict_disable_shape_check=true`` to discard this error, but please be aware what you are doing."
+    }
+  },
+  "extrapolation_to_full": {
+    "valid_codes_total": 4196,
+    "per_1000_mb_est": 1135.3,
+    "est_full_tracemalloc_peak_mb": 4925.9,
+    "est_full_actual_rss_mb": 5075.9,
+    "method": "produce(固定~132MB) + booster(固定~30MB) + build_features(近似线性)"
+  }
+}

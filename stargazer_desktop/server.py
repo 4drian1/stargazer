@@ -338,7 +338,7 @@ def state():
     cfg = get_cfg()
     wl = services.wl_load(cfg)
     p = cfg.get("push", {})
-    positions = wl.get("positions", [])
+    positions = services.active_positions(cfg, wl.get("positions", []))
     watch = wl.get("watch", [])
     # 注入实时行情（持仓+观察共用一次 quotes 调用）
     codes = [p["code"] for p in positions] + [w["code"] for w in watch]
@@ -711,12 +711,14 @@ def api_board_change_state():
 @app.route('/api/assistant/boards/options')
 def api_board_change_options():
     from plan_board_change_v1 import current_boards, plan_effective
+    from ths_board_catalog_v1 import verified_items
     from ths_board_identity_v1 import identities, monitor_status
     context = _board_change_context()
     try:
         formal, boards = current_boards(context['formal_plan_path'], context['store_dir'])
         options = []
-        for item in identities():
+        registered = {item['key']: item for item in identities(context['store_dir'])}
+        for item in verified_items(registered).values():
             status = monitor_status(item, context['store_dir'])
             options.append({key: item[key] for key in ('name', 'type', 'index_code', 'web_id')} |
                            {key: status[key] for key in ('member_count', 'provenance')})
@@ -731,51 +733,20 @@ def api_board_change_preview():
     from plan_board_change_v1 import preview_selection
     try:
         body = request.get_json(silent=True) or {}
-        with _brain_lock:
-            return jsonify({'ok': True, **preview_selection(
-                body.get('action'), body.get('board'), **_board_change_context())})
+        return jsonify({'ok': True, **preview_selection(
+            body.get('action'), body.get('board'), match=body.get('match'), **_board_change_context())})
     except (ValueError, OSError) as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
 
 @app.route('/api/assistant/boards/confirm', methods=['POST'])
 def api_board_change_confirm():
-    from plan_board_change_v1 import confirm, load_draft
+    from plan_board_change_v1 import confirm
     try:
         body = request.get_json() or {}
         with _brain_lock, assistant_workflow.LOCK:
             context = _board_change_context()
-            draft = load_draft(context['root'], body.get('id'))
-            if body.get('confirmed') is not True:
-                raise ValueError('必须人工确认板块变更')
-            if os.environ.get('STARGAZER_ACCEPTANCE_MODE') == '1':
-                result = confirm(body.get('id'), body.get('confirmed'), **context)
-                result['reply'] += '\n试用模式：板块设置已保存到副本，强势池计算待正式运行。'
-                return jsonify(result)
-            from ths_board_supply_v1 import ensure
-            preparation = {board['name']: value for board in draft.get('boards', [])
-                           if (value := ensure(board['name'], context['store_dir'])) is not None}
-            result = confirm(body.get('id'), body.get('confirmed'), **context)
-            result['constituent_preparation'] = preparation
-            for name, value in preparation.items():
-                detail = ('成分已准备：' + str(value['member_count']) + '只' if value['status'] == 'READY'
-                          else '成分准备未完成')
-                if value.get('reason'):
-                    detail += '；更新失败，保留原版本：' + value['reason']
-                result['reply'] = result.get('reply', '') + '\n' + name + '：' + detail
-            import strong_sector_pool_prep_v1 as pool_prep
-            pool_boards = [b.get('name') for b in draft.get('boards', []) if isinstance(b, dict)]
-            pool_view = pool_prep.submit(pool_boards)
-            result['pool_prepare'] = pool_view.get('status')
-            label = {'QUEUED': '强势池准备任务已提交', 'RUNNING': '强势池准备中',
-                     'REUSED': '同版强势池已存在，直接复用',
-                     'READY': '强势池已就绪',
-                     'FAILED': '强势池准备失败：' + str(pool_view.get('reason')),
-                     'WAIT_DAILY': '强势池待准备：本地日线未更新，已保留任务与偏好',
-                     'RETRY_WAIT': '强势池准备冷却中，稍后自动重试'}.get(pool_view.get('status'), '')
-            if label:
-                result['reply'] = (result.get('reply') or '') + '\n' + label + '。'
-        return jsonify(result)
+            return jsonify(confirm(body.get('id'), body.get('confirmed'), defer=True, **context))
     except (ValueError, OSError) as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
@@ -810,11 +781,21 @@ def api_strong_pool_board():
                         'reason': 'BOARD_NOT_IN_PREPARATION_SCOPE', 'rows': []})
     found = pool_prep.validated_existing_pool(boards)
     pool = found.get('pool')
+    if pool is None:
+        from strong_sector_watch_v1 import monitoring_pool
+        import trade_plan_v1
+        from sector_watch_v1 import names
+        retained = monitoring_pool(names(trade_plan_v1.load_plan() or {}), int(dt.datetime.now().strftime('%Y%m%d')))
+        if retained and name in retained['boards']:
+            pool = retained
     reason = None if pool is not None else (found.get('validation') or 'NO_VALIDATED_POOL')
     if pool is None:
         return jsonify({'ok': True, 'board': name, 'status': 'NOT_READY', 'reason': reason,
                         'validation': found.get('validation'), 'detail': found.get('detail'),
                         'rows': [], 'note': '无已核验强势池；展开不触发计算，请用"更新板块强势池"显式准备'})
+    if (pool.get('constituent_versions') or {}).get(name) == 'PENDING':
+        return jsonify({'ok': True, 'board': name, 'status': 'CONSTITUENTS_PENDING',
+                        'reason': '成分待准备', 'rows': []})
     rows = []
     for row in pool.get('rows') or []:
         if name not in (row.get('boards') or []):
@@ -854,8 +835,8 @@ def api_strong_pool_prepare():
     """“更新板块强势池”：显式本地准备/有限重试；不启动选股模型、LLM 或推送。"""
     import strong_sector_pool_prep_v1 as pool_prep
     body = request.get_json(silent=True) or {}
-    boards = body.get('boards') or _strong_pool_boards()
-    view = pool_prep.submit(boards)
+    boards = body['boards'] if isinstance(body.get('boards'), list) else _strong_pool_boards()
+    view = pool_prep.submit(boards, retry_members=True, runner=pool_prep.manual_runner)
     return jsonify(view)
 
 
@@ -942,15 +923,93 @@ def api_risk_outlook():
     if old.get('status') not in (None,'NOT_GENERATED'):
         return jsonify(old)
     cutoff=int(view['data_date'])*1000000+150000
-    return jsonify(risk_outlook_v1.queue(get_cfg(),view,cutoff,plan_id=risk_outlook_v1.view_id(view)))
+    cfg = get_cfg()
+    return jsonify(risk_outlook_v1.queue(cfg,view,cutoff,positions=services.active_positions(cfg),
+                                         plan_id=risk_outlook_v1.view_id(view)))
+
+
+_risk_card_quotes = {'rows': [], 'expires': 0}
+_risk_card_lock = threading.Lock()
+_risk_flow = {'value': None, 'expires': 0, 'running': False}
+_risk_flow_lock = threading.Lock()
+
+
+def _overview_flow(now, previous):
+    from risk_outlook_v1 import board_flow_snapshot
+
+    def same_day(value):
+        try:
+            stamp = dt.datetime.fromisoformat(value['observed_at'])
+            if stamp.date() == now.date() and stamp <= now:
+                return value
+        except (KeyError, ValueError, TypeError):
+            pass
+        return None
+
+    def prepare():
+        value = None
+        try:
+            value = board_flow_snapshot(tries=1, timeout=4)
+        finally:
+            with _risk_flow_lock:
+                if value:
+                    _risk_flow['value'] = value
+                _risk_flow.update(running=False, expires=time.monotonic() + 60)
+
+    with _risk_flow_lock:
+        if now.weekday() < 5 and 930 <= now.hour * 100 + now.minute <= 1530:
+            if not _risk_flow['running'] and time.monotonic() >= _risk_flow['expires']:
+                _risk_flow['running'] = True
+                threading.Thread(target=prepare, name='overview-board-flow', daemon=True).start()
+        values = [value for value in (same_day(_risk_flow['value']), same_day(previous)) if value]
+        return max(values, key=lambda item: item['observed_at'], default=None), _risk_flow['running']
 
 
 @app.route('/api/risk/outlook/latest')
 def api_risk_outlook_latest():
     import risk_outlook_v1
+    from index_outlook_v1 import overview_cards
+    from overview_index_maps_v1 import read as read_index_maps
     candidates = [risk_outlook_v1.latest(mode) for mode in ('POSTCLOSE', 'INTRADAY')]
     latest = max(candidates, key=lambda item: str(item.get('asof') or ''))
-    return jsonify({key: latest.get(key) for key in ('asof', 'mode', 'status', 'text', 'reason')})
+    facts = dict(latest.get('computed_facts') or {})
+    now = dt.datetime.now()
+    cutoff = latest.get('asof')
+    maps = read_index_maps()['maps']
+    lower_watch = {}
+    for name in ('sse', 'szse', 'cyb'):
+        fact = facts.get(f'index.{name}.band.lower_watch') or {}
+        if fact.get('status') == 'KNOWN' and fact.get('asof') == latest.get('asof'):
+            band = fact['value']
+            lower_watch[name] = dict(lower=band['lower'], upper=band['upper'])
+    from tools import market
+    from time import monotonic
+    cache = _risk_card_quotes
+    with _risk_card_lock:
+        if monotonic() >= cache['expires']:
+            cache['rows'] = market.index_quotes(tries=1, timeout=2)
+            cache['expires'] = monotonic() + 15
+        live_quotes = cache['rows']
+    for row in live_quotes:
+        name = {'000001':'sse','399001':'szse','399006':'cyb'}.get(row.get('code'))
+        if not name:
+            continue
+        try:
+            stamp = dt.datetime.strptime(str(row['time']), '%Y%m%d%H%M%S')
+            price = float(row['price'])
+            if stamp.date() != now.date() or stamp > now or not 0 < price < float('inf'):
+                continue
+        except (KeyError, TypeError, ValueError):
+            continue
+        facts['overview.quote.'+name] = dict(price=price, asof=int(row['time']), day_low=row.get('day_low'))
+    sections = (latest.get('analysis') or {}).get('sections') or {}
+    board_asof, boards = risk_outlook_v1.overview_boards(now)
+    flow, flow_pending = _overview_flow(now, latest.get('board_flow'))
+    return jsonify({key: latest.get(key) for key in ('asof', 'mode', 'status', 'text', 'reason')} |
+                   {'lower_watch': lower_watch, 'indices': overview_cards(facts, cutoff, fixed=maps),
+                    'boards': boards, 'board_asof': board_asof, 'flow': flow, 'flow_pending': flow_pending,
+                    'explanation': str(sections.get('market') or '')[:120]
+                    if str(cutoff or '').startswith(now.strftime('%Y%m%d')) else ''})
 
 
 @app.route('/api/plan_boards')
@@ -988,12 +1047,40 @@ def api_joint_shadow_run():
 def api_chat_session():
     global _brain
     with _brain_lock:
-        if request.method == 'POST':
-            _brain = Brain(fresh=True)
-        brain = get_brain()
-        return jsonify({'ok': True, 'session': brain.archive.stem,
-                        'messages': [m for m in brain.messages[-20:]
-                                     if m.get('role') in ('user', 'assistant') and m.get('content')]})
+        try:
+            if request.method == 'POST':
+                _brain = Brain(fresh=True)
+            brain = get_brain()
+            return jsonify({'ok': True, 'session': brain.archive.stem,
+                            'messages': [m for m in brain.messages[-20:]
+                                         if m.get('role') in ('user', 'assistant') and m.get('content')]})
+        except (ValueError, OSError) as exc:
+            message = str(exc) if isinstance(exc, ValueError) else '本地会话文件无法读写'
+            return jsonify(ok=False, error=message), 400
+
+
+@app.route('/api/assistant/history', methods=['GET', 'POST'])
+def api_assistant_history():
+    import assistant_history_v1 as history
+    body = (request.get_json(silent=True) or {}) if request.method == 'POST' else request.args
+    kind = body.get('kind', 'chat')
+    if not isinstance(kind, str) or kind not in history.KINDS:
+        return jsonify(ok=False, error='历史类别无效'), 400
+    with _brain_lock:
+        active = _brain.archive if _brain else None
+        try:
+            if body.get('id'):
+                action = body.get('action') if request.method == 'POST' else None
+                if request.method == 'POST' and action not in ('archive', 'restore', 'delete'):
+                    raise ValueError('历史操作无效')
+                value = history.record(kind, body['id'], body.get('archived') in (True, 'true'), active, action)
+                return jsonify(ok=True, **value)
+            if request.method == 'POST':
+                raise ValueError('历史编号必填')
+            return jsonify(ok=True, items=history.entries(kind, body.get('archived') == 'true', active))
+        except (ValueError, OSError) as exc:
+            message = str(exc) if isinstance(exc, ValueError) else '本地历史文件无法读写'
+            return jsonify(ok=False, error=message), 400
 
 
 @app.route('/api/chat/notifications', methods=['GET'])
@@ -1451,6 +1538,14 @@ def _global_snapshot_warm():
         log(f"全球行情快照补采失败（不影响主程序）: {type(exc).__name__}: {exc}")
 
 
+def _recover_strong_pool_on_start():
+    from strong_sector_pool_prep_v1 import recover_interrupted
+    try:
+        recover_interrupted(boards=_strong_pool_boards())
+    except Exception as exc:
+        notifier.log(f'强势池中断状态恢复失败：{type(exc).__name__}')
+
+
 def start(port=17890):
     """启动后端+巡检线程，返回实际端口。
 
@@ -1493,6 +1588,9 @@ def start(port=17890):
     index_minutes_v1.start_source_sync()
     import postclose_risk_runtime
     postclose_risk_runtime.start()
+    from index_outlook_v1 import OVERVIEW_INDICES
+    from overview_index_maps_v1 import start as start_index_maps
+    start_index_maps([name for name, _ in OVERVIEW_INDICES])
     threading.Thread(target=_info_auto_loop, daemon=True).start()
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
@@ -1501,6 +1599,7 @@ def start(port=17890):
     except Exception:
         notifier.log("实例端口记录失败（诊断信息缺失，不影响监控）")
     threading.Thread(target=_global_snapshot_warm, daemon=True, name='global-snapshot-warm').start()
+    threading.Thread(target=_recover_strong_pool_on_start, daemon=True, name='strong-pool-recovery').start()
     return port
 
 # ---- UI2 最终集成：三条 UI 合同 GET 路由（复用生产 ui_*_api 真实实现）----

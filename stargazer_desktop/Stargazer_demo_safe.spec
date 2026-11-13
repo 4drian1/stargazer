@@ -55,7 +55,7 @@ _CORVUS = os.path.join(os.path.dirname(_SPEC_DIR), 'c3', 'corvus', 'impact_v1_1'
 
 # entry package (keep in sync with the file list in c3/.../i34_demo/i34_integration_test.py)
 _I34_DEMO_FILES = ['i34_infer.py', 'i34_desktop_integration.py', 'i34_vocab.json',
-                   'i34_receipt_index.json', 'i34_deepseek_input.json',
+                   'i34_receipt_index.json', 'i34_deepseek_input.json', 'i34_cninfo_download_links.txt',
                    'i34_stock_linkage_v1.py']
 datas += [(os.path.join(_CORVUS, 'i34_demo', _f), 'i34_demo') for _f in _I34_DEMO_FILES]
 datas += [(os.path.join(_CORVUS, 'model_a', 'materiality_v1_build',
@@ -73,6 +73,7 @@ for _d in ('i25_quantity_repair_fixed_fit_20261029_v1',
     datas.append((os.path.join(_CORVUS, _d), _d))
 
 datas += [('ths_board_frozen_members_v1.json', '.')]
+datas += [('ths_board_verified_catalog_v1.json', '.')]
 datas += [('ths_industry_source_seed_v1.json.gz', '.')]
 hiddenimports += ['cross_process_lock_v1', 'instance_guard_v1', 'instance_state_store_v1',
                   'plan_board_change_v1', 'ths_board_identity_v1', 'ths_board_supply_v1', 'monitor_release_acceptance_v1',

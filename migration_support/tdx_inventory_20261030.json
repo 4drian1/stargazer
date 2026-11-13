@@ -1,0 +1,366 @@
+{
+  "meta": {
+    "tdx_root_env": null,
+    "vipdoc": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\vipdoc",
+    "install_root": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）",
+    "vipdoc_exists": true,
+    "t0002_exists": true,
+    "base_dbf_exists": true,
+    "scanned_at": "2026-10-30T18:13:19",
+    "verdict": "CURRENT",
+    "total_day_files": 6205,
+    "latest_complete_date": "2026-10-30",
+    "global_first_seen": "2021-08-02",
+    "daily_set_fingerprint": "cc4dbbfb1f9afa91"
+  },
+  "markets": {
+    "sh": {
+      "stock": 2878,
+      "index": 1,
+      "recs": 687111,
+      "files": 2879
+    },
+    "sz": {
+      "stock": 2904,
+      "index": 68,
+      "recs": 765744,
+      "files": 2972
+    },
+    "bj": {
+      "stock": 354,
+      "index": 0,
+      "recs": 74986,
+      "files": 354
+    }
+  },
+  "spot_checks": {
+    "sh600000": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        998,
+        1004,
+        990,
+        1002
+      ],
+      "last_amount_yuan": 647741504.0,
+      "last_volume_shares": 64886492
+    },
+    "sz002313": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        800,
+        807,
+        735,
+        736
+      ],
+      "last_amount_yuan": 144454848.0,
+      "last_volume_shares": 18694900
+    },
+    "sz300845": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        1243,
+        1349,
+        1203,
+        1288
+      ],
+      "last_amount_yuan": 182237568.0,
+      "last_volume_shares": 14161073
+    },
+    "sh688651": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        2120,
+        2155,
+        1970,
+        1984
+      ],
+      "last_amount_yuan": 61954472.0,
+      "last_volume_shares": 2986093
+    },
+    "sz002933": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        2550,
+        2575,
+        2410,
+        2415
+      ],
+      "last_amount_yuan": 100623552.0,
+      "last_volume_shares": 4035193
+    },
+    "sz000001": {
+      "exists": true,
+      "first_date": "2021-08-02",
+      "last_date": "2026-10-30",
+      "bars": 1211,
+      "last_ohlc_x100": [
+        1153,
+        1167,
+        1140,
+        1164
+      ],
+      "last_amount_yuan": 2152393984.0,
+      "last_volume_shares": 186424512
+    },
+    "sh999999(沪指)": {
+      "exists": true,
+      "first_date": "2025-11-03",
+      "last_date": "2026-10-30",
+      "bars": 241,
+      "last_ohlc_x100": [
+        360565,
+        366021,
+        359526,
+        359902
+      ],
+      "last_amount_yuan": 764227223552.0,
+      "last_volume_shares": 497973940
+    },
+    "sz399006": {
+      "exists": true,
+      "first_date": "2021-08-02",
+      "last_date": "2026-10-30",
+      "bars": 1211,
+      "last_ohlc_x100": [
+        243480,
+        251824,
+        241363,
+        241363
+      ],
+      "last_amount_yuan": 454174736384.0,
+      "last_volume_shares": 199005345
+    }
+  },
+  "random_sample": {
+    "sh": {
+      "sh600206": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh601700": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh603601": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh605399": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh688533": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh688687": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh688798": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sh880583": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      }
+    },
+    "sz": {
+      "sz001365": {
+        "first": "2026-05-18",
+        "last": "2026-10-30",
+        "bars": 113
+      },
+      "sz002051": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sz002578": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sz002614": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sz002697": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sz002932": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 240
+      },
+      "sz300215": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      },
+      "sz301195": {
+        "first": "2025-11-03",
+        "last": "2026-10-30",
+        "bars": 241
+      }
+    }
+  },
+  "gaps": {
+    "counts": {
+      "corrupt": 0,
+      "short_history": 48,
+      "new_listing": 147,
+      "stale_suspect": 72,
+      "missing_daily_vs_base": 2381
+    }
+  },
+  "aux_files": {
+    "dividend_rights": {
+      "pattern": "*weight*",
+      "count": 0,
+      "sample": []
+    },
+    "dividend_rights2": {
+      "pattern": "*gbbq*",
+      "count": 2,
+      "sample": [
+        "T0002\\hq_cache\\gbbq",
+        "T0002\\hq_cache\\gbbq.map"
+      ]
+    },
+    "block_sector": {
+      "pattern": "*block*",
+      "count": 20,
+      "sample": [
+        "T0002\\blocknew\\blocknew.cfg",
+        "T0002\\blocknew\\blocknew.clr",
+        "T0002\\gs_bak\\20261016_blocknew.cfg",
+        "T0002\\gs_bak\\20261021_blocknew.cfg",
+        "T0002\\gs_bak\\20261022_blocknew.cfg"
+      ]
+    },
+    "block_sector2": {
+      "pattern": "*blk*",
+      "count": 18,
+      "sample": [
+        "T0002\\blocknew\\GNBKJK.blk",
+        "T0002\\blocknew\\HYBKJK.blk",
+        "T0002\\blocknew\\MRWBJYBJSJ.blk",
+        "T0002\\blocknew\\MZXBKJYBJSJ.blk",
+        "T0002\\blocknew\\tjg.blk"
+      ]
+    },
+    "sector_hy": {
+      "pattern": "*hy_*",
+      "count": 63,
+      "sample": [
+        "T0002\\cloud_cfg\\hy_fxszs.xml",
+        "T0002\\cloud_cfg\\hy_tree.xml",
+        "T0002\\cloud_cfg\\hy_tree1_gnz.xml",
+        "T0002\\cloud_cfg\\hy_tree1_total.xml",
+        "T0002\\cloud_pad2\\HY_CWFX.sp"
+      ]
+    },
+    "sector_gn": {
+      "pattern": "*gn_*",
+      "count": 10,
+      "sample": [
+        "T0002\\cloud_cfg\\GN_BKJJ_LSBKLD101.xml",
+        "T0002\\cloud_cfg\\GN_BKJJ_LSBKLD102.xml",
+        "T0002\\cloud_cfg\\GN_BKJJ_LSBKYD101.xml",
+        "T0002\\cloud_cfg\\GN_BKJJ_LSBKYD102.xml",
+        "T0002\\cloud_cfg\\GN_CYLGN101.xml"
+      ]
+    },
+    "sector_fg": {
+      "pattern": "*fg_*",
+      "count": 10,
+      "sample": [
+        "T0002\\cloud_cfg\\cfg_ryjg.xml",
+        "T0002\\cloud_xml5\\qh_guzhiqh_hs300zscfg_cfghq.xml",
+        "T0002\\cloud_xml5\\qh_guzhiqh_hs300zscfg_fhsj.xml",
+        "T0002\\cloud_xml5\\qh_guzhiqh_hs300zscfg_qyxx.xml",
+        "T0002\\cloud_xml5\\tdxhyzt_fg_hgjj.xml"
+      ]
+    },
+    "base_dbf": {
+      "path": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
+      "exists": true
+    }
+  },
+  "minute_5": {
+    "sh": {
+      "files": 2879,
+      "bytes": 275543040,
+      "half_written": 0
+    },
+    "sz": {
+      "files": 2963,
+      "bytes": 244356096,
+      "half_written": 0
+    },
+    "note": "下载中：未校验48槽完整性；half_written>0 表示可能半写。与日线文件数对比可见5分钟覆盖进度。"
+  },
+  "base_dbf": {
+    "exists": true,
+    "count": 8277,
+    "empty": false,
+    "path_used": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
+    "name_source": "stockdb_parquet",
+    "name_source_available": true,
+    "missing_daily_count": 2381,
+    "base_total": 8277,
+    "base_not_in_daily_raw": 3055,
+    "st_count": 212,
+    "st_sample": [
+      "000004",
+      "000010",
+      "000016",
+      "000056",
+      "000078",
+      "000488",
+      "000609",
+      "000610",
+      "000615",
+      "000632",
+      "000639",
+      "000669",
+      "000677",
+      "000698",
+      "000752",
+      "000793",
+      "000821",
+      "000826",
+      "000838",
+      "000903"
+    ]
+  }
+}

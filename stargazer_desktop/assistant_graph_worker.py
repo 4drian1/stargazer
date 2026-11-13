@@ -49,14 +49,15 @@ def run(body):
     identifier, kind = body['draft_id'], body['kind']
     if kind not in ('plan', 'review') or len(identifier) != 64 or any(c not in '0123456789abcdef' for c in identifier):
         raise ValueError('INVALID_REFERENCE')
-    draft = json.loads((root / f'{kind}_{identifier}.json').read_text(encoding='utf-8'))
+    import gzip
+    raw_draft = (root / f'{kind}_{identifier}.json').read_bytes()
+    draft = json.loads(gzip.decompress(raw_draft) if raw_draft.startswith(b'\x1f\x8b') else raw_draft)
     raw = json.dumps(draft, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()
     if hashlib.sha256(raw).hexdigest() != identifier:
         raise ValueError('DRAFT_HASH_MISMATCH')
     db = root / 'graph_checkpoint.sqlite'
     with closing(sqlite3.connect(db, check_same_thread=False)) as conn:
-        if body.get('persistent_records') is not True:
-            conn.execute('PRAGMA max_page_count=256')  # Legacy bounded test/runtime.
+        conn.execute('PRAGMA max_page_count=4294967294')
         saver = SqliteSaver(conn)
         graph = build(saver)
         config = {'configurable': {'thread_id': kind + ':' + identifier}}

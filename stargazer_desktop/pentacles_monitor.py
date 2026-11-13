@@ -240,6 +240,17 @@ def risk_session(now):
     return session(now) or (now.weekday()<5 and ((now.hour==11 and 30<=now.minute<=36) or (now.hour==15 and now.minute<=6)))
 
 
+def patrol_recorded(alerts, bulletin):
+    for alert in alerts.values():
+        review = alert.get('review') or {}
+        if review.get('decision') == 'REPORT' and (
+            review.get('bulletin_key') == bulletin['key'] or
+            (review.get('cutoff') == bulletin['asof'] and alert.get('plan_id') == bulletin['plan_id'])
+        ):
+            return True
+    return False
+
+
 def combination_passed(row):
     return (row.get('status')=='RULE_TRIGGERED' and (row.get('combination_policy')=='POSITION_TWO_OF_THREE_O20_CROSS1_V1' or str(row.get('combination_policy','')).startswith('PLAN_CUSTOM_V1:'))
         and sum(v is True for v in row.get('combination',{}).get('votes',{}).values())>=row.get('combination',{}).get('required',2))
@@ -629,6 +640,21 @@ class PriceMonitor:
             except Exception:
                 pass  # Quote failure must not suppress rule/risk/AI notifications.
         actual = clock() if clock else now
+        from risk_outlook_v1 import patrol_bulletin, with_patrol_quotes
+        bulletin = patrol_bulletin(plan, actual) if risk_session(actual) and actual.date() == now.date() else {}
+        patrol_positions = []
+        if bulletin and not patrol_recorded(self._load()['alerts'], bulletin):
+            from services import active_positions
+            patrol_positions = active_positions(dict(cfg, agent=cfg.get('agent') or {}))
+            if quotes and session(actual):
+                holding_codes = sorted({p['code'] for p in patrol_positions} - set(live))
+                if holding_codes:
+                    try:
+                        live.update(quotes(holding_codes) or {})
+                    except Exception:
+                        pass
+            bulletin = with_patrol_quotes(bulletin, actual)
+            actual = clock() if clock else actual
         with self.lock:
             data = self._load()
             from golden_rules import digest
@@ -665,13 +691,14 @@ class PriceMonitor:
                         reviews.remove(notice)
             if current:
                 reviews += [v.get('advice', {}) for v in result.get('rows', {}).values()]
-                reviews += list(result.get('holdings', {}).values())
-            from risk_outlook_v1 import latest,with_local_failure
-            bulletin=latest('INTRADAY')
-            bulletin=with_local_failure(bulletin)
-            if bulletin.get('status') in ('READY','AI_FAILED','DATA_WAIT') and bulletin.get('plan_id')==plan.get('assistant_plan_id') and bulletin.get('plan_hash') in (None,digest(plan)) and monitor.fresh(bulletin['asof'],actual):
-                reason=bulletin.get('text') or '本次AI研判失败；本地事实保留，未自动重试：'+str(bulletin.get('reason'))
-                reviews.append(dict(status='ADVICE_READY',decision='REPORT',code='市场巡检',cutoff=bulletin['asof'],reason=reason,bulletin_key=bulletin['key']))
+                from services import active_positions
+                live_holding_codes = {p['code'] for p in active_positions(dict(cfg, agent=cfg.get('agent') or {}))}
+                reviews += [r for r in result.get('holdings', {}).values()
+                            if r.get('code') in live_holding_codes]
+            if bulletin and not patrol_recorded(data['alerts'], bulletin):
+                reviews.append(dict(status='ADVICE_READY', decision='REPORT', code='市场巡检',
+                                    cutoff=bulletin['asof'], reason='', bulletin_key=bulletin['key'],
+                                    event_id='patrol:'+bulletin['key']))
             for code,row in result.get('rows',{}).items():
                 advice=row.get('advice') or {}
                 waiting={'WAIT_RISK':'同截止风险证据尚不齐，继续等待，不视为安全。',
@@ -693,6 +720,10 @@ class PriceMonitor:
                         reason=(combination_name(row)+'已通过；' if passed else '黄金位置价格条件已确认；')+(rule_condition_text(row) if passed else '')+waiting[state]+str(advice.get('reason') or '')+' 请人工判断。'))
             reviews.sort(key=lambda r:0 if r.get('kind')=='HOLDING' and r.get('decision')=='EXIT' else 1 if r.get('kind')=='HOLDING' else 2 if r.get('decision')!='REPORT' else 3)
             for review in reviews:
+                if review.get('kind') == 'HOLDING':
+                    from services import active_positions
+                    if not any(p['code'] == review.get('code') for p in active_positions(dict(cfg, agent=cfg.get('agent') or {}))):
+                        continue
                 if review.get('status') == 'T1_WAIT':
                     review=dict(review,status='ADVICE_READY',decision='DEFER')
                 if review.get('status') != 'ADVICE_READY' or review.get('decision') not in ('BUY', 'HOLD', 'EXIT','DEFER','REPORT','OBSERVE') or not monitor.fresh(review.get('cutoff',0),actual):
@@ -726,12 +757,20 @@ class PriceMonitor:
                 if review['decision'] in ('REPORT','HOLD','EXIT') and all(isinstance(context.get(k),(int,float)) for k in ['amp_232','amp_266']):
                     body+=f"\nPyxis幅度证据截止 {risk.get('asof_ts',review['cutoff'])}：232 {context['amp_232']:.2%} / 266 {context['amp_266']:.2%}，非概率、非保证最大损失。"
                 from push_presenter_v1 import report as render_report, review_notice
-                from services import wl_load
                 if review['decision']=='REPORT':
                     # 强势池通道真实健康状态：NOT_OWNER/零报价不得写成「无异动」。
                     with self.lock:
                         strong_scan = dict(self.strong_touch_health or {})
-                    rendered=render_report(bulletin,plan,result,live,wl_load(dict(cfg,agent=cfg.get('agent') or {})).get('positions',[]),data.get('template_state'),observed_at=actual,
+                    patrol_signals = result if observed == bulletin['asof'] else {}
+                    live_cutoff = result.get('event_cutoff')
+                    if live_cutoff and live_cutoff == observed:
+                        stamp = datetime.strptime(str(live_cutoff), '%Y%m%d%H%M%S')
+                        slot = datetime.strptime(str(bulletin['asof']), '%Y%m%d%H%M%S')
+                        if stamp.date() == slot.date() and 0 <= (actual-stamp).total_seconds() <= 120 and abs((stamp-slot).total_seconds()) <= 120:
+                            patrol_signals = result
+                    from services import active_positions
+                    patrol_positions = active_positions(dict(cfg, agent=cfg.get('agent') or {}))
+                    rendered=render_report(bulletin,plan,patrol_signals,live,patrol_positions,data.get('template_state'),observed_at=actual,
                                            strong_scan=strong_scan)
                     data['template_state']=rendered['next_state']
                 else:
@@ -741,6 +780,13 @@ class PriceMonitor:
                 # Persist delivery intent first, including failed delivery; no automatic paid retry.
                 alert = dict(title=title, body=body, review=review, delivery='RECORDED', wechat=False, attempts=0,
                              plan_id=plan.get('assistant_plan_id'), observed_at=actual.isoformat())
+                if review['decision'] == 'REPORT':
+                    alert['patrol_diagnostics'] = {k: bulletin[k] for k in (
+                        'status', 'reason', 'validation_error', 'computed_facts', 'analysis', 'text'
+                    ) if k in bulletin}
+                    alert['patrol_diagnostics']['stock_risk_status'] = result['status']
+                    if result.get('reason'):
+                        alert['patrol_diagnostics']['stock_risk_reason'] = result['reason']
                 data['alerts'][key] = alert
                 # 共享触价身份：只消费实际到达的带，首份综合建议是独立身份，
                 # 不被触价去重吞掉，更低档保持武装。
@@ -858,8 +904,15 @@ class PriceMonitor:
                 except Exception:
                     return False
 
+            def strong_plan():
+                from strong_sector_pool_prep_v1 import manual_pool
+                day = int(datetime.now().strftime('%Y%m%d'))
+                if manual_pool(day) is not None:
+                    return dict(monitor_date=day, manual_strong_pool=True)
+                return get_plan() or {}
+
             def deliver(event_id, file, plan_ref):
-                deliver_touch_event(event_id, file, plan_ref, get_plan=get_plan,
+                deliver_touch_event(event_id, file, plan_ref, get_plan=strong_plan,
                     get_cfg=get_cfg, quote_fn=fetch_reverify, broadcast=broadcast,
                     send=send_wechat, active=enabled)
                 enqueue_pending(file, plan_ref)
@@ -869,28 +922,26 @@ class PriceMonitor:
                 enqueue_pending(file, plan_ref)
 
             def supplement(event_id, file, plan_ref):
-                deliver_indicator_supplement(event_id, file, plan_ref, get_plan=get_plan,
+                deliver_indicator_supplement(event_id, file, plan_ref, get_plan=strong_plan,
                     get_cfg=get_cfg, quote_fn=fetch_reverify, broadcast=broadcast,
                     send=send_wechat, active=enabled)
 
             start_workers(deliver, indicators, self.stop, supplement_handler=supplement)
-            # 任务书阶段1 P1: 显式启动时主动恢复待处理事件 (在 worker 拉起后、首次 poll 之前)
-            try:
-                restored = restore_pending_events(state_dir, get_plan() or {})
-                with self.lock:
-                    self.strong_touch_health = dict(
-                        self.strong_touch_health or {},
-                        restore_on_start=restored,
-                    )
-            except Exception:
-                pass
+            restored = None
             while not self.stop.is_set():
                 now = datetime.now()
-                plan = get_plan() or {}
                 try:
-                    if _quote_lane_ok(self, plan, now):
+                    plan = strong_plan()
+                    manual = plan.get('manual_strong_pool') is True
+                    if (enabled() and session(now) if manual else _quote_lane_ok(self, plan, now)):
+                        if restored is None:
+                            try:
+                                restored = restore_pending_events(state_dir, plan)
+                            except Exception as exc:
+                                restored = dict(error=type(exc).__name__ + ':' + str(exc)[:160])
                         result = poll(plan, now, state_dir=state_dir,
                                       quote_fn=fetch_strong, usage_file=usage_file)
+                        result['restore_on_start'] = restored
                         with self.lock:
                             self.strong_touch_health = dict(result, checked_at=datetime.now().isoformat(timespec='seconds'))
                     else:
@@ -937,19 +988,32 @@ class PriceMonitor:
                     try:
                         from strong_sector_watch_v1 import schedule
                         confirmed=get_plan()
+                        cfg=get_cfg()
+                        now=datetime.now()
                         from minute_history_v1 import schedule as prepare_minutes
-                        if confirmed:prepare_minutes(confirmed)
+                        errors = {}
+                        if confirmed:
+                            try:
+                                prepare_minutes(confirmed)
+                            except Exception as exc:
+                                errors['minute_history'] = type(exc).__name__ + ':' + str(exc)[:160]
                         watched=tuple(b.get('name') for b in (confirmed or {}).get('boards',[]))
-                        schedule(confirmed,get_cfg(),datetime.now(),quotes,broadcast,send_wechat,
-                            lambda expected=watched:self._load()['enabled'] and tuple(b.get('name') for b in (get_plan() or {}).get('boards',[]))==expected)
+                        try:
+                            schedule(confirmed,cfg,now,quotes,broadcast,send_wechat,
+                                lambda expected=watched:self._load()['enabled'] and tuple(b.get('name') for b in (get_plan() or {}).get('boards',[]))==expected)
+                        except Exception as exc:
+                            errors['strong_pool'] = type(exc).__name__ + ':' + str(exc)[:160]
                         if getattr(self, '_indicator_inflight', False):
                             pass  # 上一轮指标计算未完成：不重复启动计算任务
                         else:
                             self._indicator_inflight = True
                             try:
-                                self.tick(get_plan(), get_cfg(), datetime.now(), quotes, broadcast, send_wechat, datetime.now)
+                                self.tick(confirmed, cfg, datetime.now(), quotes, broadcast, send_wechat, datetime.now)
                             finally:
                                 self._indicator_inflight = False
+                        if errors:
+                            with self.lock:
+                                self.health['preparation_errors'] = errors
                     except Exception as exc:
                         with self.lock:
                             self.health.update(status='MONITOR_ERROR', message=type(exc).__name__ + '：监控失败，请检查数据/网络')

@@ -5,8 +5,13 @@ import shadow_ui
 import paths
 from pathlib import Path
 import subprocess
+import threading
+import time
 
 _price_cache={}
+_overlay_lock = threading.Lock()
+_overlay_jobs = {}
+_overlay_failures = {}
 
 NAMES = {'selection': 'Tarot·星币侍从 1.0', 'risk': 'Pyxis 1.0', 'information': 'Corvus'}
 
@@ -45,7 +50,30 @@ def prompt_risk(risk):
             'context':compact}
 
 
-def archived_price_overlay(cutoff, error=None):
+def _price_sources(mirror, *, overview=False):
+    from index_minutes_v1 import TDX_ROOT
+    native = {}
+    keys = []
+    for name, relative in (('szse','sz/fzline/sz399001.lc5'), ('star50','sh/fzline/sh000688.lc5')):
+        path = TDX_ROOT / relative
+        try:
+            stat = path.stat()
+            native[name] = str(path)
+            keys.append((str(path), stat.st_mtime_ns, stat.st_size))
+        except OSError:
+            keys.append(None)
+    signature = []
+    for name in ('sse','cyb'):
+        try:
+            signature.append((mirror / (name + '_5min.parquet')).stat().st_mtime_ns)
+        except OSError:
+            if not overview:
+                raise
+            signature.append(None)
+    return native, (*signature, *keys)
+
+
+def archived_price_overlay(cutoff, error=None, *, overview=False):
     """Read-only overlay for accepted older packs; preserve their hash and amplitudes.
 
     failure taxonomy (into error dict when given):
@@ -64,24 +92,38 @@ def archived_price_overlay(cutoff, error=None):
         return {}
     key=None
     try:
-        signature=tuple((mirror/(name+'_5min.parquet')).stat().st_mtime_ns for name in ['sse','cyb'])
-        key=(int(cutoff),signature)
-        if key in _price_cache:return _price_cache[key]
+        native,signature=_price_sources(mirror, overview=True) if overview else _price_sources(mirror)
+        key=(int(cutoff),signature,overview)
+        with _overlay_lock:
+            cached = _price_cache.get(key)
+        if cached and time.monotonic() < cached[1]:
+            return cached[0]
         output=subprocess.run([str(python),'-B','-X','utf8',str(module)],
-            input=json.dumps(dict(cutoff=int(cutoff))),capture_output=True,text=True,encoding='utf8',timeout=120,
+            input=json.dumps(dict(cutoff=int(cutoff),native_paths=native,overview=overview)),
+            capture_output=True,text=True,encoding='utf8',timeout=120,
             creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         if output.returncode or len(output.stdout.encode('utf8'))>128*1024:
             if 'RUNTIME_FINGERPRINT_MISMATCH' in output.stderr:
                 return fail('RUNTIME_FINGERPRINT_MISMATCH',output.stderr.rsplit('RUNTIME_FINGERPRINT_MISMATCH:',1)[-1].strip()[:500])
             return fail('CALCULATION_FAILED',('rc=%s'%output.returncode)+(output.stderr[-120:] if output.stderr else ''))
         result=json.loads(output.stdout)
-        if not isinstance(result,dict) or result.get('cutoff')!=int(cutoff) or set(result.get('evidence',{}))!={'sse','cyb'}:
+        names = {'sse', 'cyb'} | set(native)
+        if not isinstance(result,dict) or result.get('cutoff')!=int(cutoff) or set(result.get('evidence',{}))!=names:
             return fail('PRICE_WORKER_BINDING',str(result.get('cutoff'))[:20])
         evidence=result['evidence']
-        if any(not isinstance(row,dict) or row.get('asof')!=int(cutoff) for row in evidence.values()):
+        def bound(name, row):
+            if not isinstance(row, dict):
+                return False
+            asof = row.get('asof')
+            return asof == int(cutoff) or (overview and name in ('sse','cyb','szse') and type(asof) is int
+                                          and asof // 1000000 == int(cutoff) // 1000000 and asof < int(cutoff))
+        if any(not bound(name, row) for name, row in evidence.items()):
             return fail('PRICE_WORKER_CUTOFF','源未更新到指定截止；缺槽或过期不读未来数据')
-        if len(_price_cache)>=2:_price_cache.clear()
-        _price_cache[key]=evidence
+        retry = overview and any(row.get('status') != 'PRICE_FACTS_ONLY' or row.get('asof') != int(cutoff)
+                                 for name, row in evidence.items() if name in ('sse','cyb','szse'))
+        with _overlay_lock:
+            if len(_price_cache)>=4:_price_cache.clear()
+            _price_cache[key]=(evidence, time.monotonic() + 20 if retry else float('inf'))
         return evidence
     except subprocess.TimeoutExpired:
         return fail('CALCULATION_FAILED','timeout')
@@ -92,9 +134,79 @@ def archived_price_overlay(cutoff, error=None):
         return fail('CALCULATION_FAILED',text[:200])
 
 
+def prepared_price_overlay(cutoff, error=None, *, overview=False):
+    """Read the cached overlay and let a background thread fill a missing one."""
+    from joint_risk_bridge import _worker_paths
+    _, worker = _worker_paths()
+    mirror = worker.parent / 'index_minutes_v1'
+    try:
+        _, signature = _price_sources(mirror, overview=True) if overview else _price_sources(mirror)
+    except OSError:
+        if error is not None:
+            error['reason'] = 'INDEX_MIRROR_UNAVAILABLE'
+        return {}
+    key = (int(cutoff), signature, overview)
+    with _overlay_lock:
+        now = time.monotonic()
+        cached = _price_cache.get(key)
+        if cached and now < cached[1]:
+            return cached[0]
+        _price_cache.pop(key, None)
+        for expired in [k for k, (until, _) in _overlay_failures.items() if until <= now]:
+            del _overlay_failures[expired]
+        failure = _overlay_failures.get(key)
+        if not failure and not _overlay_jobs:
+            def prepare():
+                diagnostic = {}
+                try:
+                    archived_price_overlay(cutoff, diagnostic, overview=overview)
+                finally:
+                    with _overlay_lock:
+                        _overlay_jobs.pop(key, None)
+                        if key not in _price_cache:
+                            _overlay_failures[key] = (time.monotonic() + 60,
+                                                     diagnostic.get('reason') or 'INDEX_OVERLAY_UNAVAILABLE')
+            worker_thread = threading.Thread(target=prepare, name='plan-index-overlay', daemon=True)
+            _overlay_jobs[key] = worker_thread
+            worker_thread.start()
+        if error is not None:
+            error['reason'] = failure[1] if failure else 'INDEX_OVERLAY_PREPARING'
+    return {}
+
+
+def same_plan_evidence(before, after):
+    """Compare signed evidence and plan facts without the asynchronous chart annotation."""
+    if before == after:
+        return True
+    if not isinstance(before, dict) or not isinstance(after, dict) or before.keys() != after.keys():
+        return False
+    for code, item in before.items():
+        other = after[code]
+        if item == other:
+            continue
+        if {k: v for k, v in item.items() if k != 'risk'} != {k: v for k, v in other.items() if k != 'risk'}:
+            return False
+        risk, current = item.get('risk') or {}, other.get('risk') or {}
+        if not risk.get('pack_hash') or risk['pack_hash'] != current.get('pack_hash'):
+            return False
+        if {k: v for k, v in risk.items() if k != 'context'} != {k: v for k, v in current.items() if k != 'context'}:
+            return False
+        left = {k: v for k, v in (risk.get('context') or {}).items() if k != 'market_price_evidence'}
+        right = {k: v for k, v in (current.get('context') or {}).items() if k != 'market_price_evidence'}
+        if left != right:
+            return False
+    return True
+
+
 def for_snapshot(snapshot):
+    import postclose_risk_runtime
+
     day = str(snapshot.get('data_date', ''))
     result = {}
+    projected = None
+    overlay = None
+    waiting_reason = None
+    packs = postclose_risk_runtime.find_packs(snapshot)
     for row in snapshot.get('rows', []):
         code = row['code']
         selection = {key: row.get(key) for key in (
@@ -103,13 +215,14 @@ def for_snapshot(snapshot):
         selection['ref'] = f'tarot:{day}:{code}'
         risk = {'status': 'MISSING', 'ref': f'pyxis:{day}:{code}',
                 'reason': '当前名单数据日没有同日风险证据；不能用历史分数代替'}
-        import postclose_risk_runtime
-        pack, runtime_reason = postclose_risk_runtime.find_pack(code, snapshot)
+        pack, runtime_reason = packs[code]
         binding_provenance = None
         if pack is None and runtime_reason and 'CANDIDATE_SNAPSHOT_CHANGED' in runtime_reason:
             # 确认计划草稿无投影父哈希，不能伪造投影关系；改按冻结原始选股快照
             # 绑定验收包，并逐股证明计划与原始快照一致（人工新增/输入变化→显式缺失）。
-            item = postclose_risk_runtime.plan_stock_bindings(snapshot).get(code)
+            if projected is None:
+                projected = postclose_risk_runtime.plan_stock_bindings(snapshot)
+            item = projected.get(code)
             if item and item['status'] == 'AVAILABLE':
                 pack = item['pack']
                 runtime_reason = None
@@ -121,7 +234,9 @@ def for_snapshot(snapshot):
         if pack is None and runtime_reason is None:
             pack, _ = shadow_ui.find_pack(code, day)
             if pack is None:
-                risk['reason'] = postclose_risk_runtime.wait_reason(snapshot)
+                if waiting_reason is None:
+                    waiting_reason = postclose_risk_runtime.wait_reason(snapshot)
+                risk['reason'] = waiting_reason
         if pack is not None:
             context = pack.risk_context or {}
             asof = str(context.get('asof_ts', ''))
@@ -146,7 +261,9 @@ def for_snapshot(snapshot):
                             'distance_atr': selected.get('plan_dist_atr'),
                             'note': '原评分包的观察位置，仅为历史引用；当前计划阶梯另列，幅度未因换图重算'}
                     if not context.get('market_price_evidence'):
-                        context['market_price_evidence']=archived_price_overlay(asof)
+                        if overlay is None:
+                            overlay = prepared_price_overlay(asof)
+                        context['market_price_evidence'] = overlay
                     risk = {'status': 'AVAILABLE', 'ref': risk['ref'], 'asof_ts': asof,
                             'context': context, 'pack_hash': pack.bind().pack_hash,
                             'scope': 'P日收盘行情截止；采集时间另见原证据，不代表收盘前已可得；未来120交易分钟幅度，不覆盖整个次日'}
@@ -322,7 +439,7 @@ def attach_market_report(view):
         view['market_data_date']=int(day)
         view['market_monitor_date']=snapshot.get('monitor_date') or view.get('monitor_date')
         cutoff=int(day)*1000000+150000;error={}
-        prices=archived_price_overlay(cutoff,error);facts={}
+        prices=prepared_price_overlay(cutoff,error);facts={}
         for name,evidence in prices.items():facts.update(facts_for(name,evidence,cutoff))
         view['market_report']=dict(asof=cutoff,text=render(facts),computed_facts=facts,
             reason=(error.get('reason') or 'INDEX_MAP_UNAVAILABLE') if not facts else None)

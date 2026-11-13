@@ -205,6 +205,94 @@ def scan_status_text(strong_scan, asof=None, max_age_seconds=900):
     return f'本时段已完成扫描（有效报价 {valid_i}/{pool_i or valid_i}，全覆盖）'
 
 
+def market_summary(facts, cutoff, observed_at=None):
+    from datetime import datetime
+
+    def verified(key):
+        fact = facts.get(key) or {}
+        if fact.get('status') == 'KNOWN' and fact.get('asof') == cutoff and fact.get('evidence_time') == cutoff:
+            return fact.get('value')
+        return None
+
+    from index_outlook_v1 import NAMES
+
+    moves, volumes, divergences = [], [], []
+    volume_known = 0
+    missing_divergence = []
+    direction_known = False
+    for name, label in NAMES.items():
+        quote = facts.get('market.' + name) or {}
+        change = quote.get('value')
+        quote_valid = quote.get('status') == 'KNOWN' and quote.get('asof') == cutoff
+        if quote.get('evidence_kind') == 'QUOTE_SNAPSHOT' and quote.get('bar_cutoff') == cutoff:
+            try:
+                stamp = datetime.strptime(str(quote['asof']), '%Y%m%d%H%M%S')
+                end = observed_at or datetime.strptime(str(cutoff), '%Y%m%d%H%M%S')
+                quote_valid = quote.get('status') == 'KNOWN' and stamp.date() == end.date() and (
+                    observed_at is None or 0 <= (end.replace(tzinfo=None) - stamp).total_seconds() <= 120)
+            except (KeyError, ValueError):
+                quote_valid = False
+        if not quote_valid:
+            change = None
+        if not finite(change):
+            mapping = facts.get(f'index.{name}.rebound_map') or {}
+            if mapping.get('status') == 'KNOWN' and mapping.get('asof') == cutoff:
+                change = (mapping.get('value') or {}).get('return_from_previous_close')
+        data = verified(f'index.{name}.recent_five_bars') or {}
+        bars = data.get('bars') or []
+        consecutive = False
+        if len(bars) == 3 and bars[-1].get('time') == cutoff:
+            try:
+                times = [datetime.strptime(str(bar['time']), '%Y%m%d%H%M%S') for bar in bars]
+                consecutive = times[0].date() == times[-1].date() and all(
+                    (b-a).total_seconds() == 300 for a, b in zip(times, times[1:]))
+            except (ValueError, KeyError):
+                pass
+        closes = [bar.get('close') for bar in bars] if consecutive else []
+        if len(closes) == 3 and all(finite(price) and price > 0 for price in closes) and (
+                closes[0] > closes[1] > closes[2] or closes[0] < closes[1] < closes[2]):
+            moves.append(label + '近三根已收盘五分钟K线' + ('走低' if closes[0] > closes[2] else '走高'))
+            direction_known = True
+        elif finite(change):
+            moves.append(label + ('持平' if change == 0 else
+                         ('小幅' if abs(change) < 0.01 else '') + ('上涨' if change > 0 else '下跌')))
+            direction_known = True
+        else:
+            moves.append(label + '走势待核验')
+        values = [bar.get('volume') for bar in bars] if consecutive and data.get('volume_verified') is True else []
+        if len(values) == 3 and all(finite(v) and v > 0 for v in values):
+            volume_known += 1
+            trend = ('持续缩量' if values[0] > values[1] > values[2] else
+                     '持续放量' if values[0] < values[1] < values[2] else '未呈持续增减')
+            volumes.append(label + '近三根五分钟K线' + trend)
+        before = len(divergences)
+        negative_five = False
+        for period in ('5', '15'):
+            rsi, dif = [verified(f'index.{name}.divergence.{period}.{indicator}_divergence')
+                        for indicator in ('rsi', 'dif')]
+            triggered = [indicator for indicator, state in (('RSI', rsi), ('DIF', dif)) if state is True]
+            if triggered:
+                divergences.append(f'{label}{period}分钟' + '/'.join(triggered) + '底背离')
+            if period == '5':
+                negative_five = rsi is False and dif is False
+        if len(divergences) == before:
+            if negative_five:
+                divergences.append(f'{label}5分钟未见RSI/DIF底背离')
+            else:
+                missing_divergence.append(label)
+    if not volume_known and not divergences:
+        details = ['量能与背离待核验']
+    else:
+        details = volumes + (['其余指数量能待核验' if volume_known else '量能待核验']
+                             if volume_known < len(NAMES) else []) + divergences
+        if len(missing_divergence) == len(NAMES):
+            details.append('背离待核验')
+        elif missing_divergence:
+            details.append('、'.join(missing_divergence) + '背离待核验')
+    observation = '观察下一根已收盘K线能否延续' if direction_known else '继续观察'
+    return '，'.join(moves) + '。' + '，'.join(details + [observation]) + '。'
+
+
 def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=None,observed_at=None,
            strong_scan=None):
     facts=bulletin.get('computed_facts') or {};asof=bulletin['asof']
@@ -224,9 +312,19 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
         if not finite(node):
             levels=(row.get('entry_rule') or {}).get('levels') or []
             node=min(levels,key=lambda n:abs(n-p)) if levels and finite(p) else None
+        indicators = signal.get('comparisons') or {}
+        indicator_text = None
+        if indicators.get('status') == 'AVAILABLE' and indicators.get('asof') == result.get('event_cutoff'):
+            from push_layout_v1 import stamp
+            current = ((indicators.get('periods') or {}).get('5') or {}).get('current') or {}
+            numbers = ['%s %.2f' % (label, current[key]) for key, label in
+                       (('rsi6', 'RSI6'), ('rsi15', 'RSI15'), ('dif', 'DIF')) if finite(current.get(key))]
+            if numbers:
+                indicator_text = '5分钟低点试算 ' + stamp(indicators['asof']) + ' ' + '/'.join(numbers)
         packet['plans'].append(dict(code=code,name=row.get('name'),price=p,level_lower=node,level_upper=node,
             level_label='黄金位',distance=(p-node)/node if finite(p) and finite(node) and node>0 else None,
             status=signal.get('status','UNKNOWN'),votes=(signal.get('combination') or {}).get('votes'),
+            indicator_text=indicator_text,
             status_text=None if signal else (wait_text or '正常未知：同截止分钟与风险证据未就绪')))
     states={}
     for name in ['sse','cyb']:
@@ -245,6 +343,9 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
     if overlay_fact and overlay_fact.get('status')=='UNKNOWN':
         packet['gate_text']+='；'+overlay_fact['text']
     packet['risk_analysis']=sections.get('market') or '本次AI研判尚未完成；保留本地事实'
+    packet['market_summary'] = market_summary(facts, asof, observed_at)
+    packet['market_gate'] = packet['gate_text'].split('（', 1)[0] if all(
+        state in ('BROKEN', 'REPAIRED', 'PENDING') for state in states.values()) else '待核验'
     from pentacles_monitor import combination_passed
     wait_text = _risk_lane_wait(plan, asof)
     signals = result.get('rows') or {}
@@ -304,7 +405,7 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
         observed=value('sector.watch.'+board['name']) or {}
         leader=observed.get('leader') or {}
         leader_text=('池内领涨候选 '+str(leader.get('name') or leader.get('code'))+' %+.1f%%'%(leader['return_value']*100)) if leader else '待核验'
-        if observed:
+        if observed.get('valid_count'):
             drop4 = observed.get('drop4_count')
             changes = (('池内%s只跌超4%%；' % (drop4 if finite(drop4) else '未知数量')
                        if 'drop4_count' in observed else '异动统计待核验；')
@@ -312,20 +413,30 @@ def report(bulletin,plan,result,quotes,positions,previous=None,sector_events=Non
         else:
             changes = '待核验'
         packet['boards'].append(dict(name=board['name'],leader_text=leader_text,change_text=changes))
+    active_codes = {pos['code'] for pos in positions or []}
+    analyzed_codes = (bulletin.get('request') or {}).get('holding_codes')
+    holding_text = (sections.get('holdings', '')
+                    if isinstance(analyzed_codes, list) and set(analyzed_codes) == active_codes else '')
     for pos in positions or []:
         code=pos['code'];price=value(code+'.stock.price');cost=pos.get('entry');policy=pos.get('tarot_execution') or {}
-        # 持仓报价独立于板块池/计划票报价：只从该持仓自己的事实字段取，
-        # 缺失时如实「未知」，不拿池内其它票的价格或关注价冒充。
-        if not finite(price):
+        # Independent same-code quote, subject to the same-day freshness gate.
+        from strong_touch_lane_v1 import quote_quality
+        quote = quotes.get(code) or {}
+        if observed_at is not None and quote_quality(quote, asof//1000000, observed_at) is None:
+            price = quote['price']
+            quote_origin = '持仓实时报价 ' + str(quote['time'])[-6:-4] + ':' + str(quote['time'])[-4:-2]
+        elif finite(price):
+            quote_origin = '持仓独立事实字段'
+        else:
             price = None
-        quote_origin = '持仓独立事实字段' if price is not None else '未取得持仓独立报价（不用关注价/池内价冒充）'
+            quote_origin = '未取得持仓独立报价'
         packet['holdings'].append(dict(code=code,name=pos.get('name'),price=price,cost=cost,
             quote_origin=quote_origin,
             pnl=price/cost-1 if finite(price) and finite(cost) and cost>0 else None,
-            stop_loss=policy.get('stop_price'),take_profit=pos.get('take_profit'),state_text='；'.join(sections.get('holdings','').splitlines()) or '待研判'))
+            stop_loss=policy.get('stop_price'),take_profit=pos.get('take_profit'),state_text='；'.join(holding_text.splitlines()) or '待研判'))
     packet.update(advice_status='ADVICE_READY' if bulletin.get('status')=='READY' else None,
         advice_verified=bulletin.get('status')=='READY' and bool(bulletin.get('analysis')),
-        advice_text=sections.get('plan') or sections.get('market'))
+        advice_text=sections.get('plan'))
     if sector_events is None:
         import json
         from strong_sector_watch_v1 import root

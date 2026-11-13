@@ -26,7 +26,15 @@ def disk_usage(root):
     root = Path(root)
     archive = root.parent / 'review_archive/strong_sector'
     from persistent_records_v1 import cache_files
-    return sum(p.stat().st_size for base in (root, archive) for p in cache_files(base))
+    total = 0
+    for base in (root, archive):
+        for file in cache_files(base):
+            try:
+                total += file.stat(follow_symlinks=False).st_size
+            except FileNotFoundError:
+                # A concurrent writer may have already replaced its temporary file.
+                continue
+    return total
 
 
 def headroom(root):

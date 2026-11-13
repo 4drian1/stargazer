@@ -395,7 +395,7 @@ def restore_pending_events(state_dir, plan, *, stop_event=None):
                             if event.get('delivery_status') in ('PENDING','WAIT_REVERIFY'):
                                 event.update(delivery_status='EXPIRED',delivery_queued=False)
                                 dirty=True
-                            if event.get('indicator_status')=='PENDING':
+                            if event.get('indicator_status') in ('PENDING', 'WAIT_RETRY', 'ATTEMPT_RESERVED'):
                                 event.update(indicator_status='EXPIRED',indicator_queued=False)
                                 dirty=True
                         continue
@@ -411,7 +411,7 @@ def restore_pending_events(state_dir, plan, *, stop_event=None):
                             event['send_queued_at'] = now.isoformat(timespec='seconds')
                             delivery_restored += 1
                             dirty = True
-                    if event.get('indicator_status') == 'PENDING' and not event.get('indicator_queued'):
+                    if _indicator_due(event, now):
                         try:
                             _INDICATOR_QUEUE.put_nowait((str(file), event_id, plan))
                         except _q.Full:
@@ -442,16 +442,16 @@ def _usage_snapshot(usage_file, day):
 
 def poll(plan, now, *, state_dir, quote_fn=None, usage_file=None, clock=None):
     """Scan the oldest 120 strong-pool symbols, record quote health and events."""
+    from golden_rules import digest as plan_digest
     from sector_watch_v1 import names
-    from strong_sector_watch_v1 import frozen, candidate_events, digest
+    from strong_sector_watch_v1 import monitoring_pool, candidate_events, digest
 
     day = int(now.strftime('%Y%m%d'))
     board_names = names(plan or {})
-    if not board_names:
-        return dict(status='WAIT_BOARDS', pool_count=0)
-    pool = frozen(board_names, day)
+    pool = monitoring_pool(board_names, day)
     if not pool:
-        return dict(status='WAIT_POOL', pool_count=0)
+        return dict(status='WAIT_POOL' if board_names else 'WAIT_BOARDS', pool_count=0)
+    plan_sha256 = plan_digest(plan)
     rows = pool.get('rows') or []
     row_by_code = {str(row['code']): row for row in rows}
     codes = list(row_by_code)
@@ -524,6 +524,10 @@ def poll(plan, now, *, state_dir, quote_fn=None, usage_file=None, clock=None):
                 symbol.update(status=reason, last_error=reason)
                 continue
             valid_count += 1
+            enabled_at = (pool.get('code_enabled_at') or {}).get(code)
+            if enabled_at and str(quote.get('time', '')) < enabled_at:
+                symbol.update(status='PRE_ACTIVATION_QUOTE', last_error='QUOTE_BEFORE_POOL_ACTIVATION')
+                continue
             previous_observed = _epoch(symbol.get('last_success_observed_epoch'))
             previous_price = (symbol.get('last_price')
                 if symbol.get('last_success_process_id') == OWNER_TOKEN and
@@ -558,7 +562,7 @@ def poll(plan, now, *, state_dir, quote_fn=None, usage_file=None, clock=None):
                 quote_attempt_at = attempt_stamp  # L207 symbol 级 attempt_stamp, 提升到事件级
                 quote_received_at = completed_at.isoformat(timespec='seconds')
                 state['events'][event_id] = dict(
-                    event_id=event_id, day=day, code=code,
+                    event_id=event_id, day=day, code=code, plan_sha256=plan_sha256,
                     name=row_by_code[code].get('name'), pool=row_by_code[code].get('pool'),
                     pool_id=pool.get('rows_sha256'), boards=row_by_code[code].get('boards', []),
                     band=dict(band), kind=selected_event.get('kind'),
@@ -671,11 +675,20 @@ def update_event(file, event_id, **fields):
     return _mutate_event(file, event_id, fields)
 
 
+def _indicator_due(event, now):
+    from notifier import market_open
+    return (event.get('indicator_status') in ('PENDING', 'WAIT_RETRY', 'ATTEMPT_RESERVED')
+            and not event.get('indicator_queued')
+            and str(event.get('day')) == now.strftime('%Y%m%d')
+            and _epoch(event.get('indicator_retry_after_epoch')) <= now.timestamp()
+            and market_open(now))
+
+
 def _enqueue_supplement(file, event_id, event, plan, now):
     """Join persisted indicator results and the first-send outcome under _STATE_LOCK."""
     if event.get('indicator_supplement_status') not in ('PENDING', 'WAIT_RETRY', 'SENDING'):
         return False
-    if (event.get('indicator_status') in (None, 'PENDING', 'PROCESSING')
+    if (event.get('indicator_status') in (None, 'PENDING', 'PROCESSING', 'WAIT_RETRY', 'ATTEMPT_RESERVED')
             or event.get('delivery_status') in (None, 'PENDING', 'WAIT_REVERIFY', 'PROCESSING', 'SENDING')
             or str(event.get('day')) != now.strftime('%Y%m%d')
             or _epoch(event.get('supplement_retry_after_epoch')) > now.timestamp()):
@@ -718,7 +731,7 @@ def enqueue_pending(file, plan, *, now=None):
                     event['send_queued_at'] = now.isoformat(timespec='seconds')
                     queued_delivery += 1
                     dirty = True
-            if event.get('indicator_status') == 'PENDING' and not event.get('indicator_queued'):
+            if _indicator_due(event, now):
                 try:
                     _INDICATOR_QUEUE.put_nowait((str(file), event_id, plan))
                 except queue.Full:
@@ -756,7 +769,7 @@ def _worker_loop(work_queue, handler, stop_event, lane):
                 update_event(file, event_id, delivery_queued=False,
                              delivery_status='PROCESSING', delivery_phase='PRE_SEND_VERIFY')
             elif lane == 'indicators':
-                update_event(file, event_id, indicator_queued=False,
+                update_event(file, event_id, indicator_queued=True,
                              indicator_status='PROCESSING', indicator_started_at=stamp)
             handler(event_id, Path(file), plan)
         except Exception as exc:

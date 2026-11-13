@@ -32,7 +32,7 @@ def failure_details(error, stage):
 
 def execute(body):
     from joint_shadow_service_v1 import verify_fingerprints
-    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261111_v213_flow.json.gz').read_bytes()))
+    expected=json.loads(gzip.decompress((HERE/'live_monitor_fingerprints_20261113_v227_flow.json.gz').read_bytes()))
     mismatch,ok=verify_fingerprints(expected)
     if not ok:raise ValueError('RUNTIME_FINGERPRINT_MISMATCH:'+','.join(mismatch))
     cutoff=int(body['cutoff']);day=cutoff//1000000
@@ -103,6 +103,12 @@ def execute(body):
         capture.save('intraday_result.json',json.dumps(value,ensure_ascii=False,allow_nan=False).encode())
         return value
     except Exception as error:
+        if isinstance(error, ValueError) and str(error).startswith('LIVE_REQUIRED_PREFIX_MISSING:'):
+            missing = str(error).split(':', 1)[1].split(',')
+            result = dict(status='SOURCE_PENDING', cutoff=cutoff, requested_codes=codes,
+                          reason='LIVE_REQUIRED_PREFIX_MISSING', missing_codes=missing)
+            atomic_json(result_file, result)
+            return result
         atomic_json(folder/'terminal.json',dict(status='FAILED',automatic_resume=False,**failure_details(error,stage)))
         raise
 

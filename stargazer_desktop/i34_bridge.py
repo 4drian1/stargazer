@@ -11,6 +11,7 @@ config.yaml / deepseek_api are resolved from this (stargazer_desktop) directory.
 """
 import os, sys, json, functools
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -48,15 +49,28 @@ if _FROZEN:
                                   'materiality_d2_4_desktop_shadow_records_v0_1.jsonl'))
 
 
+def _news_root():
+    import paths
+    base = Path(paths.APP_DIR)
+    project = base.parents[1] if paths.FROZEN else base.parent
+    return (project / 'corvus' / 'data').resolve()
+
+
+def _news_document(root, raw_path):
+    try:
+        path = Path(raw_path).resolve()
+        if path.is_relative_to(root / 'raw' / 'news') and path.stat().st_size <= 512 * 1024:
+            document = json.loads(path.read_bytes())
+            if isinstance(document, dict):
+                return document
+    except (OSError, ValueError, TypeError):
+        pass
+    return {}
+
+
 def local_announcements(*, code=None, name=None, limit=12, data_dir=None):
     """Read the latest locally collected items and exact-code issuer announcements."""
-    from contextlib import closing
-    if data_dir is None:
-        import paths
-        base = Path(paths.APP_DIR)
-        project = base.parents[1] if paths.FROZEN else base.parent
-        data_dir = project / 'corvus' / 'data'
-    root = Path(data_dir).resolve()
+    root = Path(data_dir).resolve() if data_dir is not None else _news_root()
     database = root / 'corvus.sqlite'
     if not database.is_file() or (code and not name):
         return []
@@ -77,15 +91,7 @@ def local_announcements(*, code=None, name=None, limit=12, data_dir=None):
     with closing(sqlite3.connect(database.as_uri() + '?mode=ro', uri=True, timeout=1)) as conn:
         rows = conn.execute(sql, params).fetchall()
     for raw_id, source, title, url, published, raw_path in rows:
-        document = {}
-        try:
-            path = Path(raw_path).resolve()
-            if path.is_relative_to(root / 'raw' / 'news') and path.stat().st_size <= 512 * 1024:
-                document = json.loads(path.read_bytes())
-        except (OSError, ValueError, TypeError):
-            pass
-        if not isinstance(document, dict):
-            continue
+        document = _news_document(root, raw_path)
         if code:
             codes = document.get('secCode') or document.get('SECURITY_CODE') or document.get('securityCode')
             if str(code) not in (codes if isinstance(codes, list) else [codes]):
@@ -99,8 +105,11 @@ def local_announcements(*, code=None, name=None, limit=12, data_dir=None):
         if key in seen:
             continue
         seen.add(key)
+        body = document.get('内容')
         items.append(dict(id=raw_id, source=source, title=title, source_url=source_url,
-                          disclosure_date=published, summary=summary or None))
+                          disclosure_date=published, summary=summary or None,
+                          local_detail_available=source == 'EASTMONEY_NEWS' and
+                          isinstance(body, str) and bool(body.strip())))
         if len(items) >= limit:
             break
     return items
@@ -108,6 +117,27 @@ def local_announcements(*, code=None, name=None, limit=12, data_dir=None):
 
 def register_i34_routes(app, get_cfg):
     """Register /api/i34/* routes + the /i34 panel page. Call once at startup."""
+    from flask import jsonify
+
+    @app.get('/api/i34/news/<int:raw_id>')
+    def local_news_detail(raw_id):
+        root = _news_root()
+        database = root / 'corvus.sqlite'
+        if database.is_file():
+            try:
+                with closing(sqlite3.connect(database.as_uri() + '?mode=ro', uri=True, timeout=1)) as conn:
+                    row = conn.execute(
+                        "SELECT title,published_at,raw_path FROM raw_news WHERE raw_id=? AND source_id='EASTMONEY_NEWS'",
+                        (raw_id,)).fetchone()
+            except sqlite3.Error:
+                return jsonify(error='本地快讯暂时无法读取'), 503
+            if row:
+                title, published, raw_path = row
+                body = _news_document(root, raw_path).get('内容')
+                if isinstance(body, str) and body.strip():
+                    return jsonify(title=title, disclosure_date=published, body=body)
+        return jsonify(error='本地快讯正文未找到'), 404
+
     INT.register_i34_routes(app, get_cfg)
     _enrich_panel_items(app)
     _register_page(app)
@@ -135,7 +165,7 @@ def _cninfo_detail_links():
                 continue
             code, day, url = parts[1], parts[2], parts[4]
             if code and day and url.startswith('https://www.cninfo.com.cn/'):
-                out[(code, day)] = url
+                out.setdefault((code, day), set()).add(url)
     except (OSError, ValueError):
         out = {}
     _CNINFO_LINKS = out
@@ -193,8 +223,12 @@ def derive_display_fields(item):
     links = _cninfo_detail_links()
     code = str(item.get('code') or '')
     day = str(item.get('authoritative_date') or '')
-    url = links.get((code, day)) or item.get('source_url') or item.get('url')
-    item['source_url'] = url if isinstance(url, str) and url.strip() else None
+    candidates = links.get((code, day)) or set()
+    url = item.get('source_url') or item.get('url')
+    if not isinstance(url, str) or not url.startswith(('https://', 'http://')):
+        # The legacy receipt has a stock and date only. Refuse ambiguous matches.
+        url = next(iter(candidates)) if len(candidates) == 1 else None
+    item['source_url'] = url
     if item['source_url']:
         item['source_url_note'] = 'CNINFO 官方公告详情页（本地下载清单逐条核对）'
     else:

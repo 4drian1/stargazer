@@ -199,8 +199,8 @@ def _collect_required(folder_raw,all_refs,P,cutoff,runtime,transport=fetch,*,
     Already-archived raw responses are reused with zero repeat HTTP; a failing
     stock never blocks the others' receipts.  Total wall budget equals the
     original single-round deadline (no loosening) and the per-code daily attempt
-    cap still applies inside acquire.  Exhaustion of budget with codes still
-    missing raises LIVE_REQUIRED_PREFIX_MISSING carrying per-code diagnosis.
+    cap still applies inside acquire. Return partial results and diagnostics
+    to the caller when the cutoff cannot be fully assembled.
     """
     deadline=time.monotonic()+float(budget_s)
     receipts={};failures={};diagnostics={};rounds=[];total_attempts=0
@@ -213,8 +213,8 @@ def _collect_required(folder_raw,all_refs,P,cutoff,runtime,transport=fetch,*,
         failures=f
         missing=[c for c in missing if c not in receipts]
         if not missing:break
-        if time.monotonic()>=deadline:
-            raise ValueError('LIVE_REQUIRED_PREFIX_MISSING:'+','.join(missing))
+        if time.monotonic()>=deadline or len(rounds)>=3:
+            break
         time.sleep(float(backoff_s))
     return receipts,failures,diagnostics,rounds,total_attempts
 
@@ -267,20 +267,17 @@ def produce(runtime,codes,cutoff,output,progress):
                 if rt.native.sha(previous/(code+'.parquet'))!=rt.read_json(previous/'complete.json')['files'][code+'.parquet']:
                     raise ValueError('LIVE_INDEX_HISTORY_SHA')
                 index_refs[code]=dict(day=P,complete=True,close=float(raw[raw.date==P*1000000+150000].iloc[0]['close']))
-            all_refs=dict(refs);all_refs.update(index_refs)
-            try:
-                receipts,failures,diagnostics,rounds,total_attempts=_collect_required(
-                    folder/'raw',all_refs,P,cutoff,runtime)
-            except ValueError as error:
-                if not str(error).startswith('LIVE_REQUIRED_PREFIX_MISSING'):raise
-                _persist_produce_diagnostics(folder,codes,spec,rounds)
-                raise
+            # Give confirmed plan/holdings and both indices the first request slots.
+            # The board universe stays intact and keeps its existing evidence gate.
+            all_refs = {**index_refs, **{code: refs[code] for code in codes}, **refs}
+            receipts,failures,diagnostics,rounds,total_attempts=_collect_required(
+                folder/'raw',all_refs,P,cutoff,runtime)
+            _persist_produce_diagnostics(folder,codes,spec,rounds)
+            missing=sorted(set(all_refs)-set(receipts))
+            if missing:
+                raise ValueError('LIVE_REQUIRED_PREFIX_MISSING:'+','.join(missing))
             audit=dict(rounds[-1]['audit']) if rounds else dict(attempts=total_attempts)
             audit.update(recovery_rounds=len(rounds),attempts_total=total_attempts)
-            if not set(codes+['000001.SH','399006.SZ'])<=set(receipts):
-                raise ValueError('LIVE_REQUIRED_PREFIX_MISSING:'+','.join(
-                    c for c in codes+['000001.SH','399006.SZ'] if c not in receipts))
-            _persist_produce_diagnostics(folder,codes,spec,rounds)
             # Only a successful immutable collection is shared. Recovered raw
             # responses can be reused after a failed round; no old result is READY.
             rt.atomic_json(marker,dict(files={},receipts=receipts,failures=failures,audit=audit))

@@ -1,0 +1,472 @@
+{
+  "cutoff": 20261016094500,
+  "n_requested": 200,
+  "started_at": "2026-11-05T22:55:57",
+  "stages": {
+    "produce": {
+      "elapsed_s": 145.6,
+      "ws_mb": 147.6,
+      "peak_ws_mb": 179.5,
+      "private_mb": 885.8,
+      "peak_private_mb": 918.0,
+      "tm_cur_mb": 44.7,
+      "days": 431,
+      "stock_minutes": 4196,
+      "boards": 978,
+      "index_mem_mb": {
+        "000001.SH": 1.15,
+        "399006.SZ": 1.15
+      }
+    },
+    "precheck": {
+      "elapsed_s": 205.9,
+      "ws_mb": 310.5,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1073.3,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 44.5,
+      "from_cache": false,
+      "good": 3956,
+      "bad": 240,
+      "bad_dist": {
+        "INVALID_SOURCE_OHLC": 131,
+        "INVALID_SOURCE_PRICE": 109
+      },
+      "boards_members_before": 4196,
+      "boards_members_after": 200,
+      "top_rows_count": {
+        "600010": 98568,
+        "600050": 98568,
+        "600487": 98568,
+        "600522": 98568,
+        "601727": 98568
+      },
+      "universe_note": "DIAGNOSTIC_SUBSET_ONLY_NOT_FINAL_RESULT"
+    },
+    "build_features": {
+      "elapsed_s": 523.4,
+      "ws_mb": 466.5,
+      "peak_ws_mb": 1218.6,
+      "private_mb": 1338.1,
+      "peak_private_mb": 2116.6,
+      "tm_cur_mb": 47.9,
+      "frame_shape": [
+        200,
+        483
+      ],
+      "x232_shape": [
+        200,
+        232
+      ],
+      "x266_shape": [
+        200,
+        266
+      ],
+      "frame_mb": 0.73
+    },
+    "after_del_gc": {
+      "ws_mb": 451.6,
+      "peak_ws_mb": 1218.6,
+      "private_mb": 1320.0,
+      "peak_private_mb": 2116.6,
+      "tm_cur_mb": 46.0
+    }
+  },
+  "samples": [
+    {
+      "i": 1,
+      "code": "000002",
+      "ws_mb": 272.1,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1059.5,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.2,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 2,
+      "code": "000021",
+      "ws_mb": 281.3,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1088.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 3,
+      "code": "000029",
+      "ws_mb": 287.3,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1098.9,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 4,
+      "code": "000063",
+      "ws_mb": 284.6,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1098.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 5,
+      "code": "000066",
+      "ws_mb": 288.1,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1117.7,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 10,
+      "code": "000690",
+      "ws_mb": 293.4,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1146.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.2,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 20,
+      "code": "001896",
+      "ws_mb": 316.5,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1195.4,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.3,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 30,
+      "code": "002312",
+      "ws_mb": 304.4,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1179.6,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 52.9,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 40,
+      "code": "002456",
+      "ws_mb": 306.3,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1175.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.1,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 50,
+      "code": "002625",
+      "ws_mb": 306.8,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1173.3,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.2,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 60,
+      "code": "300017",
+      "ws_mb": 311.7,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1186.2,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.3,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 70,
+      "code": "300184",
+      "ws_mb": 308.1,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1174.6,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.4,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 80,
+      "code": "300446",
+      "ws_mb": 314.7,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1184.0,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 90,
+      "code": "300548",
+      "ws_mb": 307.8,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1193.2,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.6,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 100,
+      "code": "300657",
+      "ws_mb": 305.7,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1207.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 53.7,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 110,
+      "code": "300835",
+      "ws_mb": 329.2,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1232.3,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.6,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 120,
+      "code": "301026",
+      "ws_mb": 329.4,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1213.7,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.7,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 130,
+      "code": "301269",
+      "ws_mb": 331.5,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1215.1,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.2,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 140,
+      "code": "301413",
+      "ws_mb": 340.7,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1233.7,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.9,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 150,
+      "code": "301628",
+      "ws_mb": 343.2,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1231.3,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 55.0,
+      "last_raw_mb": 7.41,
+      "last_out_mb": null
+    },
+    {
+      "i": 160,
+      "code": "600171",
+      "ws_mb": 313.8,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1179.4,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.5,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 170,
+      "code": "600522",
+      "ws_mb": 320.3,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1192.8,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.6,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 180,
+      "code": "600839",
+      "ws_mb": 313.0,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1175.4,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.7,
+      "last_raw_mb": 6.84,
+      "last_out_mb": null
+    },
+    {
+      "i": 190,
+      "code": "601727",
+      "ws_mb": 325.0,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1189.8,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.8,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    },
+    {
+      "i": 200,
+      "code": "603699",
+      "ws_mb": 323.0,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1182.3,
+      "peak_private_mb": 1280.0,
+      "tm_cur_mb": 54.9,
+      "last_raw_mb": 6.86,
+      "last_out_mb": null
+    }
+  ],
+  "diffs": [
+    {
+      "i": 100,
+      "ws_mb": 322.6,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1225.2,
+      "peak_private_mb": 1280.0,
+      "top_net": [
+        {
+          "file": "blocks.py",
+          "line": 645,
+          "net_mb": 6.27,
+          "count": 706
+        },
+        {
+          "file": "<frozen importlib._bootstrap_external>",
+          "line": 781,
+          "net_mb": 0.63,
+          "count": 4760
+        },
+        {
+          "file": "intraday_relative_stall_v2.py",
+          "line": 121,
+          "net_mb": 0.21,
+          "count": 5
+        },
+        {
+          "file": "managers.py",
+          "line": 1971,
+          "net_mb": 0.15,
+          "count": 1195
+        },
+        {
+          "file": "blocks.py",
+          "line": 650,
+          "net_mb": 0.13,
+          "count": 2223
+        },
+        {
+          "file": "array.py",
+          "line": 1744,
+          "net_mb": 0.1,
+          "count": 1695
+        },
+        {
+          "file": "numeric.py",
+          "line": 385,
+          "net_mb": 0.1,
+          "count": 128
+        },
+        {
+          "file": "joint_shadow_context_v1.py",
+          "line": 258,
+          "net_mb": 0.08,
+          "count": 1136
+        }
+      ]
+    },
+    {
+      "i": 200,
+      "ws_mb": 329.7,
+      "peak_ws_mb": 468.9,
+      "private_mb": 1189.3,
+      "peak_private_mb": 1280.0,
+      "top_net": [
+        {
+          "file": "tracemalloc.py",
+          "line": 558,
+          "net_mb": 0.2,
+          "count": 3991
+        },
+        {
+          "file": "managers.py",
+          "line": 1971,
+          "net_mb": 0.16,
+          "count": 1200
+        },
+        {
+          "file": "tracemalloc.py",
+          "line": 115,
+          "net_mb": 0.15,
+          "count": 1993
+        },
+        {
+          "file": "blocks.py",
+          "line": 650,
+          "net_mb": 0.12,
+          "count": 2200
+        },
+        {
+          "file": "array.py",
+          "line": 1744,
+          "net_mb": 0.1,
+          "count": 1700
+        },
+        {
+          "file": "tracemalloc.py",
+          "line": 193,
+          "net_mb": 0.09,
+          "count": 1985
+        },
+        {
+          "file": "base.py",
+          "line": 5371,
+          "net_mb": 0.06,
+          "count": 700
+        },
+        {
+          "file": "managers.py",
+          "line": 1566,
+          "net_mb": 0.04,
+          "count": 600
+        }
+      ]
+    }
+  ],
+  "raw_size_avg_mb": 6.99,
+  "out_size_avg_mb": null,
+  "total_elapsed_s": 875.2,
+  "finished_at": "2026-11-05T23:10:32"
+}

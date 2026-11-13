@@ -33,6 +33,28 @@ _worker = None
 _last_success = None
 
 
+def latest_complete_cutoff(now, *, for_overview=False):
+    """Latest available mirror watermark for the overview, shared cutoff for other callers."""
+    try:
+        stamps = []
+        for name in ('sse', 'cyb'):
+            try:
+                stamp = int(json.loads((MIRROR / f'{name}_5min.meta.json').read_bytes())['last_complete_ts'])
+                if stamp <= int(now.strftime('%Y%m%d%H%M%S')):
+                    stamps.append(stamp)
+            except (OSError, ValueError, TypeError, KeyError):
+                pass
+        if not stamps or (not for_overview and len(stamps) != 2):
+            return None
+        cutoff = max(stamps) if for_overview else min(stamps)
+        when = datetime.strptime(str(cutoff), '%Y%m%d%H%M%S')
+        if for_overview or when.date() == now.date():
+            return cutoff
+    except (OSError, ValueError, TypeError, KeyError):
+        pass
+    return None
+
+
 def _load_updater():
     spec = importlib.util.spec_from_file_location(
         'tdx_source_updater', MIRROR / 'index_minutes_updater_v1.py')

@@ -53,9 +53,10 @@ def progress(row):
 def plan_line(row):
     states={'WAIT_POSITION':'⏳未到','WAIT_SIGNAL':'🚫观察','RULE_TRIGGERED':'⚡组合通过',
             'RECLAIM_PENDING':'⚡收回中','BROKEN':'🚫破位','UNKNOWN':'待核验'}
-    return '%s | %s | %s 距离%s | %s' % (identity(row),price(row.get('price')),
+    line = '%s | %s | %s 距离%s | %s' % (identity(row),price(row.get('price')),
         level_text(row),percent(row.get('distance')),
         (row.get('status_text') or states.get(row.get('status'),'待核验')))
+    return line + (' | ' + row['indicator_text'] if row.get('indicator_text') else '')
 
 
 def holdings_line(row):
@@ -79,21 +80,8 @@ def half_hour(packet,previous=None):
     if packet.get('quote_asof'):header+=' | 报价 '+stamp(packet['quote_asof'])
     lines=[header,'','▍计划票']
     lines.extend([plan_line(r) for r in changes] or ['本时段无状态变化' if rows else '无当日计划票'])
-    lines+=['','▍大盘闸门']
-    market=[]
-    for key,label in [('sse','沪指'),('cyb','创业板')]:
-        r=packet.get(key) or {}
-        market.append(label+' '+price(r.get('price'))+'('+percent(r.get('return'))+') '+(r.get('state_text') or '状态待核验'))
-    lines.append(' | '.join(market)+' | 量: '+(packet.get('volume_text') or '未知'))
-    lines.append('背离/滞涨: '+(packet.get('divergence_text') or '待核验')+' | 闸门: '+(packet.get('gate_text') or '待定义'))
-    if packet.get('pullback_environment_text'):lines.append('强势回调环境｜'+packet['pullback_environment_text'])
-    if packet.get('lane_status_text'):
-        lines.append('环节状态: '+packet['lane_status_text'])
-    if packet.get('ai_failure_text'):
-        lines.append('DeepSeek 失败说明: '+packet['ai_failure_text'])
-    if packet.get('volume_scope_text'):
-        lines.append('成交额/量比口径: '+packet['volume_scope_text'])
-    lines.append('风险模型的分析：'+(packet.get('risk_analysis') or '未提供同截止研判'))
+    lines+=['','▍大盘', packet.get('market_summary') or '走势、量能与背离待核验，继续观察。',
+            '闸门' + ('待核验' if packet.get('market_gate') in (None, '待核验') else ' '+packet['market_gate'])]
     lines+=['','▍板块扫描']
     lines.extend([str(r['name'])+' | 龙头:'+(r.get('leader_text') or '待核验')+' | 异动:'+(r.get('change_text') or '待核验')
                   for r in packet.get('boards',[])] or ['无已配置板块'])
@@ -111,7 +99,8 @@ def half_hour(packet,previous=None):
     lines+=['','▍持仓']
     holdings=packet.get('holdings')
     lines.extend([holdings_line(r) for r in holdings] if holdings else ['无已登记持仓' if holdings==[] else '实际持仓未提供'])
-    lines+=['','▍下一动作',advice(packet)]
+    if packet.get('advice_text') and packet.get('advice_verified'):
+        lines+=['','▍下一动作',advice(packet)]
     return dict(contract=CONTRACT,title='巡检 '+time,body='\n'.join(lines),
                 next_state=dict(date=str(cutoff)[:8],plan_id=packet.get('plan_id'),states=states))
 

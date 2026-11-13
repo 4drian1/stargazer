@@ -61,22 +61,29 @@ def cache_files(base):
     base = Path(base)
     if not base.exists() or is_record(base):
         return
-    def fail(error):raise error
-    for folder, dirs, files in os.walk(base, followlinks=False,onerror=fail):
-        keep = []
-        for name in dirs:
-            path = Path(folder) / name
-            if is_record(path):
-                continue
-            if path.is_symlink() or path.is_junction():
-                raise ValueError('UNAUTHORIZED_CACHE_LINK:' + str(path))
-            keep.append(name)
-        dirs[:] = keep
-        for name in files:
-            path = Path(folder) / name
-            if path.is_symlink():
-                raise ValueError('UNAUTHORIZED_CACHE_FILE_LINK:' + str(path))
-            yield path
+    if base.is_symlink() or base.is_junction():
+        raise ValueError('UNAUTHORIZED_CACHE_LINK:' + str(base))
+    folders = [base]
+    while folders:
+        folder = folders.pop()
+        try:
+            entries = os.scandir(folder)
+        except FileNotFoundError:
+            continue  # A cache writer may have removed the directory.
+        with entries:
+            for entry in entries:
+                linked = entry.is_symlink() or entry.is_junction()
+                if linked:
+                    if entry.is_dir() and is_record(entry.path):
+                        continue
+                    raise ValueError('UNAUTHORIZED_CACHE_LINK:' + entry.path)
+                if entry.is_dir(follow_symlinks=False):
+                    if entry.name == 'local_records' and is_record(entry.path):
+                        continue
+                    folders.append(entry.path)
+                else:
+                    # DirEntry retains file-size metadata from enumeration on Windows.
+                    yield entry
 
 
 def inventory(folder):

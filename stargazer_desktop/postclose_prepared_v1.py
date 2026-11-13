@@ -153,7 +153,7 @@ def full_roster(cfg, plan, P, calendar_days):
     wl = services.wl_load(cfg)
     roster = {}
     _union_into(roster, roster_from_plan(plan or {}))
-    _union_into(roster, roster_from_holdings(wl.get('positions') or [], calendar_days, P))
+    _union_into(roster, roster_from_holdings(services.active_positions(cfg, wl.get('positions') or []), calendar_days, P))
     _union_into(roster, roster_from_watch(wl.get('watch') or []))
     return roster
 
@@ -220,6 +220,12 @@ def item_ready(item, P, E):
 def refresh_manifest(P, E, roster, targets, extra_items=None):
     """Write the prepared manifest. Unchanged items keep status/evidence; new
     or changed requirements are (re)scheduled and proven against their target."""
+    from cross_process_lock_v1 import FileLock
+    with FileLock(manifest_path()):
+        return _refresh_manifest(P, E, roster, targets, extra_items)
+
+
+def _refresh_manifest(P, E, roster, targets, extra_items):
     prev = current_manifest()
     prev_items = ((prev or {}).get('items') or {}) if (prev or {}).get('observation_date') == int(E) else {}
     items = {}
@@ -275,6 +281,35 @@ def current_manifest():
     except (OSError, ValueError):
         return None
     return value if value.get('contract') == CONTRACT else None
+
+
+def reconcile_targets(target=None):
+    """Advance registered tasks after publication or after an interrupted startup."""
+    from cross_process_lock_v1 import FileLock
+    if not manifest_path().is_file():
+        return
+    with FileLock(manifest_path()):
+        value = current_manifest()
+        if not value:
+            return
+        items = value.get('items') or {}
+        changed = False
+        for code, item in items.items():
+            path = item.get('target')
+            if not path or (target is not None and Path(path) != Path(target)):
+                continue
+            status, reason = _target_ready(path, [code], value['data_date'], value['observation_date'],
+                                           {code: item.get('history_days')})
+            if status == item.get('status') and reason == item.get('reason'):
+                continue
+            item['status'] = status
+            item.pop('reason', None)
+            if reason:
+                item['reason'] = reason
+            changed = True
+        if changed:
+            value['status'] = 'READY' if items and all(i['status'] == 'READY' for i in items.values()) else 'PARTIAL'
+            _write(manifest_path(), value)
 
 
 def binding(day=None):
@@ -362,7 +397,8 @@ def on_plan_frozen(cfg, exported_path, trading_date, plan=None):
 
 def _wl(cfg):
     import services
-    return services.wl_load(cfg)
+    value = services.wl_load(cfg)
+    return dict(value, positions=services.active_positions(cfg, value.get('positions') or []))
 
 
 def on_watchlist_saved(cfg):

@@ -203,7 +203,8 @@ def intraday_slot_wait(view, cutoff, plan_id, stale_only=False):
     A lagging mirror must not complete the slot without current-cutoff index
     facts, and must not pass older bars off as that evidence. While waiting, one
     WAITING_SOURCE record per slot keeps live quotes visible; a slot still
-    unready after the 360s fresh window is reported once as SOURCE_LATE.
+    unready after the 360s fresh window is recorded once as SOURCE_LATE.
+    The report dispatcher may already have sent the slot's local facts.
     stale_only is the post-window path: an existing waiting slot may record its
     timeout, but a stale slot never starts waiting and never queues here.
     Returns True only when the caller may queue the slot normally.
@@ -213,8 +214,6 @@ def intraday_slot_wait(view, cutoff, plan_id, stale_only=False):
     if slot.exists():
         return True
     if index_prefix_ready(cutoff):
-        if marker.exists():
-            marker.unlink()
         return True
     if stale_only and not marker.exists():
         return False  # nothing was waiting on this slot; stale slots never start
@@ -451,8 +450,8 @@ def evaluate(plan, cfg, now):
     global _thread
     from notifier import log
     from joint_risk_bridge import completed_cutoff
-    from services import wl_load
-    positions = wl_load(cfg).get('positions', [])
+    from services import active_positions
+    positions = active_positions(cfg)
     from tarot_event_v1 import evaluate as evaluate_events
     events=evaluate_events(plan,cfg,now)
     cutoff = completed_cutoff(now)

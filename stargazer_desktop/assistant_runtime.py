@@ -10,14 +10,8 @@ import assistant_workflow as workflow
 
 def gate(kind, draft, *, approved=None):
     with workflow.LOCK:
-        workflow.reclaim_records()
-        total = sum(p.stat().st_size for p in workflow.root().rglob('*') if p.is_file())
-        db = workflow.root() / 'graph_checkpoint.sqlite'
-        from persistent_records_v1 import is_record, reserve_space
-        persistent = is_record(workflow.root())
-        if persistent:reserve_space(workflow.root(),1024*1024)
-        if not persistent and total + max(0, 1024 * 1024 - (db.stat().st_size if db.exists() else 0)) > workflow.LIMIT:
-            raise ValueError('助手图恢复预算不足；报价和持仓风控继续运行')
+        from persistent_records_v1 import reserve_space
+        reserve_space(workflow.root(), 1024 * 1024)
         # Dedicated interpreter, never sys.executable (that would recursively launch the exe).
         app = Path(paths.APP_DIR).resolve()
         project = app.parent.parent if app.name == 'dist' else app.parent
@@ -30,8 +24,7 @@ def gate(kind, draft, *, approved=None):
             datetime.fromisoformat(draft['created_at']).replace(tzinfo=local_zone) + timedelta(days=1))
         if approved is True and datetime.now(local_zone) >= expires:
             raise ValueError('草案已过期，请重新生成；旧记录保留')
-        body = {'root': str(workflow.root()), 'kind': kind, 'draft_id': draft['id'], 'persistent_records':persistent,
-                'action': 'prepare' if approved is None else 'confirm', 'approved': approved,
+        body = {'root': str(workflow.root()), 'kind': kind, 'draft_id': draft['id'], 'action': 'prepare' if approved is None else 'confirm', 'approved': approved,
                 'expires_at': expires.isoformat(), 'now': datetime.now(local_zone).isoformat()}
         try:
             completed = subprocess.run([str(python), '-B', '-X', 'utf8', str(worker)],
