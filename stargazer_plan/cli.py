@@ -42,7 +42,25 @@ RISK_TYPES = ("E0_HARD_STOP", "TRAIL_STOP", "REBOUND_FAIL", "TIME_EXIT",
               "MANUAL_OTHER")
 
 MINUTE_CACHE = Path(__file__).resolve().parent / "data" / "minute_cache"
-DAILY_PARTS = Path(r"D:/a股数据/data_daily_parts")
+
+
+def _daily_parts_root():
+    """日线分区目录：环境变量 > 本机覆盖文件 stargazer_plan/data/daily_parts_root.txt
+    （已 gitignore）> 兼容旧缺省。与桌面版同一回退口径（STARGAZER_TDX_ROOT 不直接
+    指向日线分区，故单独覆盖文件）。"""
+    import os
+    env = os.environ.get('STARGAZER_DAILY_PARTS')
+    if env:
+        return env
+    override = Path(__file__).resolve().parent / 'data' / 'daily_parts_root.txt'
+    if override.is_file():
+        text = override.read_text(encoding='utf-8').strip()
+        if text:
+            return text
+    return r'D:/a股数据/data_daily_parts'
+
+
+DAILY_PARTS = Path(_daily_parts_root())
 
 
 def load_minute(code, day, *, force=False):

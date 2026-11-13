@@ -3,15 +3,27 @@
 从 cli.py 原样搬来 load_minute / load_pre_close / _next_trade_day：
 akshare/pandas 延迟 import，监控机只需 akshare+pandas 即可运行。
 
-日线 parquet 目录缺省 D:/a股数据/data_daily_parts，可用环境变量
-STARGAZER_DAILY_PARTS 覆盖（监控机/便携环境指向自己的数据目录）。
+日线 parquet 目录：环境变量 STARGAZER_DAILY_PARTS > 本机覆盖文件
+stargazer_plan/data/daily_parts_root.txt（已 gitignore）> 兼容旧缺省。
 """
 import os
 from pathlib import Path
 
+
+def _daily_parts_root():
+    env = os.environ.get("STARGAZER_DAILY_PARTS")
+    if env:
+        return env
+    override = Path(__file__).resolve().parent / "data" / "daily_parts_root.txt"
+    if override.is_file():
+        text = override.read_text(encoding="utf-8").strip()
+        if text:
+            return text
+    return r"D:/a股数据/data_daily_parts"
+
+
 MINUTE_CACHE = Path(__file__).resolve().parent / "data" / "minute_cache"
-BARS_PARTS = Path(os.environ.get("STARGAZER_DAILY_PARTS",
-                                r"D:/a股数据/data_daily_parts"))
+BARS_PARTS = Path(_daily_parts_root())
 
 
 def load_minute(code, day, *, force=False):
