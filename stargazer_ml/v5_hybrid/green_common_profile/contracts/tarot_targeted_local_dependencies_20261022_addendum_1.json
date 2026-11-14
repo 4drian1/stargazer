@@ -1,5 +1,0 @@
-{
-  "purpose": "Formalize the one-key recovery already registered in the authoritative roadmap before recovery execution.",
-  "exception": "Attempt247, minute002402/20250305: HTTP body read succeeded but decoder callback recursed before persistence. Count remains247, body not invented and256KiB reserved. Permit exactly one explicit same-key capture, retained as a new snapshot with own timestamp/hash, within unchanged512 total attempt cap. No general retries or network retry loop.",
-  "engineering": "Original strict list parser is pinned independently of callback binding; JSON and MessagePack plus direct raw-daily dictionaries accepted only with same identity/date checks. Original246 raw responses re-decoded offline without request. First completed label round reused. Original scripts/failure/snapshots preserved."
-}

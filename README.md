@@ -35,7 +35,7 @@
 | `stargazer_ml/v5_hybrid/` | 选股/风险规则与模型（green_common_profile、risk_r0_v1 等） |
 | `corvus/`、`c3/` | Corvus 公告信息层（采集、I33 重要性、D2 规则层） |
 | `stargazer_plan/` | 交易计划库：CLI（draft/freeze/settle/record/export/merge）、PG 状态机、不可变版本 |
-| `migration_support/`、`release_audit_v1/` | 迁移支持资料与发布指纹清单工具 |
+| `scripts/archive/migration/`、`release_audit_v1/` | 已归档迁移资料与发布指纹清单工具 |
 | `开发路线.txt` | 唯一主路线（新对话必读） |
 | `交接摘要.md` | 状态速查与每日操作协议 |
 

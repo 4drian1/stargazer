@@ -179,12 +179,7 @@
 # Tarot fold 模型与冻结输入（green_common_profile/round_a_v0_1_impl_fix 逐文件放行）
 !/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/
 /stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/*
-!/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/fold_model_F3_B2.pkl
-!/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/fold_model_FINAL_B2.pkl
 !/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/full_master_table_v2.py
-!/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/full_master_table_v2.parquet
-!/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/full_intraday_replay_v2.parquet
-!/stargazer_ml/v5_hybrid/green_common_profile/round_a_v0_1_impl_fix/rolling_lr_v2_predictions.parquet
 
 # Tarot live 选股头（tarot_live_v2.MODEL）+ 冻结域 run.py + 清单内诊断脚本
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/
@@ -192,7 +187,6 @@
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/run.py
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/initial_node_cash_fit_20261023_v1/
 /stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/initial_node_cash_fit_20261023_v1/*
-!/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/initial_node_cash_fit_20261023_v1/model.pkl
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/execution_alignment_diagnostic_20261022_v1/
 /stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/execution_alignment_diagnostic_20261022_v1/*
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/execution_alignment_diagnostic_20261022_v1/diagnose_execution.py
@@ -204,7 +198,6 @@
 !/stargazer_ml/v5_hybrid/green_common_profile/tarot_a_second_leg_fit_20261022_v1/stockdb_sdk_adapter_diagnostic_20261022_v1/adapter.py
 
 # Tarot 冻结指纹清单（v18 相对路径键）与分钟网格
-!/stargazer_ml/v5_hybrid/green_common_profile/tarot_live_manifest_v18_20261026_rel.json.gz
 !/stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/
 /stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/*
 !/stargazer_ml/v5_hybrid/green_common_profile/gcp_round_b_small_sample_v1/minute_grid.json
@@ -215,13 +208,11 @@
 # Pyxis 232主版/266对照版 模型目录（只放行模型四件套，预测/报告产物仍排除）
 !/stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/
 /stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/*
-!/stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/lightgbm_model.txt.gz
 !/stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/lightgbm_preprocessing.json
 !/stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/manifest.json
 !/stargazer_ml/v5_hybrid/risk_r0_v1/auxiliary_120m_fixed_fit_20261018_v1/plan.json
 !/stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/
 /stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/*
-!/stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/lightgbm_model.txt.gz
 !/stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/lightgbm_preprocessing.json
 !/stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/manifest.json
 !/stargazer_ml/v5_hybrid/risk_r0_v1/common_candidate_fixed_fit_20261019_v1/plan.json
@@ -236,8 +227,6 @@
 /stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/*
 !/stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/_upstream/
 /stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/_upstream/*
-!/stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/_upstream/stockdb_boards_snapshot.parquet
-!/stargazer_ml/v5_hybrid/opportunity_v2/o5_sector_lag/pit_membership.parquet
 
 # 冻结指纹输入：隔离名单 / 清单内桌面验收脚本所在目录
 !/stargazer_ml/pullback_train/quarantine_2026.csv
@@ -343,3 +332,4 @@
 !/scripts/archive/
 !/scripts/archive/release_audit/
 !/scripts/archive/release_audit/*.py
+/交接摘要.md

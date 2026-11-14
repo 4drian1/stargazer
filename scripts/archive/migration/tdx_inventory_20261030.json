@@ -1,8 +1,8 @@
 {
   "meta": {
     "tdx_root_env": null,
-    "vipdoc": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\vipdoc",
-    "install_root": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）",
+    "vipdoc": "D:\\chat_attachments\\local-user-files\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\vipdoc",
+    "install_root": "D:\\chat_attachments\\local-user-files\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）",
     "vipdoc_exists": true,
     "t0002_exists": true,
     "base_dbf_exists": true,
@@ -312,7 +312,7 @@
       ]
     },
     "base_dbf": {
-      "path": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
+      "path": "D:\\chat_attachments\\local-user-files\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
       "exists": true
     }
   },
@@ -333,7 +333,7 @@
     "exists": true,
     "count": 8277,
     "empty": false,
-    "path_used": "D:\\xwechat_files\\wxid_o2pync3r8pwi22_7e7c\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
+    "path_used": "D:\\chat_attachments\\local-user-files\\msg\\attach\\f8420fdf70caa64279ff160028b64197\\2026-09\\Rec\\bb5d6414f73b90d2\\F\\0\\new_mpv （9月）\\T0002\\hq_cache\\base.dbf",
     "name_source": "stockdb_parquet",
     "name_source_available": true,
     "missing_daily_count": 2381,

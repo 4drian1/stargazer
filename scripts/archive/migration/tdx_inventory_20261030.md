@@ -1,6 +1,6 @@
 # 通达信盘后数据盘点（只读，第1步） 2026-10-30T18:13:19
 
-- vipdoc: `D:\xwechat_files\wxid_o2pync3r8pwi22_7e7c\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\vipdoc`
+- vipdoc: `D:\chat_attachments\local-user-files\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\vipdoc`
 - STARGAZER_TDX_ROOT 环境变量: 未设置（用默认回退）
 - 最新完整日: **2026-10-30**  判定: **CURRENT**
 - 全市场日线文件数: 6205；日线集合指纹: cc4dbbfb1f9afa91
@@ -11,7 +11,7 @@
 - bj: 股票 354 / 指数 0 / 日线条数 74986
 
 ## base.dbf（证券基础/股本/行业；名称/ST 来自 stockdb 名称表）
-- 真表路径: `D:\xwechat_files\wxid_o2pync3r8pwi22_7e7c\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\T0002\hq_cache\base.dbf`；条目: 8277；ST/退(据名称): 212
+- 真表路径: `D:\chat_attachments\local-user-files\msg\attach\f8420fdf70caa64279ff160028b64197\2026-09\Rec\bb5d6414f73b90d2\F\0\new_mpv （9月）\T0002\hq_cache\base.dbf`；条目: 8277；ST/退(据名称): 212
 - 名称/ST 来源: stockdb 日线 parquet（有效证券名称表，只读参照）；base.dbf 本身无名称字段，不伪造。
 - 与日线交叉：base 有但缺日线文件 **2381** 条（漏下载候选）
 
